@@ -75,13 +75,17 @@ class Agent():
         state = torch.from_numpy(state).double().to(device).unsqueeze(0)
 
         if isinstance(self.net, DropoutModel) and eval:
-            (alpha, beta), _, (epistemic, aleatoric) = self.dropout_uncer(state)
+            with torch.no_grad():
+                (alpha, beta), _, (epistemic, aleatoric) = self.dropout_uncer(state)
         elif isinstance(self.net, Sensitivity) and eval:
-            (alpha, beta), _, (epistemic, aleatoric) = self.sensitivity_uncert(state)
+            with torch.no_grad():
+                (alpha, beta), _, (epistemic, aleatoric) = self.sensitivity_uncert(state)
         elif isinstance(self.net, list) and eval:
-            (alpha, beta), _, (epistemic, aleatoric) = self.boot_uncert(state)
+            with torch.no_grad():
+                (alpha, beta), _, (epistemic, aleatoric) = self.boot_uncert(state)
         elif isinstance(self.net, BayesianModel) and eval:
-            (alpha, beta), _, (epistemic, aleatoric) = self.bayes_uncert(state)
+            with torch.no_grad():
+                (alpha, beta), _, (epistemic, aleatoric) = self.bayes_uncert(state)
         else:
             epistemic = torch.Tensor([0])
             aleatoric = torch.Tensor([0])
@@ -262,96 +266,91 @@ class Agent():
         return (torch.mean(alpha_list, dim=0), torch.mean(beta_list, dim=0)), torch.mean(v_list, dim=0)
 
     def boot_uncert(self, state):
-        with torch.no_grad():
-            alpha_list = []
-            beta_list = []
-            sigma_list = []
-            v_list = []
-            for net in self.net:
-                (alpha, beta), v, sigma = net(state)
-                sigma_list.append(sigma)
-                alpha_list.append(alpha)
-                beta_list.append(beta)
-                v_list.append(v)
-            sigma_list = torch.stack(sigma_list)
-            alpha_list = torch.stack(alpha_list)
-            beta_list = torch.stack(beta_list)
-            v_list = torch.stack(v_list)
+        alpha_list = []
+        beta_list = []
+        sigma_list = []
+        v_list = []
+        for net in self.net:
+            (alpha, beta), v, sigma = net(state)
+            sigma_list.append(sigma)
+            alpha_list.append(alpha)
+            beta_list.append(beta)
+            v_list.append(v)
+        sigma_list = torch.stack(sigma_list)
+        alpha_list = torch.stack(alpha_list)
+        beta_list = torch.stack(beta_list)
+        v_list = torch.stack(v_list)
 
-            #var = alpha*beta / ((alpha+beta+1)*(alpha+beta)**2)
-            #epistemic = torch.mean(torch.var(alpha_list, dim=0)) + torch.mean(torch.var(beta_list, dim=0))
-            epistemic = torch.mean(torch.var(alpha_list / (alpha_list + beta_list), dim=0))
-            aleatoric = torch.mean(sigma_list, dim=0)
+        #var = alpha*beta / ((alpha+beta+1)*(alpha+beta)**2)
+        #epistemic = torch.mean(torch.var(alpha_list, dim=0)) + torch.mean(torch.var(beta_list, dim=0))
+        epistemic = torch.mean(torch.var(alpha_list / (alpha_list + beta_list), dim=0))
+        aleatoric = torch.mean(sigma_list, dim=0)
         return (torch.mean(alpha_list, dim=0), torch.mean(beta_list, dim=0)), torch.mean(v_list, dim=0), (epistemic, aleatoric)
 
 
     def dropout_uncer(self, state, predict=False):
         self.net.use_dropout(val=False)                 # Activate dropout layers
-        with torch.no_grad():
-            alpha_list = []
-            beta_list = []
-            sigma_list = []
-            v_list = []
-            for _ in range(self.q):
-                (alpha, beta), v, sigma = self.net(state)
-                sigma_list.append(sigma)
-                alpha_list.append(alpha)
-                beta_list.append(beta)
-                v_list.append(v)
-            sigma_list = torch.stack(sigma_list)
-            alpha_list = torch.stack(alpha_list)
-            beta_list = torch.stack(beta_list)
-            v_list = torch.stack(v_list)
-            self.net.use_dropout(val=True)              # Deactivate dropout layers
+        alpha_list = []
+        beta_list = []
+        sigma_list = []
+        v_list = []
+        for _ in range(self.q):
+            (alpha, beta), v, sigma = self.net(state)
+            sigma_list.append(sigma)
+            alpha_list.append(alpha)
+            beta_list.append(beta)
+            v_list.append(v)
+        sigma_list = torch.stack(sigma_list)
+        alpha_list = torch.stack(alpha_list)
+        beta_list = torch.stack(beta_list)
+        v_list = torch.stack(v_list)
+        self.net.use_dropout(val=True)              # Deactivate dropout layers
 
-            #var = alpha*beta / ((alpha+beta+1)*(alpha+beta)**2)
-            epistemic = torch.mean(torch.var(alpha_list / (alpha_list + beta_list), dim=0))
-            
-            if predict:
-                alpha, beta, v = torch.mean(alpha_list, dim=0), torch.mean(beta_list, dim=0), torch.mean(v_list, dim=0)
-                aleatoric = torch.mean(sigma_list, dim=0)
-            else:
-                (alpha, beta), v, sigma = self.net(state)
-                aleatoric = sigma
+        #var = alpha*beta / ((alpha+beta+1)*(alpha+beta)**2)
+        epistemic = torch.mean(torch.var(alpha_list / (alpha_list + beta_list), dim=0))
+        
+        if predict:
+            alpha, beta, v = torch.mean(alpha_list, dim=0), torch.mean(beta_list, dim=0), torch.mean(v_list, dim=0)
+            aleatoric = torch.mean(sigma_list, dim=0)
+        else:
+            (alpha, beta), v, sigma = self.net(state)
+            aleatoric = sigma
                 
         return (alpha, beta), v, (epistemic, aleatoric)
 
     def sensitivity_uncert(self, state):
-        with torch.no_grad():
+        # Random matrix -1/0/1
+        rand_dir = self.delta*(torch.empty(self.q, state.shape[1], state.shape[2], state.shape[3]).random_(3).double().to(device) - 1)
+        rand_dir += state
+        rand_dir[rand_dir > self.input_range[1]] = self.input_range[1]
+        rand_dir[rand_dir < self.input_range[0]] = self.input_range[0]
 
-            # Random matrix -1/0/1
-            rand_dir = self.delta*(torch.empty(self.q, state.shape[1], state.shape[2], state.shape[3]).random_(3).double().to(device) - 1)
-            rand_dir += state
-            rand_dir[rand_dir > self.input_range[1]] = self.input_range[1]
-            rand_dir[rand_dir < self.input_range[0]] = self.input_range[0]
+        (alpha, beta), v, sigma = self.net(rand_dir)
 
-            (alpha, beta), v, sigma = self.net(rand_dir)
+        #var = alpha*beta / ((alpha+beta+1)*(alpha+beta)**2)
+        epistemic = torch.mean(torch.var(alpha / (alpha + beta), dim=0))
+        #aleatoric = torch.mean(sigma, dim=0)
 
-            #var = alpha*beta / ((alpha+beta+1)*(alpha+beta)**2)
-            epistemic = torch.mean(torch.var(alpha / (alpha + beta), dim=0))
-            #aleatoric = torch.mean(sigma, dim=0)
-
-            (alpha, beta), v, sigma = self.net(state)
-            aleatoric = sigma
+        (alpha, beta), v, sigma = self.net(state)
+        aleatoric = sigma
 
         #return (torch.mean(alpha, dim=0).view(1, -1), torch.mean(beta, dim=0).view(1, -1)), torch.mean(v, dim=0), (epistemic, aleatoric)
         return (alpha, beta), v, (epistemic, aleatoric)
 
     def bayes_uncert(self, state):
-        with torch.no_grad():
-            alpha_list = []
-            beta_list = []
-            v_list = []
-            for _ in range(self.q):
-                (alpha, beta), v = self.net(state)
-                alpha_list.append(alpha)
-                beta_list.append(beta)
-                v_list.append(v)
-            alpha_list = torch.stack(alpha_list)
-            beta_list = torch.stack(beta_list)
-            v_list = torch.stack(v_list)
+        alpha_list = []
+        beta_list = []
+        v_list = []
+        for _ in range(self.q):
+            (alpha, beta), v = self.net(state)
+            alpha_list.append(alpha)
+            beta_list.append(beta)
+            v_list.append(v)
+        alpha_list = torch.stack(alpha_list)
+        beta_list = torch.stack(beta_list)
+        v_list = torch.stack(v_list)
 
-            epistemic = torch.mean(torch.var(alpha_list / (alpha_list + beta_list), dim=0))
-            aleatoric = torch.Tensor([0])
+        epistemic = torch.mean(torch.var(alpha_list / (alpha_list + beta_list), dim=0))
+        aleatoric = torch.Tensor([0])
         
         return (torch.mean(alpha_list, dim=0), torch.mean(beta_list, dim=0)), torch.mean(v_list, dim=0), (epistemic, aleatoric)
