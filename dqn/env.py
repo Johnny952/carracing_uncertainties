@@ -63,7 +63,7 @@ class Env():
     def render(self, *args):
         """Show the state of the environment
         """        
-        self.env.render(*args)
+        self._env.render(*args)
 
 
 if __name__ == "__main__":
@@ -71,4 +71,10 @@ if __name__ == "__main__":
 
     s0 = env.reset()
 
-    print(env.step([0, 1, 0]))
+    for i in range(100):
+        next_state, reward, done = env.step([0, 1, 0])
+        if done:
+            break
+        print("Step: {:.0f}, Reward: {:.3f}, Done: {}".format(i+1, reward, done))
+        env.render()
+    print("")
