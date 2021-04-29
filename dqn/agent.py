@@ -9,7 +9,7 @@ from models import Net
 
 
 class Agent:
-    def __init__(self, img_stack, actions, learning_rate, gamma, epsilon, nb_training_steps, buffer_capacity, batch_size, device='cpu', epsilon_decay=True):
+    def __init__(self, img_stack, actions, learning_rate, gamma, epsilon, nb_training_steps, buffer_capacity, batch_size, device='cpu', epsilon_decay=True, clip_grad=False):
         """Constructor of Agent class
 
         Args:
@@ -25,6 +25,7 @@ class Agent:
             epsilon_decay (bool, optional): Whether to use epsilon decay or not. Defaults to True.
         """        
         self._device = device
+        self._clip_grad = clip_grad
         
         self._Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward', 'done'))
         self._buffer = ReplayMemory(buffer_capacity, batch_size, self._Transition)
@@ -53,7 +54,7 @@ class Agent:
 
         Args:
             state (np.ndarray): State in time t
-            action (int): Action index taken in time t
+            action (torch.Tensot): Action index taken in time t
             next_state (np.ndarray): State in time t+1
             reward (float): Reward of moving from state t to t+1
             done (bool): Whether state in time t+1 is terminal or not
@@ -75,7 +76,7 @@ class Agent:
             p.requires_grad = False
         
     def select_action(self, observation, greedy=False):
-        """[summary]
+        """Selects a epislon greedy action
 
         Args:
             observation (np.ndarray): Observation of the environment
@@ -83,6 +84,7 @@ class Agent:
 
         Returns:
             int: The action taken
+            int: The corresponding action index
         """        
         if np.random.random() > self._epsilon or greedy:
             # Select action greedily
@@ -118,6 +120,9 @@ class Agent:
             loss = self._criterion(state_action_values, expected_state_action_values.unsqueeze(1))
             self._optimizer.zero_grad()
             loss.backward()
+            if self._clip_grad:
+                for param in self._net.parameters():
+                    param.grad.data.clamp_(-1, 1)
             self._optimizer.step()
 
 
