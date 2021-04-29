@@ -1,25 +1,23 @@
-from collections import namedtuple, deque
+from collections import deque
 import random
-
-Transition = namedtuple('Transition',
-                        ('state', 'action', 'next_state', 'reward', 'done'))
-
 
 class ReplayMemory(object):
 
-    def __init__(self, capacity, batch_size):
+    def __init__(self, capacity, batch_size, Transition):
         """Constructor of Replay Buffer
 
         Args:
             capacity (int): Maximum number of experiences
             batch_size (int): Number of experiences to sample
+            Transition (namedtuple): Transition schema
         """        
         self.memory = deque([],maxlen=capacity)
         self.batch_size = batch_size
+        self._Transition = Transition
 
     def push(self, *args):
         """Save a experiences"""
-        self.memory.append(Transition(*args))
+        self.memory.append(self._Transition(*args))
 
     def sample(self):
         """Sample experiences
