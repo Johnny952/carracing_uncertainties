@@ -62,9 +62,9 @@ x, y = Variable(x), Variable(y)
 plt.figure('Figura1')#, figsize=(10,4)
 plt.plot(x.data.numpy(), y.data.numpy(), color = "blue")
 plt.scatter(x_train.data.numpy(), y_train.data.numpy(), color = "red")
-plt.title('Regression Analysis')
-plt.xlabel('Independent varible')
-plt.ylabel('Dependent varible')
+plt.title('Análisis de regresión')
+plt.xlabel('Variable independiente')#, fontsize=24
+plt.ylabel('Variable dependiente')#, fontsize=24
 #plt.savefig('curve_2.png')
 
 
@@ -84,8 +84,8 @@ gpr = GaussianProcessRegressor(kernel=kernel, random_state=0).fit(x_train.cpu().
 fig, ax = plt.subplots()#
 plt.cla()
 ax.set_title('Análisis de incertezas con Procesos Gaussianos')#, fontsize=35
-ax.set_xlabel('Variable dependiente')#, fontsize=24
-ax.set_ylabel('Variable independiente')#, fontsize=24
+ax.set_xlabel('Variable independiente')#, fontsize=24
+ax.set_ylabel('Variable dependiente')#, fontsize=24
 #ax.set_xlim(-11.0, 13.0)
 #ax.set_ylim(-1.1, 1.2)
 ax.plot(x.data.numpy(), y.data.numpy(), label="Real", color = "blue", alpha=1)
@@ -107,7 +107,7 @@ plt.legend()
 
 
 def loss_(x, net, kl_sampling=20):
-    mix = Mixture(x, dev=0.05, device=device)   
+    mix = Mixture(x, dev=0.05, device=device)
 
     samples = mix.sample(kl_sampling)
     logp = mix.logp(samples)
@@ -191,8 +191,8 @@ uncertainties =  2*(1 - np.exp(pred_x[1].cpu().data.numpy()))
 fig, ax = plt.subplots()#
 plt.cla()
 ax.set_title('Análisis de incertezas con Red Neuronal')#, fontsize=35
-ax.set_xlabel('Variable dependiente')#, fontsize=24
-ax.set_ylabel('Variable independiente')#, fontsize=24
+ax.set_xlabel('Variable independiente')#, fontsize=24
+ax.set_ylabel('Variable dependiente')#, fontsize=24
 ax.plot(x.data.numpy(), y.data.numpy(), label="Real", color = "blue", alpha=1)
 ax.plot(x.data.numpy(), pred_x[0].cpu().data.numpy(), label="Predicción Grilla", color = "green", alpha=0.6)
 ax.scatter(x_train.data.numpy(), pred_trainx[0].cpu().data.numpy(), label="Predicción Entrenamiento", color = "red", alpha=0.5, s=10)
@@ -204,8 +204,11 @@ plt.legend()
 
 
 plt.figure()
-plt.plot(x.cpu().data.numpy(), uncertainties/2)
-
-
+plt.plot(x.cpu().data.numpy(), uncertainties/2, label='Incertezas modelo Custom')
+plt.plot(x.cpu().data.numpy(), gpr_std/gpr_std.max(), label='Incertezas GP')
+plt.xlabel('Variable independiente')
+plt.ylabel('Incerteza Epistémica')
+plt.title('Incerteza epistémica de modelo custom')
+plt.legend()
 
 plt.show()
