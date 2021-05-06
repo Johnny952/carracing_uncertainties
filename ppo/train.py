@@ -15,6 +15,10 @@ import time
 from agent import Agent
 from env import Env
 
+from pyvirtualdisplay import Display
+display = Display(visible=0, size=(1400, 900))
+display.start()
+
 parser = argparse.ArgumentParser(description='Train a PPO agent for the CarRacing-v0')
 parser.add_argument('--gamma', type=float, default=0.99, metavar='G', help='discount factor (default: 0.99)')
 parser.add_argument('--action-repeat', type=int, default=8, metavar='N', help='repeat action in N frames (default: 8)')

@@ -124,6 +124,32 @@ class Agent:
                 for param in self._net.parameters():
                     param.grad.data.clamp_(-1, 1)
             self._optimizer.step()
+    
+    def save_param(self, epoch):
+        tosave = {
+            'epoch': epoch,
+            'model_state_disct': self._net.state_dict(),
+            'target_model_state_dict': self._target_net.state_dict(),
+            'optimizer_state_dict': self._optimizer.state_dict()
+        }
+        torch.save(tosave, 'param/ppo_net_param.pkl')
+    
+    def load_param(self, path, eval_mode=False):
+        checkpoint = torch.load(path)
+        self._net.load_state_dict(checkpoint['model_state_disct'])
+        self._target_net.load_state_dict(checkpoint['target_model_state_dict'])
+        self._optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+
+        if eval_mode:
+            self._net.eval()
+        else:
+            self._net.train()
+        return checkpoint['epoch']
+    
+    def eval_mode(self):
+        self.net._eval()
+    def train_mode(self):
+        self._net.train()
 
 
 if __name__ == "__main__":

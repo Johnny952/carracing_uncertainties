@@ -1,10 +1,19 @@
 import os
 import psutil
+import torch
 
 import gym
 import numpy as np
 
-print(gym.__version__)
+from pyvirtualdisplay import Display
+
+display = Display(visible=0, size=(1400, 900))
+display.start()
+
+#gym.logger.set_level(40)
+
+if torch.cuda.is_available():
+    print("Using Cuda")
 
 env = gym.make('CarRacing-v0')
 running_score = 0
