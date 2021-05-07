@@ -4,6 +4,7 @@ import torch
 import os
 import time
 import wandb
+import json
 
 from utils import str2bool, save_uncert
 from agent import Agent
@@ -32,6 +33,8 @@ def train_agent(args, device='cpu'):
     config.buffer_capacity = agent.buffer_capacity
     config.args = args
 
+    wandb.watch(agent.net)
+
 
     training_records = []
     running_score = 0
@@ -39,6 +42,7 @@ def train_agent(args, device='cpu'):
 
     time_ep = []
     time_eval = 0
+    eval_idx = 0
 
     for i_ep in range(init_epoch, args.epochs):
         score = 0
@@ -61,7 +65,7 @@ def train_agent(args, device='cpu'):
             if done or die:
                 break
         running_score = running_score * 0.99 + score * 0.01
-        wandb.log({'Episode Running Score': float(running_score), 'Episode Score': float(score)})
+        wandb.log({'Episode': i_ep, 'Episode Running Score': float(running_score), 'Episode Score': float(score)})
 
         if len(time_ep) < 20:
             time_ep += [time.time() - tic]
@@ -90,8 +94,9 @@ def train_agent(args, device='cpu'):
         if args.val_interval and i_ep % args.val_interval == 0:
             tic = time.time()
             mean_score, mean_uncert = eval_agent(agent, env, args.validations, i_ep, render=args.val_render)
-            wandb.log({'Eval Mean Score': float(mean_score), 'Eval Mean Uncert': float(mean_uncert)})
+            wandb.log({'Idx': eval_idx, 'Eval Mean Score': float(mean_score), 'Eval Mean Epist Uncert': float(mean_uncert[0]), 'Eval Mean Aleat Uncert': float(mean_uncert[0])})
             time_eval = time.time() - tic
+            eval_idx += 1
             print("Eval score: {}".format(mean_score))
             print("Uncertainties: {}".format(mean_uncert))
             #agent.train_mode()s
@@ -228,6 +233,8 @@ if __name__ == "__main__":
         torch.cuda.manual_seed(args.seed)
 
     # Init Wandb
-    wandb.init(project='carracing', entity='ppo')
+    with open("config.json") as config_file:
+        config = json.load(config_file)
+    wandb.init(project=config["project"], entity=config["entity"])
 
     train_agent(args, device)
