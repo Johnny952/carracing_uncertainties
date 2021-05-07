@@ -18,3 +18,9 @@ RUN pip install gym[box2d]==0.17.2 pyvirtualdisplay > /dev/null 2>&1
 # Install requirements
 COPY requirements.txt /opt/app/requirements.txt
 RUN pip install -r /opt/app/requirements.txt
+
+# Copy code
+# RUN mkdir /home/workspace
+# WORKDIR /home/workspace
+# COPY dqn/ /home/workspace/dqn/
+# COPY ppo/ /home/workspace/ppo/

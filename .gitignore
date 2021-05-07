@@ -1,6 +1,7 @@
 .ipynb_checkpoints
 .empty
 .vscode
+wandb/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

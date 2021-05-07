@@ -16,25 +16,26 @@ from customLoss import smooth_l1_loss
 
 from blitz.losses import kl_divergence_from_nn
 
-import nvidia_smi
+#import nvidia_smi
 
 
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda" if use_cuda else "cpu")
 
-nvidia_smi.nvmlInit()
-handle = nvidia_smi.nvmlDeviceGetHandleByIndex(0)
+#nvidia_smi.nvmlInit()
+#handle = nvidia_smi.nvmlDeviceGetHandleByIndex(0)
 
 class Agent():
     """
     Agent for training
     """
-    max_grad_norm = 0.5
-    clip_param = 0.1  # epsilon in clipped loss
-    ppo_epoch = 10
-    buffer_capacity, batch_size = 2000, 128
+    def __init__(self, args, model="base", max_grad_norm=0.5, clip_param=0.1, ppo_epoch=10, buffer_capacity=2000, batch_size=128, lr=1e-3):
+        self.max_grad_norm = max_grad_norm
+        self.clip_param = clip_param  # epsilon in clipped loss
+        self.ppo_epoch = ppo_epoch
+        self.buffer_capacity, self.batch_size = buffer_capacity, batch_size
+        self.lr = lr
 
-    def __init__(self, args, model="base"):
         self.training_step = 0
         self.q = args.uncert_q
         if model == "base":
@@ -56,9 +57,9 @@ class Agent():
         self.counter = 0
 
         if model == "bootstrap":
-            self.optimizer = [optim.Adam(net.parameters(), lr=1e-3) for net in self.net]
+            self.optimizer = [optim.Adam(net.parameters(), lr=lr) for net in self.net]
         else:
-            self.optimizer = optim.Adam(self.net.parameters(), lr=1e-3)
+            self.optimizer = optim.Adam(self.net.parameters(), lr=lr)
         self.gamma = args.gamma
 
         self.input_range = [0, 255]

@@ -2,3 +2,6 @@ blitz-bayesian-pytorch
 psutil
 box2d-py==2.3.8
 pyglet==1.5.0
+wandb
+memory_profiler
+pytorch-memlab==0.2.3
