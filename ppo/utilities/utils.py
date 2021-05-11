@@ -16,3 +16,7 @@ def save_uncert(epoch, val_episode, score, uncert, file='uncertainties/train.txt
             np.savetxt(f, np.concatenate(([epoch], [val_episode], [score], uncert.T.reshape(-1))).reshape(1, -1), delimiter=',')
         else:
             np.savetxt(f, np.concatenate(([epoch], [val_episode], [score], [sigma], uncert.T.reshape(-1))).reshape(1, -1), delimiter=',')
+
+def init_uncert_file(file='uncertainties/train.txt'):
+    with open(file, 'w+') as f:
+        pass

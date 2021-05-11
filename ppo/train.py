@@ -6,37 +6,14 @@ import time
 import wandb
 import json
 
-from utilities import str2bool, save_uncert
+from utilities import str2bool, save_uncert, init_uncert_file
 from agent import Agent
 from env import Env
 
 from pyvirtualdisplay import Display
 
 
-def train_agent(args, device='cpu'):
-    print("Training model: {} with {} networks".format(args.model, args.uncert_q))
-    
-    # Init Agent and Environment
-    agent = Agent(args, model=args.model)
-    env = Env(args)
-    init_epoch = 0
-    if args.from_checkpoint:
-        init_epoch = agent.load_param()
-    
-    # Wandb config specification
-    config = wandb.config
-    config.learning_rate = agent.lr
-    config.batch_size = agent.batch_size
-    config.max_grad_norm = agent.max_grad_norm
-    config.clip_param = agent.clip_param
-    config.ppo_epoch = agent.ppo_epoch
-    config.buffer_capacity = agent.buffer_capacity
-    config.args = args
-
-    wandb.watch(agent.net)
-
-
-    training_records = []
+def train_agent(agent, env, eval_env, episodes, nb_validations=1, init_ep=0, train_render=False, log_interval=10, val_interval=10, val_render=False):
     running_score = 0
     state = env.reset()
 
@@ -44,7 +21,7 @@ def train_agent(args, device='cpu'):
     time_eval = 0
     eval_idx = 0
 
-    for i_ep in range(init_epoch, args.epochs):
+    for i_ep in range(init_ep, episodes):
         score = 0
         state = env.reset()#load=True
 
@@ -52,7 +29,7 @@ def train_agent(args, device='cpu'):
         for t in range(1000):
             action, a_logp, (_, _) = agent.select_action(state)
             state_, reward, done, die = env.step(action * np.array([2., 1., 1.]) + np.array([-1., 0., 0.]))
-            if args.train_render:
+            if train_render:
                 env.render()
             if agent.store((state, action, a_logp, reward, state_)):
                 print('updating')
@@ -73,7 +50,7 @@ def train_agent(args, device='cpu'):
             time_ep = time_ep[1:] + [time.time() - tic]
 
 
-        if i_ep % args.log_interval == 0:
+        if i_ep % log_interval == 0:
             print('Ep {}\tLast score: {:.2f}\tMoving average score: {:.2f}'.format(i_ep, score, running_score))
             agent.save_param(i_ep)
 
@@ -83,23 +60,23 @@ def train_agent(args, device='cpu'):
             break
 
 
-        if i_ep % max(20, args.val_interval) == max(20, args.val_interval) - 1:
-            l = np.mean(time_ep) * (args.epochs - i_ep - 1) + time_eval * (args.epochs - i_ep - 1)//args.val_interval
+        if i_ep % max(20, val_interval) == max(20, val_interval) - 1:
+            l = np.mean(time_ep) * (episodes - i_ep - 1) + time_eval * (episodes - i_ep - 1)//val_interval
             h = l//3600
             m = l%3600//60
             s = l - h*3600 - m*60
             print("Estimated finish time: {:.0f}:{:.0f}:{:.0f}".format(h, m, s))
 
 
-        if args.val_interval and i_ep % args.val_interval == 0:
+        if val_interval and i_ep % val_interval == 0:
             tic = time.time()
-            mean_score, mean_uncert = eval_agent(agent, env, args.validations, i_ep, render=args.val_render)
+            mean_score, mean_uncert = eval_agent(agent, eval_env, nb_validations, i_ep, render=val_render)
             wandb.log({'Idx': eval_idx, 'Eval Mean Score': float(mean_score), 'Eval Mean Epist Uncert': float(mean_uncert[0]), 'Eval Mean Aleat Uncert': float(mean_uncert[0])})
             time_eval = time.time() - tic
             eval_idx += 1
             print("Eval score: {}".format(mean_score))
             print("Uncertainties: {}".format(mean_uncert))
-            #agent.train_mode()s
+            #agent.train_mode()
 
 
 def eval_agent(agent, env, validations, epoch, render=False):
@@ -127,8 +104,8 @@ def eval_agent(agent, env, validations, epoch, render=False):
         uncert = np.array(uncert)
         save_uncert(epoch, i_val, score, uncert)
 
-        mean_uncert += np.mean(uncert, axis=0) / args.validations
-        mean_score += score / args.validations
+        mean_uncert += np.mean(uncert, axis=0) / validations
+        mean_score += score / validations
     return mean_score, mean_uncert
 
 
@@ -205,8 +182,8 @@ if __name__ == "__main__":
         default='base', 
         help='Type of uncertainty model (default: base)')
     parser.add_argument(
-        '-UQ',
-        '--uncert-q', 
+        '-NN',
+        '--nb-nets', 
         type=int, 
         default=10, 
         help='Number of networks to estimate uncertainties')
@@ -237,4 +214,52 @@ if __name__ == "__main__":
         config = json.load(config_file)
     wandb.init(project=config["project"], entity=config["entity"])
 
-    train_agent(args, device)
+    #print("Training model: {} with {} networks".format(args.model, args.uncert_q))
+    
+    # Init Agent and Environment
+    agent = Agent(
+        args.nb_nets, 
+        args.img_stack,
+        args.gamma,
+        from_checkpoint=args.from_checkpoint,
+        model=args.model)
+    env = Env(
+        img_stack=args.img_stack,
+        action_repeat=args.action_repeat,
+        seed=args.seed
+    )
+    eval_env = Env(
+        img_stack=args.img_stack,
+        action_repeat=args.action_repeat,
+        seed=args.seed
+    )
+    init_epoch = 0
+    if args.from_checkpoint:
+        init_epoch = agent.load_param()
+    
+    # Wandb config specification
+    config = wandb.config
+    config.learning_rate = agent.lr
+    config.batch_size = agent.batch_size
+    config.max_grad_norm = agent.max_grad_norm
+    config.clip_param = agent.clip_param
+    config.ppo_epoch = agent.ppo_epoch
+    config.buffer_capacity = agent.buffer_capacity
+    config.args = args
+
+    init_uncert_file()
+
+    if isinstance(agent.net, list):
+        wandb.watch(agent.net[0])
+    else:
+        wandb.watch(agent.net)
+
+    train_agent(
+        agent, env, eval_env, 
+        episodes=args.epochs, 
+        nb_validations=args.validations, 
+        init_ep=init_epoch, 
+        train_render=args.train_render, 
+        log_interval=args.log_interval, 
+        val_interval=args.val_interval, 
+        val_render=args.val_render)

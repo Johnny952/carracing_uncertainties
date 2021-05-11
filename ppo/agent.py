@@ -29,7 +29,11 @@ class Agent():
     """
     Agent for training
     """
-    def __init__(self, args, model="base", max_grad_norm=0.5, clip_param=0.1, ppo_epoch=10, buffer_capacity=2000, batch_size=128, lr=1e-3):
+    def __init__(
+        self, nb_nets, img_stack, gamma, from_checkpoint=False,
+        model="base", max_grad_norm=0.5, 
+        clip_param=0.1, ppo_epoch=10, buffer_capacity=2000, 
+        batch_size=128, lr=1e-3):
         self.max_grad_norm = max_grad_norm
         self.clip_param = clip_param  # epsilon in clipped loss
         self.ppo_epoch = ppo_epoch
@@ -37,22 +41,22 @@ class Agent():
         self.lr = lr
 
         self.training_step = 0
-        self.q = args.uncert_q
+        self.q = nb_nets
         if model == "base":
-            self.net = Net(args).double().to(device)
+            self.net = Net(img_stack).double().to(device)
         elif model == "sensitivity":
-            self.net = Sensitivity(args).double().to(device)
+            self.net = Sensitivity(img_stack).double().to(device)
         elif model == "dropout":
-            self.net = DropoutModel(args).double().to(device)
+            self.net = DropoutModel(img_stack).double().to(device)
             self.net.use_dropout(val=True)                          # Dropout turned off during training
         elif model == "bootstrap":
-            self.net = [BootstrapModel(args).double().to(device) for _ in range(self.q)]
+            self.net = [BootstrapModel(img_stack).double().to(device) for _ in range(self.q)]
         elif model == "bnn":
-            self.net = BayesianModel(args).double().to(device)
+            self.net = BayesianModel(img_stack).double().to(device)
         else:
             raise ValueError("Model not implemented")
-        self.transition = np.dtype([('s', np.float64, (args.img_stack, 96, 96)), ('a', np.float64, (3,)), ('a_logp', np.float64),
-                                    ('r', np.float64), ('s_', np.float64, (args.img_stack, 96, 96))])
+        self.transition = np.dtype([('s', np.float64, (img_stack, 96, 96)), ('a', np.float64, (3,)), ('a_logp', np.float64),
+                                    ('r', np.float64), ('s_', np.float64, (img_stack, 96, 96))])
         self.buffer = np.empty(self.buffer_capacity, dtype=self.transition)
         self.counter = 0
 
@@ -60,13 +64,13 @@ class Agent():
             self.optimizer = [optim.Adam(net.parameters(), lr=lr) for net in self.net]
         else:
             self.optimizer = optim.Adam(self.net.parameters(), lr=lr)
-        self.gamma = args.gamma
+        self.gamma = gamma
 
         self.input_range = [0, 255]
         self.factor = 1/255
         self.delta = self.factor * (self.input_range[1] - self.input_range[0])
 
-        self.checkpoint = args.from_checkpoint
+        self.checkpoint = from_checkpoint
 
         self.sample_nbr = 15
         self.complexity_cost_weight = 1

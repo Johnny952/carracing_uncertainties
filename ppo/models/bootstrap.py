@@ -6,10 +6,10 @@ class BootstrapModel(nn.Module):
     Actor-Critic Network for PPO
     """
 
-    def __init__(self, args):
+    def __init__(self, img_stack):
         super(BootstrapModel, self).__init__()
         self.cnn_base = nn.Sequential(  # input shape (4, 96, 96)
-            nn.Conv2d(args.img_stack, 8, kernel_size=4, stride=2),
+            nn.Conv2d(img_stack, 8, kernel_size=4, stride=2),
             nn.ReLU(),  # activation
             nn.Conv2d(8, 16, kernel_size=3, stride=2),  # (8, 47, 47)
             nn.ReLU(),  # activation

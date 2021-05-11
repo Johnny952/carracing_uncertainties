@@ -7,11 +7,11 @@ from blitz.utils import variational_estimator
 
 @variational_estimator
 class BayesianModel(nn.Module):
-    def __init__(self, args):
+    def __init__(self, img_stack):
         super().__init__()
 
         self.cnn_base = nn.Sequential(  # input shape (4, 96, 96)
-            BayesianConv2d(args.img_stack, 8, (4, 4), stride=2),
+            BayesianConv2d(img_stack, 8, (4, 4), stride=2),
             nn.ReLU(),  # activation
             BayesianConv2d(8, 16, (3, 3), stride=2),  # (8, 47, 47)
             nn.ReLU(),  # activation

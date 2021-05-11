@@ -3,10 +3,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class DropoutModel(nn.Module):
-    def __init__(self, args, probs=[0.1]*7):
+    def __init__(self, img_stack, probs=[0.1]*7):
         super(DropoutModel, self).__init__()
         self.cnn_base = nn.Sequential(  # input shape (4, 96, 96)
-            nn.Conv2d(args.img_stack, 8, kernel_size=4, stride=2),
+            nn.Conv2d(img_stack, 8, kernel_size=4, stride=2),
             nn.Dropout(p=probs[0]),
             nn.ReLU(),  # activation
             nn.Conv2d(8, 16, kernel_size=3, stride=2),  # (8, 47, 47)

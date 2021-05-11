@@ -6,12 +6,12 @@ class Env():
     Environment wrapper for CarRacing 
     """
 
-    def __init__(self, args):
+    def __init__(self, img_stack, action_repeat, seed=0):
         self.env = gym.make('CarRacing-v0')
-        self.env.seed(args.seed)
+        self.env.seed(seed)
         self.reward_threshold = self.env.spec.reward_threshold
-        self.img_stack = args.img_stack
-        self.action_repeat = args.action_repeat
+        self.img_stack = img_stack
+        self.action_repeat = action_repeat
 
     def reset(self, save=False, load=False):
         self.counter = 0

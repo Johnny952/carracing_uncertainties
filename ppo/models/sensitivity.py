@@ -5,10 +5,10 @@ import torch.nn.functional as F
 # Base model
 
 class Sensitivity(nn.Module):
-    def __init__(self, args, uncert_q=5):
+    def __init__(self, img_stack):
         super(Sensitivity, self).__init__()
         self.cnn_base = nn.Sequential(  # input shape (4, 96, 96)
-            nn.Conv2d(args.img_stack, 8, kernel_size=4, stride=2),
+            nn.Conv2d(img_stack, 8, kernel_size=4, stride=2),
             nn.ReLU(),  # activation
             nn.Conv2d(8, 16, kernel_size=3, stride=2),  # (8, 47, 47)
             nn.ReLU(),  # activation

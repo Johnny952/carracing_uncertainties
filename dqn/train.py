@@ -9,7 +9,7 @@ from pyvirtualdisplay import Display
 
 from agent import Agent
 from env import Env
-from utils import str2bool, save_uncert
+from utils import str2bool, save_uncert, init_uncert_file
 
 
 def train_agent(env, eval_env, agent, nb_training_steps, nb_steps_target_replace, train_render=False, eval_render=False, eval_episodes=3, eval_every=10, batch_size=256, checkpoint=60):
@@ -274,6 +274,8 @@ if __name__ == "__main__":
     # Wandb config specification
     config = wandb.config
     config.args = args
+
+    init_uncert_file()
 
     wandb.watch(agent._net)
 
