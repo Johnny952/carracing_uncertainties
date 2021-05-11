@@ -14,6 +14,8 @@ The main dependencies are:
 - [blitz-bayesian-pytorch == 0.2.7](https://github.com/piEsposito/blitz-bayesian-deep-learning)
 
 ## Image and Container creation
+Before build the image, uncomment Dockerfile copy repo instructions.
+
 To build the image you can run directly ```sh scripts/build_docker.sh``` or execute the following command, where ```-t``` is the image tag name.
 
     docker build -t <image name> .
