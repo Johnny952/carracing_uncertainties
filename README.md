@@ -1,25 +1,36 @@
 # Car Racing with PyTorch
-Solving the car racing problem in OpenAI Gym using Proximal Policy Optimization (PPO). This problem has a real physical engine in the back end. You can achieve real racing actions in the environment, like drifting. 
+Solving ```CarRacing-v0``` problem from OpenAI using Proximal Policy Optimization and Deep Q-Learning. PPO implementation is based on https://github.com/xtma/pytorch_car_caring script.
 
-Based on https://github.com/xtma/pytorch_car_caring script.
+This implementation is done over Docker and VS Code, and you don't need to install anything else on your local machine.
 
 ## Requirement
-To run the code, you need
-- [pytorch 3.6.12](https://pytorch.org/)
-- [gym 0.9.6](https://github.com/openai/gym)
-- [visdom 0.1.8.9](https://github.com/facebookresearch/visdom)
+The required libraries used can be seen in ```requirements.txt``` and ```Dockerfile```, in the last file is installed mujoco, gym and every dependecy needed for them.
 
-## Method
-Every action will be repeated for 8 frames. To get velocity information, state is defined as adjacent 4 frames in shape (4, 96, 96). Use a two heads FCN to represent the actor and critic respectively. The actor outputs α, β for each action as the parameters of Beta distribution. 
-<div align=center><img src="img/network.png" width="30%" /></div>
+The main dependencies are:
+
+- [pytorch == 1.8.1](https://pytorch.org/)
+- [gym == 0.17.2](https://github.com/openai/gym)
+- [wandb == 0.10.29](https://wandb.ai)
+- [blitz-bayesian-pytorch == 0.2.7](https://github.com/piEsposito/blitz-bayesian-deep-learning)
+
+## Image and Container creation
+To build the image you can run directly ```sh scripts/build_docker.sh``` or execute the following command, where ```-t``` is the image tag name.
+
+    docker build -t <image name> .
+
+
+To create container run ```sh scripts/run_docker``` or execute the following command, where ```NVIDIA_VISIBLE_DEVICES=``` is the gpu number to use or gpus, change to 0 if you have only one:
+
+    docker run --name <container name> --rm --runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=<gpu/s number> -v -it <image name> /bin/bash
+
 
 ## Training
-Start a Visdom server with ```python -m visdom.server```, it will serve http://localhost:8097/ by default.
+You can start train the model getting inside the model folder you want to train and run train script, for example:
 
-To train the agent, run```python train.py --render --vis``` or ```python train.py --render``` without visdom. 
-To test, run ```python test.py --render```.
+    cd ppo/
+    python train.py
+
+There are many parameters, run ```python train.py -h``` to see them all and change them.
+
 
 ## Performance
-<div align=center><img src="img/car_racing_ppo.png" width="50%"/></div>
-<div align=center><img src="img/car_racing_demo_ppo.gif"/></div>
-
