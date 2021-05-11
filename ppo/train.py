@@ -6,7 +6,7 @@ import time
 import wandb
 import json
 
-from utils import str2bool, save_uncert
+from utilities import str2bool, save_uncert
 from agent import Agent
 from env import Env
 
@@ -60,7 +60,7 @@ def train_agent(args, device='cpu'):
             score += reward
             state = state_
 
-            wandb.log({'Step Reward': float(reward), 'Step Score': float(score)})
+            #wandb.log({'Step Reward': float(reward), 'Step Score': float(score)})
 
             if done or die:
                 break

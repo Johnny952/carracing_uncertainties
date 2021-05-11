@@ -9,7 +9,7 @@ from models import Net
 
 
 class Agent:
-    def __init__(self, img_stack, actions, learning_rate, gamma, epsilon, nb_training_steps, buffer_capacity, batch_size, device='cpu', epsilon_decay=True, clip_grad=False):
+    def __init__(self, img_stack, actions, learning_rate, gamma, epsilon, nb_training_steps, buffer_capacity, batch_size, device='cpu', epsilon_decay=0.999, clip_grad=False, epsilon_min=0):
         """Constructor of Agent class
 
         Args:
@@ -22,7 +22,7 @@ class Agent:
             buffer_capacity (int): Buffer capacity
             batch_size (int): Batch size
             device (str, optional): Use cuda or cpu. Defaults to 'cpu'.
-            epsilon_decay (bool, optional): Whether to use epsilon decay or not. Defaults to True.
+            epsilon_decay (float, optional): Epsilon decay factor. Defaults to 0.999.
         """        
         self._device = device
         self._clip_grad = clip_grad
@@ -33,21 +33,29 @@ class Agent:
         self._lr = learning_rate
         self._gamma = gamma
         self._epsilon = epsilon
-        self._use_eps_decay = epsilon_decay
+        self._epsilon_min = epsilon_min
+        self._epsilon_decay = epsilon_decay
 
         self._img_stack = img_stack
         self._actions = actions
 
-        if epsilon_decay:
-            self._epsilon_min = 0
-            self._epsilon_decay = self._epsilon / (nb_training_steps / 2.)
-        
         self._net = Net(img_stack, len(actions)).to(self._device)
         self._target_net = None
         self.replace_target_network()
         
         self._optimizer = torch.optim.Adam(self._net.parameters(), lr=learning_rate)
         self._criterion = nn.MSELoss()
+    
+    def empty_buffer(self):
+        """Empty replay buffer"""        
+        self._buffer.empty()
+    def nuber_experiences(self):
+        """Get number of saved experiences
+
+        Returns:
+            int: Number of experiences
+        """        
+        return len(self._buffer)
 
     def store_transition(self, state, action, next_state, reward, done):
         """Store a transition in replay buffer
@@ -60,11 +68,11 @@ class Agent:
             done (bool): Whether state in time t+1 is terminal or not
         """
         self._buffer.push(
-            torch.from_numpy(state).unsqueeze(dim=0), 
-            action.unsqueeze(dim=0), 
-            torch.from_numpy(next_state).unsqueeze(dim=0), 
-            torch.Tensor([reward]), 
-            torch.Tensor([done])
+            torch.from_numpy(np.array(state)).unsqueeze(dim=0).to(self._device), 
+            action.unsqueeze(dim=0).to(self._device), 
+            torch.from_numpy(np.array(next_state)).unsqueeze(dim=0).to(self._device), 
+            torch.Tensor([reward]).to(self._device), 
+            torch.Tensor([done]).to(self._device)
             )
 
     def replace_target_network(self):
@@ -95,14 +103,20 @@ class Agent:
             # Select random action
             index = torch.randint(0, len(self._actions), size=(1,))
         action = self._actions[index]
-        if not greedy and self._epsilon >= self._epsilon_min:
-            # Implement epsilon linear decay
-            self._epsilon -= self._epsilon_decay
+        # if not greedy and self._epsilon >= self._epsilon_min:
+        #     # epsilon  decay
+        #     self._epsilon *= self._epsilon_decay
         return action, index
     
+    def epsilon_step(self):
+        """Epsilon decay e = e*factor"""        
+        if self._epsilon >= self._epsilon_min:
+            # epsilon  decay
+            self._epsilon = (self._epsilon - self._epsilon_min) * self._epsilon_decay + self._epsilon_min
+            #self._epsilon *= self._epsilon_decay
+    
     def update(self):
-        """Trains agent model
-        """
+        """Trains agent model"""
         for _ in range(1):
             transitions = self._buffer.sample()
             batch = self._Transition(*zip(*transitions))
@@ -114,7 +128,8 @@ class Agent:
             done_batch = torch.cat(batch.done)
 
             state_action_values = self._net(state_batch).gather(1, action_batch)
-            next_state_values = ((1 - done_batch)*self._target_net(next_state_batch).max(1)[0]).detach()
+            with torch.no_grad():
+                next_state_values = ((1 - done_batch)*self._target_net(next_state_batch).max(1)[0]).detach()
             expected_state_action_values = (next_state_values * self._gamma) + reward_batch
 
             loss = self._criterion(state_action_values, expected_state_action_values.unsqueeze(1))
@@ -126,6 +141,11 @@ class Agent:
             self._optimizer.step()
     
     def save_param(self, epoch):
+        """Save agent's parameters
+
+        Args:
+            epoch (int): Training epoch
+        """        
         tosave = {
             'epoch': epoch,
             'model_state_disct': self._net.state_dict(),
@@ -135,6 +155,15 @@ class Agent:
         torch.save(tosave, 'param/ppo_net_param.pkl')
     
     def load_param(self, path, eval_mode=False):
+        """Load Agent checkpoint
+
+        Args:
+            path (str): Path to file
+            eval_mode (bool, optional): Whether to use agent in eval mode or not. Defaults to False.
+
+        Returns:
+            int: checkpoint epoch
+        """        
         checkpoint = torch.load(path)
         self._net.load_state_dict(checkpoint['model_state_disct'])
         self._target_net.load_state_dict(checkpoint['target_model_state_dict'])
@@ -147,8 +176,10 @@ class Agent:
         return checkpoint['epoch']
     
     def eval_mode(self):
+        """Prediction network in evaluation mode"""        
         self.net._eval()
     def train_mode(self):
+        """Prediction network in training mode"""   
         self._net.train()
 
 

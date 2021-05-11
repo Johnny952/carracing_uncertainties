@@ -1,6 +1,7 @@
 import gym
 import numpy as np
 from collections import deque
+from statistics import mean
 
 from utils import imgstackRGB2graystack
 
@@ -46,23 +47,23 @@ class Env():
         next_state, reward, done, _ = self._env.step(action)
         # green penalty last state
         if np.mean(next_state[-1][:, :, 1]) > 185.0:
-            reward -= 0.05
+            reward -= 5
         
-        # push reward in memory
-        self._reward_memory.append(reward)
         # penalty for die state
-        if np.mean(self._reward_memory) <= -0.1:
+        if len(self._reward_memory) > 20 and sum(self._reward_memory) <= -20:
             done = True
-            reward -= 10
+            reward -= 20
         
         if self._clip_reward is not None:
             reward = np.clip(reward, a_max=self._clip_reward)
+
+        # push reward in memory
+        self._reward_memory.append(reward)
         
-        return next_state, reward, done
+        return imgstackRGB2graystack(next_state), reward, done
     
     def render(self, *args):
-        """Show the state of the environment
-        """        
+        """Show the state of the environment"""        
         self._env.render(*args)
 
 

@@ -12,19 +12,29 @@ class Net(nn.Module):
         """        
         super(Net, self).__init__()
         self.cnn_base = nn.Sequential(  # input shape (4, 96, 96)
-            nn.Conv2d(img_stack, 8, kernel_size=4, stride=2),
+            nn.Conv2d(img_stack, 16, kernel_size=5), # (16, 92, 92)
             nn.ReLU(),  # activation
-            nn.Conv2d(8, 16, kernel_size=3, stride=2),  # (8, 47, 47)
+            nn.MaxPool2d(6, stride=6), # (16, 15, 15)
+            nn.Conv2d(16, 64, kernel_size=3),  # (64, 13, 13)
             nn.ReLU(),  # activation
-            nn.Conv2d(16, 32, kernel_size=3, stride=2),  # (16, 23, 23)
+            nn.MaxPool2d(6, stride=6),        # (64, 2, 2)
+            nn.Conv2d(64, 256, kernel_size=2),  # (256, 1, 1)
             nn.ReLU(),  # activation
-            nn.Conv2d(32, 64, kernel_size=3, stride=2),  # (32, 11, 11)
-            nn.ReLU(),  # activation
-            nn.Conv2d(64, 128, kernel_size=3, stride=1),  # (64, 5, 5)
-            nn.ReLU(),  # activation
-            nn.Conv2d(128, 256, kernel_size=3, stride=1),  # (128, 3, 3)
-            nn.ReLU(),  # activation
-        )  # output shape (256, 1, 1)
+            )
+        # self.cnn_base = nn.Sequential(  # input shape (4, 96, 96)
+        #     nn.Conv2d(img_stack, 8, kernel_size=4, stride=2),
+        #     nn.ReLU(),  # activation
+        #     nn.Conv2d(8, 16, kernel_size=3, stride=2),  # (8, 47, 47)
+        #     nn.ReLU(),  # activation
+        #     nn.Conv2d(16, 32, kernel_size=3, stride=2),  # (16, 23, 23)
+        #     nn.ReLU(),  # activation
+        #     nn.Conv2d(32, 64, kernel_size=3, stride=2),  # (32, 11, 11)
+        #     nn.ReLU(),  # activation
+        #     nn.Conv2d(64, 128, kernel_size=3, stride=1),  # (64, 5, 5)
+        #     nn.ReLU(),  # activation
+        #     nn.Conv2d(128, 256, kernel_size=3, stride=1),  # (128, 3, 3)
+        #     nn.ReLU(),  # activation
+        # )  # output shape (256, 1, 1)
         self.v = nn.Sequential(
             nn.Linear(256, 100),
             nn.ReLU(),

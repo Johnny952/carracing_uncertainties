@@ -11,13 +11,18 @@ class ReplayMemory(object):
             batch_size (int): Number of experiences to sample
             Transition (namedtuple): Transition schema
         """        
-        self.memory = deque([],maxlen=capacity)
+        self.memory = deque([], maxlen=capacity)
+        self._capacity = capacity
         self.batch_size = batch_size
         self._Transition = Transition
 
     def push(self, *args):
         """Save a experiences"""
         self.memory.append(self._Transition(*args))
+    
+    def empty(self):
+        """Empty memory"""        
+        self.memory.clear()
 
     def sample(self):
         """Sample experiences

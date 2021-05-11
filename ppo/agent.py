@@ -12,7 +12,7 @@ from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 
 import numpy as np
 
-from customLoss import smooth_l1_loss
+from utilities import smooth_l1_loss
 
 from blitz.losses import kl_divergence_from_nn
 

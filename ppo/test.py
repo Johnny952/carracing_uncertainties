@@ -6,7 +6,7 @@ import gym
 import torch
 import torch.nn as nn
 
-from utils import save_uncert
+from utilities import save_uncert
 
 from env import Env
 from agent import Agent
