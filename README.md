@@ -21,7 +21,7 @@ To build the image you can run directly ```sh scripts/build_docker.sh``` or exec
 
 To create container run ```sh scripts/run_docker``` or execute the following command, where ```NVIDIA_VISIBLE_DEVICES=``` is the gpu number to use or gpus, change to 0 if you have only one:
 
-    docker run --name <container name> --rm --runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=<gpu/s number> -v -it <image name> /bin/bash
+    docker run --name <container name> --rm --runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=<gpu/s number> -it <image name> /bin/bash
 
 
 ## Training
