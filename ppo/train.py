@@ -31,7 +31,7 @@ def train_agent(agent, env, eval_env, episodes, nb_validations=1, init_ep=0, tra
             state_, reward, done, die = env.step(action * np.array([2., 1., 1.]) + np.array([-1., 0., 0.]))
             if train_render:
                 env.render()
-            if agent.store((state, action, a_logp, reward, state_)):
+            if agent.store_transition((state, action, a_logp, reward, state_)):
                 print('updating')
                 agent.update()
             score += reward
@@ -196,6 +196,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
 
+    # Init model checkpoint folder and uncertainties folder
+    if not os.path.exists('param'):
+        os.makedirs('param')
+    if not os.path.exists('uncertainties'):
+        os.makedirs('uncertainties')
+
+
     # Virtual display
     if not args.train_render and not args.val_render:
         display = Display(visible=0, size=(1400, 900))
@@ -249,10 +256,10 @@ if __name__ == "__main__":
 
     init_uncert_file()
 
-    if isinstance(agent.net, list):
-        wandb.watch(agent.net[0])
+    if isinstance(agent._model._model, list):
+        wandb.watch(agent._model._model[0])
     else:
-        wandb.watch(agent.net)
+        wandb.watch(agent._model._model)
 
     train_agent(
         agent, env, eval_env, 

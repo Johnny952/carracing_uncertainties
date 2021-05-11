@@ -14,8 +14,6 @@ The main dependencies are:
 - [blitz-bayesian-pytorch == 0.2.7](https://github.com/piEsposito/blitz-bayesian-deep-learning)
 
 ## Image and Container creation
-Before build the image, uncomment Dockerfile copy repo instructions.
-
 To build the image you can run directly ```sh scripts/build_docker.sh``` or execute the following command, where ```-t``` is the image tag name.
 
     docker build -t <image name> .
@@ -33,6 +31,13 @@ You can start train the model getting inside the model folder you want to train 
     python train.py
 
 There are many parameters, run ```python train.py -h``` to see them all and change them.
+
+To use wandb, you have to add a file ```config.json``` at same level as ```train.py``` in ppo or dqn with the following:
+
+    {
+        "project": <project name>,
+        "entity": <entity name>
+    }
 
 
 ## Performance
