@@ -10,18 +10,18 @@ if __name__ == "__main__":
         '-P',
         '--project', 
         type=str, 
-        required=True
+        required=True,
         help='Project')
     parser.add_argument(
         '-E',
         '--entity', 
         type=str, 
-        required=True
+        required=True,
         help='Entity')
     parser.add_argument(
         '--path', 
         type=str, 
-        default='..'
+        default='..',
         help='Path to config file')
     args = parser.parse_args()
 
