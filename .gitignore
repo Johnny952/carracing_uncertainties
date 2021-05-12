@@ -9,6 +9,8 @@ render/
 param/
 # Uncertainties files
 uncertainties/
+#
+sync/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

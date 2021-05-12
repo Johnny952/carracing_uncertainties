@@ -37,6 +37,7 @@ class Model:
             self.input_range = [0, 255]
             self.factor = 1/255
             self.delta = self.factor * (self.input_range[1] - self.input_range[0])
+            self._criterion = smooth_l1_loss
             self._use_sigma = True
 
         elif model == "dropout":
@@ -52,6 +53,7 @@ class Model:
             self.save_model = self.save_boot_model
             self.load_model = self.load_boot_model
             self.train = self.train_boot_model
+            self._criterion = smooth_l1_loss
             self._use_sigma = True
 
         elif model == "bnn":
