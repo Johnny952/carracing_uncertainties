@@ -5,3 +5,4 @@ pyglet==1.5.0
 wandb==0.10.29
 memory_profiler
 pytorch-memlab==0.2.3
+ipython==7.18.0

@@ -1,13 +1,20 @@
 import gym
+from gym.wrappers import Monitor
 import numpy as np
+import base64
+import io
+from IPython import display
 
 class Env():
     """
     Environment wrapper for CarRacing 
     """
 
-    def __init__(self, img_stack, action_repeat, seed=0):
-        self.env = gym.make('CarRacing-v0')
+    def __init__(self, img_stack, action_repeat, seed=0, path_render=None):
+        if path_render is None:
+            self.env = gym.make('CarRacing-v0')
+        else:
+            self.env = Monitor(gym.make('CarRacing-v0'), './render/{}'.format(path_render))
         self.env.seed(seed)
         self.reward_threshold = self.env.spec.reward_threshold
         self.img_stack = img_stack

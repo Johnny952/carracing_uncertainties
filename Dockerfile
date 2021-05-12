@@ -20,7 +20,7 @@ COPY requirements.txt /opt/app/requirements.txt
 RUN pip install -r /opt/app/requirements.txt
 
 # Copy code, uncomment this before build image
-RUN mkdir /home/workspace
-WORKDIR /home/workspace
-COPY dqn/ /home/workspace/dqn/
-COPY ppo/ /home/workspace/ppo/
+RUN mkdir /home/user/workspace
+WORKDIR /home/user/workspace
+COPY dqn/ /home/user/workspace/dqn/
+COPY ppo/ /home/user/workspace/ppo/

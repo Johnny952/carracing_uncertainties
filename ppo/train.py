@@ -5,6 +5,7 @@ import os
 import time
 import wandb
 import json
+import glob
 
 from utilities import str2bool, save_uncert, init_uncert_file
 from agent import Agent
@@ -13,7 +14,7 @@ from env import Env
 from pyvirtualdisplay import Display
 
 
-def train_agent(agent, env, eval_env, episodes, nb_validations=1, init_ep=0, train_render=False, log_interval=10, val_interval=10, val_render=False):
+def train_agent(agent, env, eval_env, episodes, nb_validations=1, init_ep=0, log_interval=10, val_interval=10, val_render=False):
     running_score = 0
     state = env.reset()
 
@@ -29,8 +30,6 @@ def train_agent(agent, env, eval_env, episodes, nb_validations=1, init_ep=0, tra
         for t in range(1000):
             action, a_logp, (_, _) = agent.select_action(state)
             state_, reward, done, die = env.step(action * np.array([2., 1., 1.]) + np.array([-1., 0., 0.]))
-            if train_render:
-                env.render()
             if agent.store_transition((state, action, a_logp, reward, state_)):
                 print('updating')
                 agent.update()
@@ -89,23 +88,23 @@ def eval_agent(agent, env, validations, epoch, render=False):
         score = 0
         state = env.reset()
         done = False
+        die = False
 
         uncert = []
-        for t in range(eval_max_ep):
+        idx = 0
+        while not die:
             action, a_logp, (epis, aleat) = agent.select_action(state, eval=True)
             uncert.append([epis.view(-1).cpu().numpy()[0], aleat.view(-1).cpu().numpy()[0]])
             state_, reward, done, die = env.step(action * np.array([2., 1., 1.]) + np.array([-1., 0., 0.]))
-            if render:
-                env.render()
             score += reward
             state = state_
-            if done or die:
-                break
+
         uncert = np.array(uncert)
         save_uncert(epoch, i_val, score, uncert)
 
         mean_uncert += np.mean(uncert, axis=0) / validations
         mean_score += score / validations
+
     return mean_score, mean_uncert
 
 
@@ -140,6 +139,12 @@ if __name__ == "__main__":
         default=0, 
         help='random seed')
     parser.add_argument(
+        '-ES',
+        '--eval-seed', 
+        type=int, 
+        default=1, 
+        help='random evaluation environment seed')
+    parser.add_argument(
         '-LI',
         '--log-interval', 
         type=int, 
@@ -157,12 +162,6 @@ if __name__ == "__main__":
         type=str2bool, 
         default=False, 
         help='Whether to use checkpoint file')
-    parser.add_argument(
-        '-TR',
-        '--train-render', 
-        type=str2bool, 
-        default=False,
-        help='render the environment on training')
     parser.add_argument(
         '-VR',
         '--val-render', 
@@ -201,12 +200,17 @@ if __name__ == "__main__":
         os.makedirs('param')
     if not os.path.exists('uncertainties'):
         os.makedirs('uncertainties')
+    if not os.path.exists('render'):
+        os.makedirs('render')
+    else:
+        files = glob.glob('render/*')
+        for f in files:
+            os.remove(f)
 
-
+        
     # Virtual display
-    if not args.train_render and not args.val_render:
-        display = Display(visible=0, size=(1400, 900))
-        display.start()
+    display = Display(visible=0, size=(1400, 900))
+    display.start()
 
     # Whether to use cuda or cpu
     torch.cuda.empty_cache()
@@ -238,7 +242,8 @@ if __name__ == "__main__":
     eval_env = Env(
         img_stack=args.img_stack,
         action_repeat=args.action_repeat,
-        seed=args.seed
+        seed=args.eval_seed,
+        path_render='' if args.val_render else None
     )
     init_epoch = 0
     if args.from_checkpoint:
@@ -265,8 +270,7 @@ if __name__ == "__main__":
         agent, env, eval_env, 
         episodes=args.epochs, 
         nb_validations=args.validations, 
-        init_ep=init_epoch, 
-        train_render=args.train_render, 
+        init_ep=init_epoch,  
         log_interval=args.log_interval, 
         val_interval=args.val_interval, 
         val_render=args.val_render)
