@@ -19,6 +19,7 @@ class Env():
         self.reward_threshold = self.env.spec.reward_threshold
         self.img_stack = img_stack
         self.action_repeat = action_repeat
+        #self.env._max_episode_steps = your_value
 
     def reset(self, save=False, load=False):
         self.counter = 0
