@@ -69,7 +69,7 @@ class Model:
         
 
         if model == "bootstrap":
-            self._optimizer = [optim.Adam(net.parameters(), lr=lr) for net in self.net]
+            self._optimizer = [optim.Adam(net.parameters(), lr=lr) for net in self._model]
         else:
             self._optimizer = optim.Adam(self._model.parameters(), lr=lr)
 
@@ -138,7 +138,7 @@ class Model:
 
             optimizer.zero_grad()
             loss.backward()
-            # nn.utils.clip_grad_norm_(self.net.parameters(), self.max_grad_norm)
+            # nn.utils.clip_grad_norm_(self._model.parameters(), self.max_grad_norm)
             optimizer.step()
     
     def train_bayes_model(self, epochs, clip_param, database):
@@ -225,7 +225,7 @@ class Model:
         beta_list = []
         sigma_list = []
         v_list = []
-        for net in self.net:
+        for net in self._model:
             (alpha, beta), v, sigma = net(state)
             sigma_list.append(sigma)
             alpha_list.append(alpha)
@@ -244,13 +244,13 @@ class Model:
 
 
     def dropout_uncert(self, state, predict=False):
-        self.net.use_dropout(val=False)                 # Activate dropout layers
+        self._model.use_dropout(val=False)                 # Activate dropout layers
         alpha_list = []
         beta_list = []
         sigma_list = []
         v_list = []
-        for _ in range(self.q):
-            (alpha, beta), v, sigma = self.net(state)
+        for _ in range(self.nb_nets):
+            (alpha, beta), v, sigma = self._model(state)
             sigma_list.append(sigma)
             alpha_list.append(alpha)
             beta_list.append(beta)
@@ -259,7 +259,7 @@ class Model:
         alpha_list = torch.stack(alpha_list)
         beta_list = torch.stack(beta_list)
         v_list = torch.stack(v_list)
-        self.net.use_dropout(val=True)              # Deactivate dropout layers
+        self._model.use_dropout(val=True)              # Deactivate dropout layers
 
         #var = alpha*beta / ((alpha+beta+1)*(alpha+beta)**2)
         epistemic = torch.mean(torch.var(alpha_list / (alpha_list + beta_list), dim=0))
@@ -268,25 +268,25 @@ class Model:
             alpha, beta, v = torch.mean(alpha_list, dim=0), torch.mean(beta_list, dim=0), torch.mean(v_list, dim=0)
             aleatoric = torch.mean(sigma_list, dim=0)
         else:
-            (alpha, beta), v, sigma = self.net(state)
+            (alpha, beta), v, sigma = self._model(state)
             aleatoric = sigma
                 
         return (alpha, beta), v, (epistemic, aleatoric)
 
     def sensitivity_uncert(self, state):
         # Random matrix -1/0/1
-        rand_dir = self.delta*(torch.empty(self.q, state.shape[1], state.shape[2], state.shape[3]).random_(3).double().to(self.device) - 1)
+        rand_dir = self.delta*(torch.empty(self.nb_nets, state.shape[1], state.shape[2], state.shape[3]).random_(3).double().to(self.device) - 1)
         rand_dir += state
         rand_dir[rand_dir > self.input_range[1]] = self.input_range[1]
         rand_dir[rand_dir < self.input_range[0]] = self.input_range[0]
 
-        (alpha, beta), v, sigma = self.net(rand_dir)
+        (alpha, beta), v, sigma = self._model(rand_dir)
 
         #var = alpha*beta / ((alpha+beta+1)*(alpha+beta)**2)
         epistemic = torch.mean(torch.var(alpha / (alpha + beta), dim=0))
         #aleatoric = torch.mean(sigma, dim=0)
 
-        (alpha, beta), v, sigma = self.net(state)
+        (alpha, beta), v, sigma = self._model(state)
         aleatoric = sigma
 
         #return (torch.mean(alpha, dim=0).view(1, -1), torch.mean(beta, dim=0).view(1, -1)), torch.mean(v, dim=0), (epistemic, aleatoric)
@@ -296,8 +296,8 @@ class Model:
         alpha_list = []
         beta_list = []
         v_list = []
-        for _ in range(self.q):
-            (alpha, beta), v = self.net(state)
+        for _ in range(self.nb_nets):
+            (alpha, beta), v = self._model(state)
             alpha_list.append(alpha)
             beta_list.append(beta)
             v_list.append(v)

@@ -22,6 +22,5 @@ RUN pip install -r /opt/app/requirements.txt
 # Copy code, uncomment this before build image
 RUN mkdir /home/user/workspace
 RUN mkdir /home/user/workspace/sync
-WORKDIR /home/user/workspace
-#COPY dqn/ /home/user/workspace/dqn/
-#COPY ppo/ /home/user/workspace/ppo/
+WORKDIR /home/user/workspace/sync
+RUN git clone https://github.com/Johnny952/carracing_uncertainties.git

@@ -243,7 +243,8 @@ if __name__ == "__main__":
         img_stack=args.img_stack,
         action_repeat=args.action_repeat,
         seed=args.eval_seed,
-        path_render='' if args.val_render else None
+        path_render='' if args.val_render else None,
+        validations=args.validations
     )
     init_epoch = 0
     if args.from_checkpoint:
