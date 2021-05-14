@@ -69,8 +69,8 @@ def train_agent(agent, env, eval_env, episodes, nb_validations=1, init_ep=0, log
 
         if val_interval and i_ep % val_interval == 0:
             tic = time.time()
-            mean_score, mean_uncert = eval_agent(agent, eval_env, nb_validations, i_ep, render=val_render)
-            wandb.log({'Idx': eval_idx, 'Eval Mean Score': float(mean_score), 'Eval Mean Epist Uncert': float(mean_uncert[0]), 'Eval Mean Aleat Uncert': float(mean_uncert[0])})
+            mean_score, mean_uncert = eval_agent(agent, eval_env, nb_validations, i_ep)
+            wandb.log({'Idx': eval_idx, 'Eval Mean Score': float(mean_score), 'Eval Mean Epist Uncert': float(mean_uncert[0]), 'Eval Mean Aleat Uncert': float(mean_uncert[1])})
             time_eval = time.time() - tic
             eval_idx += 1
             print("Eval score: {}".format(mean_score))
@@ -78,9 +78,7 @@ def train_agent(agent, env, eval_env, episodes, nb_validations=1, init_ep=0, log
             #agent.train_mode()
 
 
-def eval_agent(agent, env, validations, epoch, render=False):
-    eval_max_ep = 1000
-
+def eval_agent(agent, env, validations, epoch):
     mean_score = 0
     mean_uncert = np.array([0, 0], dtype=np.float64)
     for i_val in range(validations):
