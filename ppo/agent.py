@@ -31,7 +31,7 @@ class Agent():
     def select_action(self, state, eval=False):
         state = torch.from_numpy(state).double().to(self.device).unsqueeze(0)
 
-        (alpha, beta), _, (epistemic, aleatoric) = self._model.forward_nograd(state)
+        (alpha, beta), _, (epistemic, aleatoric) = self._model.forward_nograd(state, use_uncert=eval)
         
         if eval:
             action = alpha / (alpha + beta)

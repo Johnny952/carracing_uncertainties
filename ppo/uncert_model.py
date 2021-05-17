@@ -10,7 +10,7 @@ import torch.nn.functional as F
 from torch.distributions import Beta
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 
-IMPLEMENTED_MODELS = (Sensitivity, DropoutModel, BootstrapModel, BayesianModel)
+IMPLEMENTED_MODELS = (Sensitivity, DropoutModel, list, BayesianModel) # Bootstrap is a list
 
 class Model:
     def __init__(self, nb_nets, lr, img_stack, gamma, batch_size, buffer_capacity, model='base', device='cpu'):
@@ -75,10 +75,10 @@ class Model:
 
 
 
-    def forward_nograd(self, state, eval=False):
+    def forward_nograd(self, state, use_uncert=True):
         if isinstance(self._model, IMPLEMENTED_MODELS):
             with torch.no_grad():
-                (alpha, beta), v, (epistemic, aleatoric) = self._forward(state)
+                (alpha, beta), v, (epistemic, aleatoric) = self._forward(state, use_uncert=use_uncert)
         else:
             epistemic = torch.Tensor([0])
             aleatoric = torch.Tensor([0])
@@ -92,8 +92,8 @@ class Model:
     def train_single_model(self, epochs, clip_param, database):
         (s, a, r, s_, old_a_logp) = database
 
-        target_v = r + self.gamma * self.forward_nograd(s_)[1]
-        adv = target_v - self.forward_nograd(s)[1]
+        target_v = r + self.gamma * self.forward_nograd(s_, use_uncert=False)[1]
+        adv = target_v - self.forward_nograd(s, use_uncert=False)[1]
 
         for _ in range(epochs):
             sampler = SubsetRandomSampler(range(self.buffer_capacity))
@@ -131,24 +131,25 @@ class Model:
             surr2 = torch.clamp(ratio, 1.0 - clip_param, 1.0 + clip_param) * adv[index]
             action_loss = -torch.min(surr1, surr2).mean()
             if self._use_sigma:
-                value_loss = self._criterion(self._model(s[index])[1], target_v[index], sigma, 1.0, reduction="mean")
+                value_loss = self._criterion(net(s[index])[1], target_v[index], sigma, 1.0, reduction="mean")
             else:
-                value_loss = self._criterion(self._model(s[index])[1], target_v[index])
+                value_loss = self._criterion(net(s[index])[1], target_v[index])
             loss = action_loss + 2. * value_loss
 
             optimizer.zero_grad()
             loss.backward()
-            # nn.utils.clip_grad_norm_(self._model.parameters(), self.max_grad_norm)
+            # nn.utils.clip_grad_norm_(net.parameters(), self.max_grad_norm)
             optimizer.step()
     
     def train_bayes_model(self, epochs, clip_param, database):
         (s, a, r, s_, old_a_logp) = database
 
-        target_v = r + self.gamma * self._model.forward_nograd(s_)[1]
-        adv = target_v - self._model.forward_nograd(s)[1]
+        target_v = r + self.gamma * self.forward_nograd(s_)[1]
+        adv = target_v - self.forward_nograd(s)[1]
 
         for _ in range(epochs):
-            sampler = SubsetRandomSampler(range(self.buffer_capacity))
+            rand_sampler = SubsetRandomSampler(range(self.buffer_capacity))
+            sampler = BatchSampler(rand_sampler, self.batch_size, False)
 
             for index in sampler:
                 loss = 0
@@ -161,13 +162,13 @@ class Model:
                     surr1 = ratio * adv[index]
                     surr2 = torch.clamp(ratio, 1.0 - clip_param, 1.0 + clip_param) * adv[index]
                     action_loss = -torch.min(surr1, surr2).mean()
-                    value_loss = self._criterion(net(s[index])[1], target_v[index])
+                    value_loss = self._criterion(self._model(s[index])[1], target_v[index])
                     
                     loss += action_loss + 2. * value_loss
-                    loss += net.nn_kl_divergence() * self.complexity_cost_weight
+                    loss += self._model.nn_kl_divergence() * self.complexity_cost_weight
                 self._optimizer.zero_grad()
                 loss.backward()
-                # nn.utils.clip_grad_norm_(net.parameters(), self.max_grad_norm)
+                # nn.utils.clip_grad_norm_(self._model.parameters(), self.max_grad_norm)
                 self._optimizer.step()
 
 
@@ -220,7 +221,7 @@ class Model:
 
 
 
-    def boot_uncert(self, state):
+    def boot_uncert(self, state, use_uncert=False):
         alpha_list = []
         beta_list = []
         sigma_list = []
@@ -243,56 +244,67 @@ class Model:
         return (torch.mean(alpha_list, dim=0), torch.mean(beta_list, dim=0)), torch.mean(v_list, dim=0), (epistemic, aleatoric)
 
 
-    def dropout_uncert(self, state, predict=False):
-        self._model.use_dropout(val=False)                 # Activate dropout layers
-        alpha_list = []
-        beta_list = []
-        sigma_list = []
-        v_list = []
-        for _ in range(self.nb_nets):
-            (alpha, beta), v, sigma = self._model(state)
-            sigma_list.append(sigma)
-            alpha_list.append(alpha)
-            beta_list.append(beta)
-            v_list.append(v)
-        sigma_list = torch.stack(sigma_list)
-        alpha_list = torch.stack(alpha_list)
-        beta_list = torch.stack(beta_list)
-        v_list = torch.stack(v_list)
-        self._model.use_dropout(val=True)              # Deactivate dropout layers
+    def dropout_uncert(self, state, use_uncert=False):
+        if use_uncert:
+            self._model.use_dropout(val=False)                 # Activate dropout layers
 
-        #var = alpha*beta / ((alpha+beta+1)*(alpha+beta)**2)
-        epistemic = torch.mean(torch.var(alpha_list / (alpha_list + beta_list), dim=0))
-        
-        if predict:
-            alpha, beta, v = torch.mean(alpha_list, dim=0), torch.mean(beta_list, dim=0), torch.mean(v_list, dim=0)
-            aleatoric = torch.mean(sigma_list, dim=0)
+            # Estimate uncertainties
+            alpha_list = []
+            beta_list = []
+            sigma_list = []
+            v_list = []
+            for _ in range(self.nb_nets):
+                with torch.no_grad():
+                    (alpha, beta), v, sigma = self._model(state)
+                sigma_list.append(sigma)
+                alpha_list.append(alpha)
+                beta_list.append(beta)
+                v_list.append(v)
+            sigma_list = torch.stack(sigma_list)
+            alpha_list = torch.stack(alpha_list)
+            beta_list = torch.stack(beta_list)
+            v_list = torch.stack(v_list)
+            self._model.use_dropout(val=True)              # Deactivate dropout layers
+
+            #var = alpha*beta / ((alpha+beta+1)*(alpha+beta)**2)
+            epistemic = torch.mean(torch.var(alpha_list / (alpha_list + beta_list), dim=0))
         else:
-            (alpha, beta), v, sigma = self._model(state)
-            aleatoric = sigma
+            epistemic = torch.tensor([0])
+        
+        # Predict
+        # alpha, beta, v = torch.mean(alpha_list, dim=0), torch.mean(beta_list, dim=0), torch.mean(v_list, dim=0)
+        # aleatoric = torch.mean(sigma_list, dim=0)
+        (alpha, beta), v, sigma = self._model(state)
+        aleatoric = sigma
                 
         return (alpha, beta), v, (epistemic, aleatoric)
 
-    def sensitivity_uncert(self, state):
-        # Random matrix -1/0/1
-        rand_dir = self.delta*(torch.empty(self.nb_nets, state.shape[1], state.shape[2], state.shape[3]).random_(3).double().to(self.device) - 1)
-        rand_dir += state
-        rand_dir[rand_dir > self.input_range[1]] = self.input_range[1]
-        rand_dir[rand_dir < self.input_range[0]] = self.input_range[0]
+    def sensitivity_uncert(self, state, use_uncert=False):
+        if use_uncert:
+            # Random matrix -1/0/1
+            rand_dir = self.delta*(torch.empty(self.nb_nets, state.shape[1], state.shape[2], state.shape[3]).random_(3).double().to(self.device) - 1)
+            rand_dir += state
+            rand_dir[rand_dir > self.input_range[1]] = self.input_range[1]
+            rand_dir[rand_dir < self.input_range[0]] = self.input_range[0]
 
-        (alpha, beta), v, sigma = self._model(rand_dir)
+            # Estimate uncertainties
+            with torch.no_grad():
+                (alpha, beta), v, sigma = self._model(rand_dir)
 
-        #var = alpha*beta / ((alpha+beta+1)*(alpha+beta)**2)
-        epistemic = torch.mean(torch.var(alpha / (alpha + beta), dim=0))
-        #aleatoric = torch.mean(sigma, dim=0)
+            #var = alpha*beta / ((alpha+beta+1)*(alpha+beta)**2)
+            epistemic = torch.mean(torch.var(alpha / (alpha + beta), dim=0))
+            #aleatoric = torch.mean(sigma, dim=0)
+        else:
+            epistemic = torch.tensor([0])
 
+        # Predict
         (alpha, beta), v, sigma = self._model(state)
         aleatoric = sigma
 
         #return (torch.mean(alpha, dim=0).view(1, -1), torch.mean(beta, dim=0).view(1, -1)), torch.mean(v, dim=0), (epistemic, aleatoric)
         return (alpha, beta), v, (epistemic, aleatoric)
 
-    def bayes_uncert(self, state):
+    def bayes_uncert(self, state, use_uncert=False):
         alpha_list = []
         beta_list = []
         v_list = []

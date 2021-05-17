@@ -2,10 +2,10 @@ import argparse
 import numpy as np
 import torch
 import os
-import time
 import wandb
 import json
 import glob
+from tqdm import tqdm
 
 from utilities import str2bool, save_uncert, init_uncert_file
 from agent import Agent
@@ -18,15 +18,12 @@ def train_agent(agent, env, eval_env, episodes, nb_validations=1, init_ep=0, log
     running_score = 0
     state = env.reset()
 
-    time_ep = []
-    time_eval = 0
     eval_idx = 0
 
-    for i_ep in range(init_ep, episodes):
+    for i_ep in tqdm(range(init_ep, episodes)):
         score = 0
         state = env.reset()#load=True
 
-        tic = time.time()
         for t in range(1000):
             action, a_logp, (_, _) = agent.select_action(state)
             state_, reward, done, die = env.step(action * np.array([2., 1., 1.]) + np.array([-1., 0., 0.]))
@@ -43,11 +40,6 @@ def train_agent(agent, env, eval_env, episodes, nb_validations=1, init_ep=0, log
         running_score = running_score * 0.99 + score * 0.01
         wandb.log({'Episode': i_ep, 'Episode Running Score': float(running_score), 'Episode Score': float(score)})
 
-        if len(time_ep) < 20:
-            time_ep += [time.time() - tic]
-        else:
-            time_ep = time_ep[1:] + [time.time() - tic]
-
 
         if i_ep % log_interval == 0:
             print('Ep {}\tLast score: {:.2f}\tMoving average score: {:.2f}'.format(i_ep, score, running_score))
@@ -58,20 +50,9 @@ def train_agent(agent, env, eval_env, episodes, nb_validations=1, init_ep=0, log
             print("Solved! Running reward is now {} and the last episode runs to {}!".format(running_score, score))
             break
 
-
-        if i_ep % max(20, val_interval) == max(20, val_interval) - 1:
-            l = np.mean(time_ep) * (episodes - i_ep - 1) + time_eval * (episodes - i_ep - 1)//val_interval
-            h = l//3600
-            m = l%3600//60
-            s = l - h*3600 - m*60
-            print("Estimated finish time: {:.0f}:{:.0f}:{:.0f}".format(h, m, s))
-
-
         if val_interval and i_ep % val_interval == 0:
-            tic = time.time()
             mean_score, mean_uncert = eval_agent(agent, eval_env, nb_validations, i_ep)
             wandb.log({'Idx': eval_idx, 'Eval Mean Score': float(mean_score), 'Eval Mean Epist Uncert': float(mean_uncert[0]), 'Eval Mean Aleat Uncert': float(mean_uncert[1])})
-            time_eval = time.time() - tic
             eval_idx += 1
             print("Eval score: {}".format(mean_score))
             print("Uncertainties: {}".format(mean_uncert))
@@ -177,7 +158,7 @@ if __name__ == "__main__":
         '--model', 
         type=str, 
         default='base', 
-        help='Type of uncertainty model (default: base)')
+        help='Type of uncertainty model: "base", "sensitivity", "dropout", "bootstrap" or "bnn" (default: base)')
     parser.add_argument(
         '-NN',
         '--nb-nets', 
@@ -204,6 +185,7 @@ if __name__ == "__main__":
         files = glob.glob('render/*')
         for f in files:
             os.remove(f)
+    init_uncert_file()
 
         
     # Virtual display
@@ -257,8 +239,6 @@ if __name__ == "__main__":
     config.ppo_epoch = agent.ppo_epoch
     config.buffer_capacity = agent.buffer_capacity
     config.args = args
-
-    init_uncert_file()
 
     if isinstance(agent._model._model, list):
         wandb.watch(agent._model._model[0])
