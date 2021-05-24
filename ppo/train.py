@@ -139,12 +139,16 @@ if __name__ == "__main__":
         '-FC',
         '--from-checkpoint', 
         type=str2bool, 
+        nargs='?',
+        const=True,
         default=False, 
         help='Whether to use checkpoint file')
     parser.add_argument(
         '-VR',
         '--val-render', 
         type=str2bool, 
+        nargs='?',
+        const=True,
         default=False, 
         help='render the environment on evaluation')
     parser.add_argument(
@@ -158,7 +162,7 @@ if __name__ == "__main__":
         '--model', 
         type=str, 
         default='base', 
-        help='Type of uncertainty model: "base", "sensitivity", "dropout", "bootstrap" or "bnn" (default: base)')
+        help='Type of uncertainty model: "base", "sensitivity", "dropout", "bootstrap", "mixture" or "bnn"')
     parser.add_argument(
         '-NN',
         '--nb-nets', 
@@ -212,7 +216,6 @@ if __name__ == "__main__":
         args.nb_nets, 
         args.img_stack,
         args.gamma,
-        from_checkpoint=args.from_checkpoint,
         model=args.model)
     env = Env(
         img_stack=args.img_stack,

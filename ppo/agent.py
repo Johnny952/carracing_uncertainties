@@ -10,7 +10,7 @@ class Agent():
     Agent for training
     """
     def __init__(
-        self, nb_nets, img_stack, gamma, from_checkpoint=False,
+        self, nb_nets, img_stack, gamma,
         model="base", max_grad_norm=0.5, 
         clip_param=0.1, ppo_epoch=10, buffer_capacity=2000, 
         batch_size=128, lr=1e-3, device='cpu'):

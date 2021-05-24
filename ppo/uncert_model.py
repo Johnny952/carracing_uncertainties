@@ -1,16 +1,17 @@
-from models import Net, Sensitivity, DropoutModel, BootstrapModel, BayesianModel
+from models import Net, Sensitivity, DropoutModel, BootstrapModel, BayesianModel, MixtureApprox
 
-from utilities import smooth_l1_loss
+from utilities import smooth_l1_loss, Mixture
 
 from blitz.losses import kl_divergence_from_nn
 
 import torch
 import torch.optim as optim
 import torch.nn.functional as F
+import torch.nn as nn
 from torch.distributions import Beta
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 
-IMPLEMENTED_MODELS = (Sensitivity, DropoutModel, list, BayesianModel) # Bootstrap is a list
+IMPLEMENTED_MODELS = (Sensitivity, DropoutModel, list, BayesianModel, MixtureApprox) # Bootstrap is a list
 
 class Model:
     def __init__(self, nb_nets, lr, img_stack, gamma, batch_size, buffer_capacity, model='base', device='cpu'):
@@ -63,6 +64,17 @@ class Model:
 
             self.sample_nbr = 15
             self.complexity_cost_weight = 1
+        
+        elif model == "mixture":
+            self._model = MixtureApprox(img_stack).double().to(self.device)
+            self._forward = lambda state, use_uncert: self._model(state)
+            self.train = self.train_mix_model
+            self._criterion = smooth_l1_loss
+
+            self._epist_criterion = nn.MSELoss()
+            self._epist_loss_weight = 1e-10
+            self._add_means = False
+            self._dev = 1.0
 
         else:
             raise ValueError("Model not implemented")
@@ -80,6 +92,7 @@ class Model:
             with torch.no_grad():
                 (alpha, beta), v, (epistemic, aleatoric) = self._forward(state, use_uncert=use_uncert)
         else:
+            # Base model
             epistemic = torch.Tensor([0])
             aleatoric = torch.Tensor([0])
             with torch.no_grad():
@@ -140,6 +153,45 @@ class Model:
             loss.backward()
             # nn.utils.clip_grad_norm_(net.parameters(), self.max_grad_norm)
             optimizer.step()
+    
+    def train_mix_model(self, epochs, clip_param, database):
+        (s, a, r, s_, old_a_logp) = database
+
+        target_v = r + self.gamma * self.forward_nograd(s_)[1]
+        adv = target_v - self.forward_nograd(s)[1]
+
+        for _ in range(epochs):
+            rand_sampler = SubsetRandomSampler(range(self.buffer_capacity))
+            sampler = BatchSampler(rand_sampler, self.batch_size, False)
+
+            for index in sampler:
+
+                (alpha, beta), _, (_, sigma) = self._model(s[index])
+                dist = Beta(alpha, beta)
+                a_logp = dist.log_prob(a[index]).sum(dim=1, keepdim=True)
+                ratio = torch.exp(a_logp - old_a_logp[index])
+
+                surr1 = ratio * adv[index]
+                surr2 = torch.clamp(ratio, 1.0 - clip_param, 1.0 + clip_param) * adv[index]
+                action_loss = -torch.min(surr1, surr2).mean()
+                value_loss = self._criterion(self._model(s[index])[1], target_v[index], sigma, 1.0, reduction="mean")
+
+                # Mixture approximation loss
+                mix = Mixture(s[index], dev=self._dev, device=self.device)
+                samples = mix.sample(self.nb_nets).double()
+                if self._add_means:
+                    samples = torch.cat((samples, s[index]), dim=0)
+                logp = mix.logp(samples)
+                net_logp = self._model(samples)[-1][0]
+                mix_loss = self._epist_criterion(logp.float(), net_logp.float().squeeze())
+                
+                loss = action_loss + 2. * value_loss + self._epist_loss_weight * mix_loss
+                self._optimizer.zero_grad()
+                loss.backward()
+                # nn.utils.clip_grad_norm_(self._model.parameters(), self.max_grad_norm)
+                self._optimizer.step()
+
+                
     
     def train_bayes_model(self, epochs, clip_param, database):
         (s, a, r, s_, old_a_logp) = database
