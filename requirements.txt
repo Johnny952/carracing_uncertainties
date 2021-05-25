@@ -8,3 +8,4 @@ pytorch-memlab==0.2.3
 ipython==7.18.0
 matplotlib==3.4.2
 plotly==4.14.3
+imageio-ffmpeg==0.4.4

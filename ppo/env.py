@@ -1,9 +1,9 @@
+from shutil import ExecError
 import gym
 from gym.wrappers import Monitor
 import numpy as np
-import base64
-import io
-from IPython import display
+
+import imageio
 
 class Env():
     """
@@ -11,18 +11,44 @@ class Env():
     """
 
     def __init__(self, img_stack, action_repeat, seed=0, path_render=None, validations=1):
-        if path_render is None:
+        self.render = path_render is not None
+        if not self.render:
             self.env = gym.make('CarRacing-v0')
         else:
-            idx_val = validations // 2
-            self.env = Monitor(gym.make('CarRacing-v0'), './render/{}'.format(path_render), video_callable=lambda episode_id: episode_id%validations==idx_val, force=True)
+            self.validations = validations
+            self.idx_val = validations // 2
+            self.env = Monitor(gym.make('CarRacing-v0'), './render/{}'.format(path_render), video_callable=lambda episode_id: episode_id%validations==self.idx_val, force=True)
         self.env.seed(seed)
         self.reward_threshold = self.env.spec.reward_threshold
         self.img_stack = img_stack
         self.action_repeat = action_repeat
         #self.env._max_episode_steps = your_value
+    
+    def plot_uncert(self, index, uncertainties, width=56, out_video='render/test.mp4'):
+        index = self.validations-1 if index == 0 else index-1
+        if self.render and self.idx_val == index:
+            max_unc = np.max(uncertainties, axis=0) + 1e-10
 
-    def reset(self, save=False, load=False):
+            # Append uncertainties to video
+            vid = imageio.get_reader(self.env.videos[-1][0])
+            fps = vid.get_meta_data()['fps']
+            frames = fps * vid.get_meta_data()['duration'] - 1
+
+            writer = imageio.get_writer(out_video, fps=fps)
+            for idx, image in enumerate(vid.iter_data()):
+                # action reapeat
+                if idx > 0:
+                    unct_idx = (idx-1) // self.action_repeat
+                    bg = np.zeros((400, width, 3), dtype=np.uint8)
+                    epist_height = int(200 * uncertainties[unct_idx, 0] / max_unc[0])
+                    bg[200:200+epist_height, :, :] = [255, 0, 0]
+                    aleat_height = int(200 * uncertainties[unct_idx, 1] / max_unc[1])
+                    bg[:aleat_height, :, :] = [0, 0, 255]
+                    image = np.concatenate((image, bg), axis=1)
+                    writer.append_data(image)
+            writer.close()
+
+    def reset(self):
         self.counter = 0
         self.av_r = self.reward_memory()
 

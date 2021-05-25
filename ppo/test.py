@@ -16,17 +16,20 @@ from agent import Agent
 
 
 
-def test(env, agent, episodes, validations):
+def test(env, agent, episodes, validations, add_uncert=False):
     state = env.reset()
 
     for i_ep in tqdm(range(episodes)):
         mean_score = 0
         mean_uncert = np.array([0, 0], dtype=np.float64)
         mean_steps = 0
+        uncert = None
         for i_val in range(validations):
             #agent.eval_mode()
             score = 0
             state = env.reset()
+            if add_uncert:
+                env.plot_uncert(i_val, uncert, out_video=f'render/{i_val}.mp4')
             die = False
             steps = 0
 
@@ -34,7 +37,7 @@ def test(env, agent, episodes, validations):
             while not die:
                 steps += 1
                 state = add_noise(state, std_dev[i_ep])
-                action, a_logp, (epis, aleat) = agent.select_action(state, eval=True)
+                action, _, (epis, aleat) = agent.select_action(state, eval=True)
                 uncert.append([epis.view(-1).cpu().numpy()[0], aleat.view(-1).cpu().numpy()[0]])
                 state_, reward, _, die = env.step(action * np.array([2., 1., 1.]) + np.array([-1., 0., 0.]))
                 score += reward
@@ -78,7 +81,7 @@ if __name__ == "__main__":
         '-S',
         '--seed', 
         type=int, 
-        default=0, 
+        default=10, 
         help='random seed')
     parser.add_argument(
         '-R',
@@ -124,6 +127,14 @@ if __name__ == "__main__":
         type=str, 
         default='0,0.5', 
         help='Upper and lower thresh for standar deviation noise grid, comma separated')
+    parser.add_argument(
+        '-AU',
+        '--add-uncert', 
+        type=str2bool, 
+        nargs='?',
+        const=True,
+        default=False, 
+        help='Whether to add uncertainties to render video or not')
     args = parser.parse_args()
 
 
@@ -173,4 +184,4 @@ if __name__ == "__main__":
     thresh = [float(t) for t in args.std_thresh.split(',')]
     std_dev = np.linspace(thresh[0], thresh[1], num=args.episodes)
 
-    test(env, agent, args.episodes, args.validations)
+    test(env, agent, args.episodes, args.validations, add_uncert=args.add_uncert)
