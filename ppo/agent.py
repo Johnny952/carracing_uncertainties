@@ -50,8 +50,8 @@ class Agent():
     def save_param(self, epoch):
         self._model.save_model(epoch=epoch)
 
-    def load_param(self, eval_mode=False):
-        return self._model.load_model(eval_mode=eval_mode)
+    def load_param(self, path, eval_mode=False):
+        return self._model.load_model(path, eval_mode=eval_mode)
     
     def store_transition(self, transition):
         return self._buffer.store(transition)

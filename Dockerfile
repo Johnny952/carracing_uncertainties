@@ -24,3 +24,6 @@ RUN mkdir /home/user/workspace
 RUN mkdir /home/user/workspace/sync
 WORKDIR /home/user/workspace/sync
 RUN git clone https://github.com/Johnny952/carracing_uncertainties.git
+
+RUN source /home/user/miniconda/bin/activate
+RUN conda activate base

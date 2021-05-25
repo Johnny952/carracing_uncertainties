@@ -62,7 +62,7 @@ class Model:
             self._forward = self.bayes_uncert
             self.train = self.train_bayes_model
 
-            self.sample_nbr = 15
+            self.sample_nbr = 10
             self.complexity_cost_weight = 1
         
         elif model == "mixture":
@@ -215,15 +215,13 @@ class Model:
                     surr2 = torch.clamp(ratio, 1.0 - clip_param, 1.0 + clip_param) * adv[index]
                     action_loss = -torch.min(surr1, surr2).mean()
                     value_loss = self._criterion(self._model(s[index])[1], target_v[index])
+                    kl_loss = self._model.nn_kl_divergence() * self.complexity_cost_weight
                     
-                    loss += action_loss + 2. * value_loss
-                    loss += self._model.nn_kl_divergence() * self.complexity_cost_weight
+                    loss += action_loss + 2. * value_loss + kl_loss
                 self._optimizer.zero_grad()
                 loss.backward()
                 # nn.utils.clip_grad_norm_(self._model.parameters(), self.max_grad_norm)
                 self._optimizer.step()
-
-
 
 
 
@@ -235,8 +233,8 @@ class Model:
             }
         torch.save(tosave, path)
 
-    def load_single_model(self, eval_mode=False):
-        checkpoint = torch.load(self.checkpoint)
+    def load_single_model(self, path, eval_mode=False):
+        checkpoint = torch.load(path)
         self._model.load_state_dict(checkpoint['model_state_dict'])
         self._optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         if eval_mode:
@@ -253,9 +251,9 @@ class Model:
             tosave['optimizer_state_dict{}'.format(idx)] = optimizer.state_dict()
         torch.save(tosave, path)
     
-    def load_boot_model(self, eval_mode=False):
-        checkpoint = torch.load(self.checkpoint)
-        for idx, (net, optimizer) in enumerate(zip(self._net, self._optimizer)):
+    def load_boot_model(self, path, eval_mode=False):
+        checkpoint = torch.load(path)
+        for idx in range(len(self._model)):
             self._model[idx].load_state_dict(checkpoint['model_state_dict{}'.format(idx)])
             self._optimizer[idx].load_state_dict(checkpoint['optimizer_state_dict{}'.format(idx)])
             if eval_mode:

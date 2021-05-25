@@ -14,7 +14,8 @@ class Env():
         if path_render is None:
             self.env = gym.make('CarRacing-v0')
         else:
-            self.env = Monitor(gym.make('CarRacing-v0'), './render/{}'.format(path_render), video_callable=lambda episode_id: episode_id%validations==0, force=True)
+            idx_val = validations // 2
+            self.env = Monitor(gym.make('CarRacing-v0'), './render/{}'.format(path_render), video_callable=lambda episode_id: episode_id%validations==idx_val, force=True)
         self.env.seed(seed)
         self.reward_threshold = self.env.spec.reward_threshold
         self.img_stack = img_stack

@@ -70,7 +70,6 @@ def eval_agent(agent, env, validations, epoch):
         die = False
 
         uncert = []
-        idx = 0
         while not die:
             action, a_logp, (epis, aleat) = agent.select_action(state, eval=True)
             uncert.append([epis.view(-1).cpu().numpy()[0], aleat.view(-1).cpu().numpy()[0]])
@@ -79,7 +78,7 @@ def eval_agent(agent, env, validations, epoch):
             state = state_
 
         uncert = np.array(uncert)
-        save_uncert(epoch, i_val, score, uncert)
+        save_uncert(epoch, i_val, score, uncert, file='uncertainties/train/train.txt')
 
         mean_uncert += np.mean(uncert, axis=0) / validations
         mean_score += score / validations
@@ -189,7 +188,9 @@ if __name__ == "__main__":
         files = glob.glob('render/*')
         for f in files:
             os.remove(f)
-    init_uncert_file()
+    if not os.path.exists('uncertainties/train'):
+        os.makedirs('uncertainties/train')
+    init_uncert_file(file='uncertainties/train/train.txt')
 
         
     # Virtual display
