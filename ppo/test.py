@@ -10,10 +10,7 @@ from pyvirtualdisplay import Display
 from tqdm import tqdm
 
 from utilities import save_uncert, str2bool, init_uncert_file
-
-from env import Env
-from agent import Agent
-
+from components import Env, Agent
 
 
 def test(env, agent, episodes, validations, add_uncert=False):

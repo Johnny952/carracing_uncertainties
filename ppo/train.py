@@ -8,8 +8,7 @@ import glob
 from tqdm import tqdm
 
 from utilities import str2bool, save_uncert, init_uncert_file
-from agent import Agent
-from env import Env
+from components import Agent, Env
 
 from pyvirtualdisplay import Display
 

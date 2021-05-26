@@ -1,8 +1,8 @@
+import sys
+sys.path.append('..')
+
 from models import Net, Sensitivity, DropoutModel, BootstrapModel, BayesianModel, MixtureApprox
-
 from utilities import smooth_l1_loss, Mixture
-
-from blitz.losses import kl_divergence_from_nn
 
 import torch
 import torch.optim as optim

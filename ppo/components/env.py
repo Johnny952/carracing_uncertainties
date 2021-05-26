@@ -1,4 +1,3 @@
-from shutil import ExecError
 import gym
 from gym.wrappers import Monitor
 import numpy as np

@@ -2,7 +2,10 @@ import torch
 from torch.distributions import Beta
 import numpy as np
 
-from uncert_model import Model
+import sys
+sys.path.append('..')
+
+from components.uncert_model import Model
 from utilities import Buffer
 
 class Agent():
