@@ -41,3 +41,11 @@ To use wandb, you have to add a file ```config.json``` at same level as ```train
 
 
 ## Performance
+
+<div align=center>
+    <img src="img/rewards_train.png" width="80%"/>
+</div>
+<hr>
+<div align=center>
+    <img src="img/bootstrap.gif"/>
+</div>

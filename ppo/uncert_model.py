@@ -63,7 +63,7 @@ class Model:
             self.train = self.train_bayes_model
 
             self.sample_nbr = 10
-            self.complexity_cost_weight = 1
+            self.complexity_cost_weight = 1e-6
         
         elif model == "mixture":
             self._model = MixtureApprox(img_stack).double().to(self.device)

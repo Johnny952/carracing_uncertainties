@@ -54,8 +54,7 @@ def train_agent(agent, env, eval_env, episodes, nb_validations=1, init_ep=0, log
             mean_score, mean_uncert = eval_agent(agent, eval_env, nb_validations, i_ep)
             wandb.log({'Idx': eval_idx, 'Eval Mean Score': float(mean_score), 'Eval Mean Epist Uncert': float(mean_uncert[0]), 'Eval Mean Aleat Uncert': float(mean_uncert[1])})
             eval_idx += 1
-            print("Eval score: {}".format(mean_score))
-            print("Uncertainties: {}".format(mean_uncert))
+            print("Eval score: {}\tUncertainties: {}".format(mean_score, mean_uncert))
             #agent.train_mode()
 
 
@@ -174,6 +173,12 @@ if __name__ == "__main__":
         type=int, 
         default=3,
         help='Number validations each 10 epochs')
+    parser.add_argument(
+        '-D',
+        '--device', 
+        type=str, 
+        default='auto',
+        help='Which device use: "cpu" or "cuda", "auto" for autodetect')
     args = parser.parse_args()
 
 
@@ -198,12 +203,15 @@ if __name__ == "__main__":
     display.start()
 
     # Whether to use cuda or cpu
-    torch.cuda.empty_cache()
-    use_cuda = torch.cuda.is_available()
-    device = torch.device("cuda" if use_cuda else "cpu")
-    torch.manual_seed(args.seed)
-    if use_cuda:
-        torch.cuda.manual_seed(args.seed)
+    if args.device == 'auto':
+        torch.cuda.empty_cache()
+        use_cuda = torch.cuda.is_available()
+        device = torch.device("cuda" if use_cuda else "cpu")
+        torch.manual_seed(args.seed)
+        if use_cuda:
+            torch.cuda.manual_seed(args.seed)
+    else:
+        device = args.device
 
     # Init Wandb
     with open("config.json") as config_file:
@@ -217,7 +225,8 @@ if __name__ == "__main__":
         args.nb_nets, 
         args.img_stack,
         args.gamma,
-        model=args.model)
+        model=args.model,
+        device=device)
     env = Env(
         img_stack=args.img_stack,
         action_repeat=args.action_repeat,
@@ -242,6 +251,7 @@ if __name__ == "__main__":
     config.clip_param = agent.clip_param
     config.ppo_epoch = agent.ppo_epoch
     config.buffer_capacity = agent.buffer_capacity
+    config.device = agent.device
     config.args = args
 
     if isinstance(agent._model._model, list):

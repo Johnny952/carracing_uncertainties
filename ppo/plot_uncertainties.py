@@ -195,7 +195,7 @@ def plotly_train(paths, names, colors=None, save_fig='images/uncertainties_train
 
 
 
-def plot_uncert_test(paths, names, colors=None, linewidths=None, unc_path='images/uncertainties_test.png', rwd_path='images/rewards_train.png', smooth=None):
+def plot_uncert_test(paths, names, colors=None, linewidths=None, unc_path='images/uncertainties_test.png', rwd_path='images/rewards_test.png', smooth=None):
     assert len(paths) == len(names)
     if colors is not None:
         assert len(colors) > len(paths)
