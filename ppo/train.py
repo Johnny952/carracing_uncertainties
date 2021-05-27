@@ -23,7 +23,7 @@ def train_agent(agent, env, eval_env, episodes, nb_validations=1, init_ep=0, log
         score = 0
         state = env.reset()#load=True
 
-        for t in range(1000):
+        for _ in range(1000):
             action, a_logp, (_, _) = agent.select_action(state)
             state_, reward, done, die = env.step(action * np.array([2., 1., 1.]) + np.array([-1., 0., 0.]))
             if agent.store_transition((state, action, a_logp, reward, state_)):
@@ -68,7 +68,7 @@ def eval_agent(agent, env, validations, epoch):
         die = False
 
         uncert = []
-        while not die:
+        while not (done or die):
             action, a_logp, (epis, aleat) = agent.select_action(state, eval=True)
             uncert.append([epis.view(-1).cpu().numpy()[0], aleat.view(-1).cpu().numpy()[0]])
             state_, reward, done, die = env.step(action * np.array([2., 1., 1.]) + np.array([-1., 0., 0.]))

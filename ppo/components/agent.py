@@ -59,6 +59,9 @@ class Agent():
     def store_transition(self, transition):
         return self._buffer.store(transition)
     
+    def able_sample(self):
+        return self._buffer.able_sample()
+    
     def update(self):
         self.training_step += 1
 

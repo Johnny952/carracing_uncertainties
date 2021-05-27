@@ -9,17 +9,23 @@ class Buffer:
         self.counter = 0
         self.buffer_capacity = buffer_capacity
         self.device = device
+        self.nb_trasitions = 0
 
     def store(self, transition):
         self.buffer[self.counter] = transition
         self.counter += 1
-        if self.counter == self.buffer_capacity:
+        self.nb_trasitions += 1
+        if self.nb_trasitions >= self.buffer_capacity:
             self.counter = 0
             return True
         else:
             return False
     
+    def able_sample(self):
+        return self.nb_trasitions >= self.buffer_capacity
+    
     def sample(self):
+        self.nb_trasitions = 0
         s = torch.tensor(self.buffer['s'], dtype=torch.double).to(self.device)
         a = torch.tensor(self.buffer['a'], dtype=torch.double).to(self.device)
         r = torch.tensor(self.buffer['r'], dtype=torch.double).to(self.device).view(-1, 1)

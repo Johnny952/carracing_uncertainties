@@ -62,7 +62,7 @@ class Model:
             self._forward = self.bayes_uncert
             self.train = self.train_bayes_model
 
-            self.sample_nbr = 10
+            self.sample_nbr = 50
             self.complexity_cost_weight = 1e-6
         
         elif model == "mixture":
@@ -72,7 +72,7 @@ class Model:
             self._criterion = smooth_l1_loss
 
             self._epist_criterion = nn.MSELoss()
-            self._epist_loss_weight = 1e-10
+            self._epist_loss_weight = 1e-12
             self._add_means = False
             self._dev = 1.0
 
