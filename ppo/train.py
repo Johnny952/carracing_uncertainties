@@ -68,7 +68,7 @@ def eval_agent(agent, env, validations, epoch):
         die = False
 
         uncert = []
-        while not (done or die):
+        while not die:
             action, a_logp, (epis, aleat) = agent.select_action(state, eval=True)
             uncert.append([epis.view(-1).cpu().numpy()[0], aleat.view(-1).cpu().numpy()[0]])
             state_, reward, done, die = env.step(action * np.array([2., 1., 1.]) + np.array([-1., 0., 0.]))

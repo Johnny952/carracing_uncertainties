@@ -67,15 +67,10 @@ class Env():
             if np.mean(img_rgb[:, :, 1]) > 185.0:
                 reward -= 0.05
             total_reward += reward
-            # If render (Monitor has to finish in die status)
-            if self.render and die:
-                done = die
-                break
             # if no reward recently, end the episode
-            else:
-                done = True if self.av_r(reward) <= -0.1 else False
-                if done or die:
-                    break
+            done = True if self.av_r(reward) <= -0.1 else False
+            if done or die:
+                break
         img_gray = self.rgb2gray(img_rgb)
         self.stack.pop(0)
         self.stack.append(img_gray)
