@@ -21,6 +21,7 @@ def train_agent(agent, env, eval_env, episodes, nb_validations=1, init_ep=0, log
 
     for i_ep in tqdm(range(init_ep, episodes)):
         score = 0
+        steps = 0
         state = env.reset()#load=True
 
         for _ in range(1000):
@@ -31,13 +32,19 @@ def train_agent(agent, env, eval_env, episodes, nb_validations=1, init_ep=0, log
                 agent.update()
             score += reward
             state = state_
+            steps += 1
 
             #wandb.log({'Step Reward': float(reward), 'Step Score': float(score)})
 
             if done or die:
                 break
         running_score = running_score * 0.99 + score * 0.01
-        wandb.log({'Episode': i_ep, 'Episode Running Score': float(running_score), 'Episode Score': float(score)})
+        wandb.log({
+            'Train Episode': i_ep, 
+            'Episode Running Score': float(running_score), 
+            'Episode Score': float(score),
+            'Episode Steps': float(steps)
+            })
 
 
         if i_ep % log_interval == 0:
@@ -50,38 +57,47 @@ def train_agent(agent, env, eval_env, episodes, nb_validations=1, init_ep=0, log
             break
 
         if val_interval and i_ep % val_interval == 0:
-            mean_score, mean_uncert = eval_agent(agent, eval_env, nb_validations, i_ep)
-            wandb.log({'Idx': eval_idx, 'Eval Mean Score': float(mean_score), 'Eval Mean Epist Uncert': float(mean_uncert[0]), 'Eval Mean Aleat Uncert': float(mean_uncert[1])})
+            mean_score, mean_uncert, mean_steps = eval_agent(agent, eval_env, nb_validations, i_ep)
+            wandb.log({
+                'Eval Episode': eval_idx, 
+                'Eval Mean Score': float(mean_score), 
+                'Eval Mean Epist Uncert': float(mean_uncert[0]), 
+                'Eval Mean Aleat Uncert': float(mean_uncert[1]), 
+                'Eval Mean Steps': float(mean_steps)
+                })
             eval_idx += 1
-            print("Eval score: {}\tUncertainties: {}".format(mean_score, mean_uncert))
+            print("Eval score: {}\tSteps: {}\tUncertainties: {}".format(mean_score, mean_steps, mean_uncert))
             #agent.train_mode()
 
 
 def eval_agent(agent, env, validations, epoch):
     mean_score = 0
     mean_uncert = np.array([0, 0], dtype=np.float64)
+    mean_steps = 0
     for i_val in range(validations):
         #agent.eval_mode()
         score = 0
+        steps = 0
         state = env.reset()
-        done = False
         die = False
 
         uncert = []
         while not die:
             action, a_logp, (epis, aleat) = agent.select_action(state, eval=True)
             uncert.append([epis.view(-1).cpu().numpy()[0], aleat.view(-1).cpu().numpy()[0]])
-            state_, reward, done, die = env.step(action * np.array([2., 1., 1.]) + np.array([-1., 0., 0.]))
+            state_, reward, _, die = env.step(action * np.array([2., 1., 1.]) + np.array([-1., 0., 0.]))
             score += reward
             state = state_
+            steps += 1
 
         uncert = np.array(uncert)
         save_uncert(epoch, i_val, score, uncert, file='uncertainties/train/train.txt')
 
         mean_uncert += np.mean(uncert, axis=0) / validations
         mean_score += score / validations
+        mean_steps += steps / validations
 
-    return mean_score, mean_uncert
+    return mean_score, mean_uncert, mean_steps
 
 
 
