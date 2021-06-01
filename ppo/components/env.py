@@ -9,8 +9,9 @@ class Env():
     Environment wrapper for CarRacing 
     """
 
-    def __init__(self, img_stack, action_repeat, seed=0, path_render=None, validations=1):
+    def __init__(self, img_stack, action_repeat, seed=0, path_render=None, validations=1, evaluation=False):
         self.render = path_render is not None
+        self.evaluation = evaluation
         if not self.render:
             self.env = gym.make('CarRacing-v0')
         else:
@@ -103,3 +104,17 @@ class Env():
             return np.mean(history)
 
         return memory
+
+
+def make_env(img_stack, action_repeat, seed=0, path_render=None, validations=1, evaluation=False):
+    def fn():
+        env = Env(
+            img_stack, 
+            action_repeat,
+            seed=seed, 
+            path_render=path_render, 
+            validations=validations,
+            evaluation=evaluation
+        )
+        return env
+    return fn

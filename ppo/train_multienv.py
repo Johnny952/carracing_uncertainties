@@ -8,56 +8,45 @@ import glob
 from tqdm import tqdm
 
 from utilities import str2bool, save_uncert, init_uncert_file
-from components import Agent, Env
+from components import Agent, make_env, SubprocVecEnv
+
 
 from pyvirtualdisplay import Display
 
 
-def train_agent(agent, env, eval_env, episodes, nb_validations=1, init_ep=0, log_interval=10, val_interval=10, val_render=False):
-    running_score = 0
-    state = env.reset()
+def make_mp_envs(num_env, agent, img_stack, action_repeat, seed=0, path_render=None, validations=2, evaluation=False):
+    return SubprocVecEnv([make_env(img_stack, action_repeat, seed=seed+i, path_render=path_render, validations=validations, evaluation=evaluation) for i in range(num_env)], agent)
 
+def train_agent(nb_processes, agent, env, eval_env, episodes, nb_validations=1, init_ep=0, log_interval=10, val_interval=10, val_render=False):
+    running_score = 0
     eval_idx = 0
 
-    for i_ep in tqdm(range(init_ep, episodes)):
-        score = 0
-        steps = 0
-        state = env.reset()
+    for i_ep in range(init_ep, episodes//nb_processes):
+        scores, steps, _ = env.rollout()
 
-        for _ in range(1000):
-            action, a_logp, (_, _) = agent.select_action(state)
-            state_, reward, done, die = env.step(action * np.array([2., 1., 1.]) + np.array([-1., 0., 0.]))
-            if agent.store_transition((state, action, a_logp, reward, state_)):
-                print('updating')
-                agent.update()
-            score += reward
-            state = state_
-            steps += 1
-
-            #wandb.log({'Step Reward': float(reward), 'Step Score': float(score)})
-
-            if done or die:
-                break
-        running_score = running_score * 0.99 + score * 0.01
-        wandb.log({
-            'Train Episode': i_ep, 
-            'Episode Running Score': float(running_score), 
-            'Episode Score': float(score),
-            'Episode Steps': float(steps)
-        })
-
-
-        if i_ep % log_interval == 0:
-            print('Ep {}\tLast score: {:.2f}\tMoving average score: {:.2f}'.format(i_ep, score, running_score))
+        for j, (score, step) in enumerate(zip(scores, steps)):
+            running_score = running_score * 0.99 + scores[j] * 0.01
+            wandb.log({
+                'Train Episode': i_ep + j, 
+                'Episode Running Score': float(running_score), 
+                'Episode Score': float(score),
+                'Episode Steps': float(step)
+            })
+        
+        if agent.able_sample():
+            print('updating')
+            agent.update()
+        
+        if i_ep % log_interval//nb_processes == 0:
+            print('Ep {}\tLast score: {:.2f}\tMoving average score: {:.2f}'.format(i_ep, scores[-1], running_score))
             agent.save_param(i_ep)
-
-
+        
         if running_score > env.reward_threshold:
-            print("Solved! Running reward is now {} and the last episode runs to {}!".format(running_score, score))
+            print("Solved! Running reward is now {} and the last episode runs to {}!".format(running_score, scores[-1]))
             break
-
-        if val_interval and i_ep % val_interval == 0:
-            mean_score, mean_uncert, mean_steps = eval_agent(agent, eval_env, nb_validations, i_ep)
+    
+        if i_ep % val_interval//nb_processes == 0:
+            mean_score, mean_uncert, mean_steps = eval_agent(nb_processes, eval_env, nb_validations, i_ep)
             wandb.log({
                 'Eval Episode': eval_idx, 
                 'Eval Mean Score': float(mean_score), 
@@ -67,51 +56,48 @@ def train_agent(agent, env, eval_env, episodes, nb_validations=1, init_ep=0, log
                 })
             eval_idx += 1
             print("Eval score: {}\tSteps: {}\tUncertainties: {}".format(mean_score, mean_steps, mean_uncert))
-            #agent.train_mode()
+    
+    env.close()
+    eval_env.close()
 
 
-def eval_agent(agent, env, validations, epoch):
+
+def eval_agent(nb_processes, env, validations, epoch):
     mean_score = 0
     mean_uncert = np.array([0, 0], dtype=np.float64)
     mean_steps = 0
-    for i_val in range(validations):
-        #agent.eval_mode()
-        score = 0
-        steps = 0
-        state = env.reset()
-        die = False
 
-        uncert = []
-        while not die:
-            action, a_logp, (epis, aleat) = agent.select_action(state, eval=True)
-            uncert.append([epis.view(-1).cpu().numpy()[0], aleat.view(-1).cpu().numpy()[0]])
-            state_, reward, _, die = env.step(action * np.array([2., 1., 1.]) + np.array([-1., 0., 0.]))
-            score += reward
-            state = state_
-            steps += 1
+    for i_val in range(validations//nb_processes):
+        scores, steps, _ = env.rollout()
 
-        uncert = np.array(uncert)
-        save_uncert(epoch, i_val, score, uncert, file='uncertainties/train/train.txt')
+        for j, (score, step) in enumerate(zip(scores, steps)):
+            save_uncert(epoch, i_val, score, uncert, file='uncertainties/train/train.txt')
 
-        mean_uncert += np.mean(uncert, axis=0) / validations
-        mean_score += score / validations
-        mean_steps += steps / validations
+            mean_uncert += np.mean(uncert, axis=0) / validations
+            mean_score += score / validations
+            mean_steps += steps / validations
 
     return mean_score, mean_uncert, mean_steps
 
-
+    
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description='Train a PPO agent for the CarRacing-v0', 
+        description='Train a PPO agent for the CarRacing-v0 in multiprocessing environment', 
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument(
+        '-NP',
+        '--nb-processes', 
+        type=int, 
+        default=2, 
+        help='Number of subprocesses')
     parser.add_argument(
         '-G',
         '--gamma', 
         type=float, 
         default=0.99, 
-        help='discount factor')
+        help='Discount factor')
     parser.add_argument(
         '-IS',
         '--img-stack', 
@@ -169,7 +155,7 @@ if __name__ == "__main__":
         '--epochs', 
         type=int, 
         default=2000, 
-        help='Number of epochs')
+        help='Number of epochs, divisible by 2')
     parser.add_argument(
         '-M',
         '--model', 
@@ -186,8 +172,8 @@ if __name__ == "__main__":
         '-V',
         '--validations', 
         type=int, 
-        default=3,
-        help='Number validations each 10 epochs')
+        default=4,
+        help='Number validations each 10 epochs, divisible by 2')
     parser.add_argument(
         '-D',
         '--device', 
@@ -233,8 +219,10 @@ if __name__ == "__main__":
         config = json.load(config_file)
     wandb.init(project=config["project"], entity=config["entity"])
 
-    #print("Training model: {} with {} networks".format(args.model, args.uncert_q))
-    
+    # Enable torch multiprocessing
+    torch.multiprocessing.set_start_method('spawn', force=True)
+
+
     # Init Agent and Environment
     agent = Agent(
         args.nb_nets, 
@@ -242,15 +230,19 @@ if __name__ == "__main__":
         args.gamma,
         model=args.model,
         device=device)
-    env = Env(
+    env = make_mp_envs(
+        args.nb_processes, 
+        agent, 
         img_stack=args.img_stack,
         action_repeat=args.action_repeat,
         seed=args.seed
     )
-    eval_env = Env(
+    eval_env = make_mp_envs(
+        args.nb_processes, 
+        agent, 
         img_stack=args.img_stack,
         action_repeat=args.action_repeat,
-        seed=args.eval_seed,
+        seed=args.seed,
         path_render='' if args.val_render else None,
         validations=args.validations,
         evaluation=True
@@ -274,9 +266,10 @@ if __name__ == "__main__":
         wandb.watch(agent._model._model[0])
     else:
         wandb.watch(agent._model._model)
+    
 
     train_agent(
-        agent, env, eval_env, 
+        args.nb_processes, agent, env, eval_env, 
         episodes=args.epochs, 
         nb_validations=args.validations, 
         init_ep=init_epoch,  
