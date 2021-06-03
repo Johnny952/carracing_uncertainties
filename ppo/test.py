@@ -8,13 +8,33 @@ import os
 import glob
 from pyvirtualdisplay import Display
 from tqdm import tqdm
+from collections import namedtuple, deque
 
 from utilities import save_uncert, str2bool, init_uncert_file
 from components import Env, Agent
 
 
-def test(env, agent, episodes, validations, add_uncert=False):
+
+Transition = namedtuple('Transition',
+                        ('state', 'action', 'next_state', 'reward'))
+
+
+class Memory(object):
+    def __init__(self, capacity):
+        self.memory = deque([],maxlen=capacity)
+        self.States = namedtuple('States', ('state'))
+    def push(self, *args):
+        """Save a transition"""
+        self.memory.append(self.States(*args))
+    def __len__(self):
+        return len(self.memory)
+    def sample(self):
+        return self.memory
+
+
+def test(env, agent, episodes, validations, add_uncert=False, img_stack=1):
     state = env.reset()
+    memory = Memory(img_stack)
 
     for i_ep in tqdm(range(episodes)):
         mean_score = 0
@@ -25,6 +45,12 @@ def test(env, agent, episodes, validations, add_uncert=False):
             #agent.eval_mode()
             score = 0
             state = env.reset()
+
+            # Add first state noise
+            noisy_state = add_noise(state[0, :, :], std_dev[i_ep])
+            [memory.push(noisy_state) for _ in range(img_stack)]
+            state = np.stack(memory.sample()).squeeze()
+
             if add_uncert:
                 env.plot_uncert(i_val, uncert, out_video=f'render/{i_val}.mp4')
             die = False
@@ -33,12 +59,16 @@ def test(env, agent, episodes, validations, add_uncert=False):
             uncert = []
             while not die:
                 steps += 1
-                state = add_noise(state, std_dev[i_ep])
+                
                 action, _, (epis, aleat) = agent.select_action(state, eval=True)
                 uncert.append([epis.view(-1).cpu().numpy()[0], aleat.view(-1).cpu().numpy()[0]])
                 state_, reward, _, die = env.step(action * np.array([2., 1., 1.]) + np.array([-1., 0., 0.]))
                 score += reward
-                state = state_
+
+                # Add noise to next state and push into memory
+                state_ = add_noise(state_[-1, :, :], std_dev[i_ep])
+                memory.push(state_)
+                state = np.stack(memory.sample()).squeeze()
 
             uncert = np.array(uncert)
             save_uncert(i_ep, i_val, score, uncert, sigma=std_dev[i_ep], file='uncertainties/test/test.txt')
@@ -181,4 +211,4 @@ if __name__ == "__main__":
     thresh = [float(t) for t in args.std_thresh.split(',')]
     std_dev = np.linspace(thresh[0], thresh[1], num=args.episodes)
 
-    test(env, agent, args.episodes, args.validations, add_uncert=args.add_uncert)
+    test(env, agent, args.episodes, args.validations, add_uncert=args.add_uncert, img_stack=args.img_stack)

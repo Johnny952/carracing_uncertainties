@@ -2,9 +2,6 @@ import torch
 from torch.distributions import Beta
 import numpy as np
 
-import sys
-sys.path.append('..')
-
 from components.uncert_model import Model
 from utilities import Buffer
 

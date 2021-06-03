@@ -9,7 +9,7 @@ from models import Net
 
 
 class Agent:
-    def __init__(self, img_stack, actions, learning_rate, gamma, epsilon, nb_training_steps, buffer_capacity, batch_size, device='cpu', epsilon_decay=0.999, clip_grad=False, epsilon_min=0):
+    def __init__(self, img_stack, actions, learning_rate, gamma, epsilon, buffer_capacity, batch_size, device='cpu', epsilon_decay=0.999, clip_grad=False, epsilon_min=0):
         """Constructor of Agent class
 
         Args:
@@ -78,6 +78,7 @@ class Agent:
     def replace_target_network(self):
         """Replace target network with actual network
         """        
+        # self._target_net.load_state_dict(self._net.state_dict())
         self._target_net = copy.deepcopy(self._net).to(self._device)
         # self._target_deepq_network.eval()
         for p in self._target_net.parameters():
@@ -103,9 +104,6 @@ class Agent:
             # Select random action
             index = torch.randint(0, len(self._actions), size=(1,))
         action = self._actions[index]
-        # if not greedy and self._epsilon >= self._epsilon_min:
-        #     # epsilon  decay
-        #     self._epsilon *= self._epsilon_decay
         return action, index
     
     def epsilon_step(self):

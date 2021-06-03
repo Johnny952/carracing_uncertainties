@@ -11,16 +11,29 @@ class Net(nn.Module):
             n_actions (int): Number of actions or outputs of the model
         """        
         super(Net, self).__init__()
-        self.cnn_base = nn.Sequential(  # input shape (4, 96, 96)
-            nn.Conv2d(img_stack, 16, kernel_size=5), # (16, 92, 92)
-            nn.ReLU(),  # activation
-            nn.MaxPool2d(6, stride=6), # (16, 15, 15)
-            nn.Conv2d(16, 64, kernel_size=3),  # (64, 13, 13)
-            nn.ReLU(),  # activation
-            nn.MaxPool2d(6, stride=6),        # (64, 2, 2)
-            nn.Conv2d(64, 256, kernel_size=2),  # (256, 1, 1)
-            nn.ReLU(),  # activation
-            )
+        # self.cnn_base = nn.Sequential(  # input shape (4, 96, 96)
+        #     nn.Conv2d(img_stack, 16, kernel_size=5), # (16, 92, 92)
+        #     nn.ReLU(),  # activation
+        #     nn.MaxPool2d(6, stride=6), # (16, 15, 15)
+        #     nn.Conv2d(16, 64, kernel_size=3),  # (64, 13, 13)
+        #     nn.ReLU(),  # activation
+        #     nn.MaxPool2d(6, stride=6),        # (64, 2, 2)
+        #     nn.Conv2d(64, 256, kernel_size=2),  # (256, 1, 1)
+        #     nn.ReLU(),  # activation
+        #     )
+        self.cnn_base = nn.Sequential(
+            nn.Conv2d(img_stack, 6, 7),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+            nn.BatchNorm2d(6),
+            nn.Conv2d(6, 12, 4),
+            nn.MaxPool2d(2),
+            nn.BatchNorm2d(12),
+            nn.Flatten(1),
+            nn.Linear(5292, 216),
+            nn.ReLU(),
+            nn.Linear(216, n_actions)
+        )
         # self.cnn_base = nn.Sequential(  # input shape (4, 96, 96)
         #     nn.Conv2d(img_stack, 8, kernel_size=4, stride=2),
         #     nn.ReLU(),  # activation
@@ -35,11 +48,11 @@ class Net(nn.Module):
         #     nn.Conv2d(128, 256, kernel_size=3, stride=1),  # (128, 3, 3)
         #     nn.ReLU(),  # activation
         # )  # output shape (256, 1, 1)
-        self.v = nn.Sequential(
-            nn.Linear(256, 100),
-            nn.ReLU(),
-            nn.Linear(100, n_actions)
-        )
+        # self.v = nn.Sequential(
+        #     nn.Linear(256, 100),
+        #     nn.ReLU(),
+        #     nn.Linear(100, n_actions)
+        # )
         self.apply(self._weights_init)
     
     @staticmethod
@@ -50,8 +63,9 @@ class Net(nn.Module):
     
     def forward(self, x):
         x = self.cnn_base(x)
-        x = x.view(-1, 256)
-        return self.v(x)
+        # x = x.view(-1, 256)
+        # return self.v(x)
+        return x
 
 
 if __name__ == "__main__":

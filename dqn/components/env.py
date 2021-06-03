@@ -1,26 +1,34 @@
 import gym
+from gym.wrappers import Monitor
 import numpy as np
 from collections import deque
-from statistics import mean
 
 from utils import imgstackRGB2graystack
 
 
 class Env():
-    def __init__(self, img_stack=4, seed=0, clip_reward=None):
+    def __init__(self, img_stack=4, seed=0, clip_reward=None, path_render=None, validations=1, evaluation=False):
         """Environment Constructor
 
         Args:
             img_stack (int, optional): Number of consecutive frames to stack. Defaults to 4.
             seed (int, optional): Random seed env generator. Defaults to 0.
-        """        
+        """
+        self.render = path_render is not None
+        self.evaluation = evaluation
         env = gym.make('CarRacing-v0')
         self._env = gym.wrappers.FrameStack(env, img_stack)
+        if self.render:
+            self.validations = validations
+            self.idx_val = validations // 2
+            self._env = Monitor(self._env, './render/{}'.format(path_render), video_callable=lambda episode_id: episode_id%validations==self.idx_val, force=True)    
         self._env.seed(seed)
 
         self.low_state = self._env.action_space.low
         self.high_state = self._env.action_space.high
-        self._reward_memory = deque([])
+        self._reward_memory = deque([], maxlen=50)
+
+        self.reward_threshold = self._env.spec.reward_threshold
 
         self._clip_reward=clip_reward
 
@@ -47,18 +55,20 @@ class Env():
         next_state, reward, done, _ = self._env.step(action)
         # green penalty last state
         if np.mean(next_state[-1][:, :, 1]) > 185.0:
-            reward -= 5
-        
-        # penalty for die state
-        if len(self._reward_memory) > 20 and sum(self._reward_memory) <= -20:
-            done = True
-            reward -= 20
+            reward -= 0.05
         
         if self._clip_reward is not None:
             reward = np.clip(reward, a_max=self._clip_reward)
 
         # push reward in memory
         self._reward_memory.append(reward)
+
+        # penalty for die state
+        die = sum(self._reward_memory) <= -2
+        if not self.evaluation and die:
+            done = True
+            #reward -= 20
+            reward += 100
         
         return imgstackRGB2graystack(next_state), reward, done
     
