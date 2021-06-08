@@ -64,7 +64,7 @@ class Env():
         self._reward_memory.append(reward)
 
         # penalty for die state
-        die = sum(self._reward_memory) <= -2
+        die = sum(self._reward_memory) <= -5
         if not self.evaluation and die:
             done = True
             #reward -= 20

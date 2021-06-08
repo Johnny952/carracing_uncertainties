@@ -81,7 +81,6 @@ def train_agent(env, eval_env, agent, nb_training_steps, nb_steps_target_replace
 def eval_agent(env, agent, eval_idx, nb_episodes=3):
     rewards = []
     total_steps = []
-    uncertainties = []
 
     for episode in range(nb_episodes):
         ob_t = env.reset()
@@ -91,7 +90,7 @@ def eval_agent(env, agent, eval_idx, nb_episodes=3):
 
         while not done:
             
-            action, action_idx = agent.select_action(ob_t, greedy=True)
+            action, _ = agent.select_action(ob_t, greedy=True)
         
             ob_t1, reward, done = env.step(action)
             
@@ -174,7 +173,7 @@ if __name__ == "__main__":
         '-ED',
         '--epsilon-decay', 
         type=float, 
-        default=0.995, 
+        default=0.997, 
         help='Epsilon decay factor')
     parser.add_argument(
         '-EM',
@@ -222,42 +221,42 @@ if __name__ == "__main__":
     
     old_settings = np.seterr(all='raise')
 
-    # actions = (
-    #     [-1, 0, 0],              # Turn Left
-    #     [1, 0, 0],               # Turn Right
-    #     [0, 0, 1],              # Full Break
-    #     [0, 1, 0],              # Accelerate
-    #     [0, 0, 0],              # Do nothing
-
-    #     [-1, 1, 0],             # Left accelerate
-    #     [1, 1, 0],              # Right accelerate
-    #     [-1, 0, 1],             # Left break
-    #     [1, 0, 1],              # Right break
-        
-    #     [-0.5, 0, 0],           # Soft left
-    #     [0.5, 0, 0],            # Soft right
-    #     [0, 0, 0.5],            # Soft break
-    #     [0, 0.5, 0],            # Soft accelerate
-
-    #     [-0.5, 0.5, 0],         # Soft Left accelerate
-    #     [0.5, 0.5, 0],          # Soft Right accelerate
-    #     [-0.5, 0, 0.5],         # Soft Left break
-    #     [0.5, 0, 0.5],          # Soft Right break
-    #     )
     actions = (
-            [-1, 1, 0.2], 
-            [0, 1, 0.2], 
-            [1, 1, 0.2],
-            [-1, 1,   0], 
-            [0, 1,   0], 
-            [1, 1,   0],
-            [-1, 0, 0.2], 
-            [0, 0, 0.2], 
-            [1, 0, 0.2],
-            [-1, 0,   0], 
-            [0, 0,   0], 
-            [1, 0,   0]
+        [-1, 0, 0],              # Turn Left
+        [1, 0, 0],               # Turn Right
+        [0, 0, 1],              # Full Break
+        [0, 1, 0],              # Accelerate
+        [0, 0, 0],              # Do nothing
+
+        [-1, 1, 0],             # Left accelerate
+        [1, 1, 0],              # Right accelerate
+        [-1, 0, 1],             # Left break
+        [1, 0, 1],              # Right break
+        
+        [-0.5, 0, 0],           # Soft left
+        [0.5, 0, 0],            # Soft right
+        [0, 0, 0.5],            # Soft break
+        [0, 0.5, 0],            # Soft accelerate
+
+        [-0.5, 0.5, 0],         # Soft Left accelerate
+        [0.5, 0.5, 0],          # Soft Right accelerate
+        [-0.5, 0, 0.5],         # Soft Left break
+        [0.5, 0, 0.5],          # Soft Right break
         )
+    # actions = (
+    #         [-1, 1, 0.2], 
+    #         [0, 1, 0.2], 
+    #         [1, 1, 0.2],
+    #         [-1, 1,   0], 
+    #         [0, 1,   0], 
+    #         [1, 1,   0],
+    #         [-1, 0, 0.2], 
+    #         [0, 0, 0.2], 
+    #         [1, 0, 0.2],
+    #         [-1, 0,   0], 
+    #         [0, 0,   0], 
+    #         [1, 0,   0]
+    #     )
     
     # Init model checkpoint folder and uncertainties folder
     if not os.path.exists('param'):

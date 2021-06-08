@@ -45,6 +45,8 @@ class Agent:
         
         self._optimizer = torch.optim.Adam(self._net.parameters(), lr=learning_rate)
         self._criterion = nn.MSELoss()
+
+        self.K = 0.05
     
     def empty_buffer(self):
         """Empty replay buffer"""        
@@ -68,11 +70,11 @@ class Agent:
             done (bool): Whether state in time t+1 is terminal or not
         """
         self._buffer.push(
-            torch.from_numpy(np.array(state)).unsqueeze(dim=0).to(self._device), 
-            action.unsqueeze(dim=0).to(self._device), 
-            torch.from_numpy(np.array(next_state)).unsqueeze(dim=0).to(self._device), 
-            torch.Tensor([reward]).to(self._device), 
-            torch.Tensor([done]).to(self._device)
+            torch.from_numpy(np.array(state)).unsqueeze(dim=0), 
+            action.unsqueeze(dim=0), 
+            torch.from_numpy(np.array(next_state)).unsqueeze(dim=0), 
+            torch.Tensor([reward]), 
+            torch.Tensor([done])
             )
 
     def replace_target_network(self):
@@ -104,7 +106,7 @@ class Agent:
             # Select random action
             index = torch.randint(0, len(self._actions), size=(1,))
         action = self._actions[index]
-        return action, index
+        return action, index.cpu()
     
     def epsilon_step(self):
         """Epsilon decay e = e*factor"""        
@@ -119,18 +121,17 @@ class Agent:
             transitions = self._buffer.sample()
             batch = self._Transition(*zip(*transitions))
 
-            state_batch = torch.cat(batch.state).float()
-            action_batch = torch.cat(batch.action).long()
-            next_state_batch = torch.cat(batch.next_state).float()
-            reward_batch = torch.cat(batch.reward)
-            done_batch = torch.cat(batch.done)
+            state_batch = torch.cat(batch.state).float().to(self._device)
+            action_batch = torch.cat(batch.action).long().to(self._device)
+            next_state_batch = torch.cat(batch.next_state).float().to(self._device)
+            reward_batch = torch.cat(batch.reward).to(self._device)
+            done_batch = torch.cat(batch.done).to(self._device)
 
-            state_action_values = self._net(state_batch).gather(1, action_batch)
-            with torch.no_grad():
-                next_state_values = ((1 - done_batch)*self._target_net(next_state_batch).max(1)[0]).detach()
+            state_action_values = self._net(state_batch).gather(1, action_batch).squeeze(dim=-1)
+            next_state_values = ((1 - done_batch)*self._target_net(next_state_batch).max(1)[0]).detach()
             expected_state_action_values = (next_state_values * self._gamma) + reward_batch
 
-            loss = self._criterion(state_action_values, expected_state_action_values.unsqueeze(1))
+            loss = self._criterion(state_action_values, expected_state_action_values) + self.K*torch.mean(state_action_values)
             self._optimizer.zero_grad()
             loss.backward()
             if self._clip_grad:
