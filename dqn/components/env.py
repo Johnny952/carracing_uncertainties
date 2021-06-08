@@ -61,14 +61,14 @@ class Env():
             reward = np.clip(reward, a_max=self._clip_reward)
 
         # push reward in memory
-        self._reward_memory.append(reward)
+        # self._reward_memory.append(reward)
 
         # penalty for die state
-        die = sum(self._reward_memory) <= -5
-        if not self.evaluation and die:
-            done = True
-            #reward -= 20
-            reward += 100
+        # die = sum(self._reward_memory) <= -5
+        # if not self.evaluation and die:
+        #     done = True
+        #     #reward -= 20
+        #     reward += 100
         
         return imgstackRGB2graystack(next_state), reward, done
     
