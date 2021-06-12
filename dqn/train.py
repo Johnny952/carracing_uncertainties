@@ -12,7 +12,7 @@ from components import Agent, Env
 from utils import str2bool, save_uncert, init_uncert_file
 
 
-def train_agent(env, eval_env, agent, nb_training_steps, nb_steps_target_replace, eval_episodes=3, eval_every=10, batch_size=256, checkpoint=60, skip_zoom=False):
+def train_agent(env, eval_env, agent, nb_training_ep, nb_steps_target_replace, eval_episodes=3, eval_every=10, updates_after=1000, update_each=256, skip_zoom=None):
     
     ob_t = env.reset()
     done = False
@@ -21,12 +21,15 @@ def train_agent(env, eval_env, agent, nb_training_steps, nb_steps_target_replace
     episode_steps = 0
     eval_nb = 0
     running_score = 0
+    tr_step = 0
+    best_eval_score = -100
 
 
-    for tr_step in range(nb_training_steps):
+    while episode_nb < nb_training_ep:
+    #for tr_step in range(nb_training_steps):
 
-        if (tr_step + 1) % nb_steps_target_replace == 0:
-            agent.replace_target_network()
+        # if (tr_step + 1) % nb_steps_target_replace == 0:
+        #     agent.replace_target_network()
         
         action, action_idx = agent.select_action(ob_t)
         
@@ -34,8 +37,10 @@ def train_agent(env, eval_env, agent, nb_training_steps, nb_steps_target_replace
         
         agent.store_transition(ob_t, action_idx, ob_t1, reward, done)
 
-        if agent.nuber_experiences() > batch_size:
+        if tr_step % update_each == 0 and agent.number_experiences() >= updates_after:
+            #print("Updating")
             agent.update()
+            #agent.epsilon_step()
             #agent.empty_buffer()
         
         ob_t = ob_t1
@@ -48,6 +53,11 @@ def train_agent(env, eval_env, agent, nb_training_steps, nb_steps_target_replace
                 running_score = episode_reward
             else:
                 running_score = running_score * 0.99 + episode_reward * 0.01
+            
+
+            if episode_nb % nb_steps_target_replace == 0:
+                agent.replace_target_network()
+
             print('Global training step %5d | Training episode %5d | Steps: %4d | Reward: %4d | RunningScore: %4d | | Epsilon: %.3f' % \
                         (tr_step + 1, episode_nb + 1, episode_steps, episode_reward, running_score, agent._epsilon))
             wandb.log({'Train Episode': episode_nb + 1, 'Train Episode Score': float(episode_reward), "Train Episode Steps": episode_steps, "Train Running Score": running_score, 'Epsilon': agent._epsilon})
@@ -58,22 +68,25 @@ def train_agent(env, eval_env, agent, nb_training_steps, nb_steps_target_replace
             episode_steps = 0
             agent.epsilon_step()
 
-            if skip_zoom:
-                for _ in range(50):
-                    ob_t, _, _, _ = env.step([0, 0, 0])
+            if skip_zoom is not None:
+                for _ in range(skip_zoom):
+                    ob_t, _, _ = env.step([0, 0, 0])
         
             if (episode_nb + 1) % eval_every == 0:
                 mean_rwds, mean_steps = eval_agent(eval_env, agent, eval_nb, nb_episodes=eval_episodes)
                 print('Evaluation Mean Steps: %4d | Mean Reward: %4d' % (mean_steps, mean_rwds))
                 wandb.log({'Eval Episode': eval_nb + 1, 'Eval Episode Score': float(mean_rwds), "Eval Episode Steps": mean_steps})
                 eval_nb += 1
+                if mean_rwds >= best_eval_score:
+                    agent.save_param(episode_nb)
             
-            if (episode_nb + 1) % checkpoint == 0:
-                agent.save_param(episode_nb)
+            # if (episode_nb + 1) % checkpoint == 0:
+            #     agent.save_param(episode_nb)
             
             if running_score > env.reward_threshold:
                 print("Solved! Running reward is now {} and the last episode runs to {}!".format(running_score, score))
                 break
+        tr_step += 1
 
     agent.save_param(episode_nb)
 
@@ -173,7 +186,7 @@ if __name__ == "__main__":
         '-ED',
         '--epsilon-decay', 
         type=float, 
-        default=0.997, 
+        default=0.992, 
         help='Epsilon decay factor')
     parser.add_argument(
         '-EM',
@@ -183,16 +196,16 @@ if __name__ == "__main__":
         help='If epsilon decay, the minimum value of epsilon')
     parser.add_argument(
         '-NTS',
-        '--training-steps', 
+        '--training-ep', 
         type=int, 
-        default=int(5e6), 
-        help='Number traning steps')
+        default=1000, 
+        help='Number traning episodes')
     parser.add_argument(
         '-NTR',
         '--nb-target-replace', 
         type=int, 
-        default=5000, 
-        help='Number steps target network replace')
+        default=5, 
+        help='Number episodes target network replace')
     parser.add_argument(
         '-BC',
         '--buffer-capacity', 
@@ -217,46 +230,64 @@ if __name__ == "__main__":
         type=str, 
         default='auto',
         help='Which device use: "cpu" or "cuda", "auto" for autodetect')
+    parser.add_argument(
+        '-AR',
+        '--action-repeat', 
+        type=int, 
+        default=1, 
+        help='Number steps using same action')
+    parser.add_argument(
+        '-UE',
+        '--update-each', 
+        type=int, 
+        default=1, 
+        help='Updates every number of steps')
+    parser.add_argument(
+        '-SZ',
+        '--skip-zoom', 
+        type=int, 
+        default=2, 
+        help='Number of steps to skip at episode start')
     args = parser.parse_args()
     
     old_settings = np.seterr(all='raise')
 
-    actions = (
-        [-1, 0, 0],              # Turn Left
-        [1, 0, 0],               # Turn Right
-        [0, 0, 1],              # Full Break
-        [0, 1, 0],              # Accelerate
-        [0, 0, 0],              # Do nothing
-
-        [-1, 1, 0],             # Left accelerate
-        [1, 1, 0],              # Right accelerate
-        [-1, 0, 1],             # Left break
-        [1, 0, 1],              # Right break
-        
-        [-0.5, 0, 0],           # Soft left
-        [0.5, 0, 0],            # Soft right
-        [0, 0, 0.5],            # Soft break
-        [0, 0.5, 0],            # Soft accelerate
-
-        [-0.5, 0.5, 0],         # Soft Left accelerate
-        [0.5, 0.5, 0],          # Soft Right accelerate
-        [-0.5, 0, 0.5],         # Soft Left break
-        [0.5, 0, 0.5],          # Soft Right break
-        )
     # actions = (
-    #         [-1, 1, 0.2], 
-    #         [0, 1, 0.2], 
-    #         [1, 1, 0.2],
-    #         [-1, 1,   0], 
-    #         [0, 1,   0], 
-    #         [1, 1,   0],
-    #         [-1, 0, 0.2], 
-    #         [0, 0, 0.2], 
-    #         [1, 0, 0.2],
-    #         [-1, 0,   0], 
-    #         [0, 0,   0], 
-    #         [1, 0,   0]
+    #     [-1, 0, 0],              # Turn Left
+    #     [1, 0, 0],               # Turn Right
+    #     [0, 0, 1],              # Full Break
+    #     [0, 1, 0],              # Accelerate
+    #     [0, 0, 0],              # Do nothing
+
+    #     [-1, 1, 0],             # Left accelerate
+    #     [1, 1, 0],              # Right accelerate
+    #     [-1, 0, 1],             # Left break
+    #     [1, 0, 1],              # Right break
+        
+    #     [-0.5, 0, 0],           # Soft left
+    #     [0.5, 0, 0],            # Soft right
+    #     [0, 0, 0.5],            # Soft break
+    #     [0, 0.5, 0],            # Soft accelerate
+
+    #     [-0.5, 0.5, 0],         # Soft Left accelerate
+    #     [0.5, 0.5, 0],          # Soft Right accelerate
+    #     [-0.5, 0, 0.5],         # Soft Left break
+    #     [0.5, 0, 0.5],          # Soft Right break
     #     )
+    actions = (
+            [-1, 1, 0.2], 
+            [0, 1, 0.2], 
+            [1, 1, 0.2],
+            [-1, 1,   0], 
+            [0, 1,   0], 
+            [1, 1,   0],
+            [-1, 0, 0.2], 
+            [0, 0, 0.2], 
+            [1, 0, 0.2],
+            [-1, 0,   0], 
+            [0, 0,   0], 
+            [1, 0,   0]
+        )
     
     # Init model checkpoint folder and uncertainties folder
     if not os.path.exists('param'):
@@ -312,14 +343,16 @@ if __name__ == "__main__":
     env = Env(
         img_stack=args.image_stack, 
         seed=args.train_seed, 
-        clip_reward=clip_reward)
+        clip_reward=clip_reward,
+        action_repeat=args.action_repeat)
     eval_env = Env(
         img_stack=args.image_stack, 
         seed=args.eval_seed, 
         clip_reward=clip_reward,
         path_render='' if args.eval_render else None,
         validations=args.eval_episodes,
-        evaluation=True)
+        evaluation=True,
+        action_repeat=args.action_repeat)
 
     # Wandb config specification
     config = wandb.config
@@ -330,4 +363,15 @@ if __name__ == "__main__":
     else:
         wandb.watch(agent._net)
 
-    train_agent(env, eval_env, agent, args.training_steps, args.nb_target_replace, eval_episodes=args.eval_episodes, eval_every=args.eval_every, batch_size=args.batch_size, checkpoint=60)
+    train_agent(
+        env, eval_env, agent, 
+        args.training_ep,
+        args.nb_target_replace, 
+        eval_episodes=args.eval_episodes, 
+        eval_every=args.eval_every, 
+        updates_after=args.batch_size, 
+        update_each=args.update_each,
+        skip_zoom=args.skip_zoom)
+    
+    env.close()
+    eval_env.close()

@@ -40,18 +40,19 @@ class Agent:
         self._actions = actions
 
         self._net = Net(img_stack, len(actions)).to(self._device)
-        self._target_net = None
+        self._target_net = Net(img_stack, len(actions)).to(self._device)
         self.replace_target_network()
         
-        self._optimizer = torch.optim.Adam(self._net.parameters(), lr=learning_rate)
+        self._optimizer = torch.optim.Adam(self._net.parameters(), lr=learning_rate, eps=1e-07)
         self._criterion = nn.MSELoss()
 
         self.K = 0.05
+        self.nb_updates = 1
     
     def empty_buffer(self):
         """Empty replay buffer"""        
         self._buffer.empty()
-    def nuber_experiences(self):
+    def number_experiences(self):
         """Get number of saved experiences
 
         Returns:
@@ -70,9 +71,9 @@ class Agent:
             done (bool): Whether state in time t+1 is terminal or not
         """
         self._buffer.push(
-            torch.from_numpy(np.array(state)).unsqueeze(dim=0), 
+            torch.from_numpy(np.array(state, dtype=np.float32)/255).unsqueeze(dim=0), 
             action.unsqueeze(dim=0), 
-            torch.from_numpy(np.array(next_state)).unsqueeze(dim=0), 
+            torch.from_numpy(np.array(next_state, dtype=np.float32)/255).unsqueeze(dim=0), 
             torch.Tensor([reward]), 
             torch.Tensor([done])
             )
@@ -80,11 +81,11 @@ class Agent:
     def replace_target_network(self):
         """Replace target network with actual network
         """        
-        # self._target_net.load_state_dict(self._net.state_dict())
-        self._target_net = copy.deepcopy(self._net).to(self._device)
+        self._target_net.load_state_dict(self._net.state_dict())
+        # self._target_net = copy.deepcopy(self._net).to(self._device)
         # self._target_deepq_network.eval()
-        for p in self._target_net.parameters():
-            p.requires_grad = False
+        # for p in self._target_net.parameters():
+        #     p.requires_grad = False
         
     def select_action(self, observation, greedy=False):
         """Selects a epislon greedy action
@@ -97,16 +98,15 @@ class Agent:
             int: The action taken
             int: The corresponding action index
         """        
-        if np.random.random() > self._epsilon or greedy:
+        if np.random.rand() > self._epsilon or greedy:
             # Select action greedily
             with torch.no_grad():
-                values = self._net(torch.from_numpy(observation).unsqueeze(dim=0).float().to(self._device))
+                values = self._net((torch.from_numpy(observation).unsqueeze(dim=0).float()/255).to(self._device))
                 _, index = torch.max(values, dim=-1)
         else:
             # Select random action
             index = torch.randint(0, len(self._actions), size=(1,))
-        action = self._actions[index]
-        return action, index.cpu()
+        return self._actions[index], index.cpu()
     
     def epsilon_step(self):
         """Epsilon decay e = e*factor"""        
@@ -117,7 +117,7 @@ class Agent:
     
     def update(self):
         """Trains agent model"""
-        for _ in range(1):
+        for _ in range(self.nb_updates):
             transitions = self._buffer.sample()
             batch = self._Transition(*zip(*transitions))
 
@@ -131,7 +131,7 @@ class Agent:
             next_state_values = ((1 - done_batch)*self._target_net(next_state_batch).max(1)[0]).detach()
             expected_state_action_values = (next_state_values * self._gamma) + reward_batch
 
-            loss = self._criterion(state_action_values, expected_state_action_values) + self.K*torch.mean(state_action_values)
+            loss = self._criterion(state_action_values, expected_state_action_values)# + self.K*torch.mean(state_action_values)
             self._optimizer.zero_grad()
             loss.backward()
             if self._clip_grad:
@@ -176,7 +176,7 @@ class Agent:
     
     def eval_mode(self):
         """Prediction network in evaluation mode"""        
-        self.net._eval()
+        self._net._eval()
     def train_mode(self):
         """Prediction network in training mode"""   
         self._net.train()

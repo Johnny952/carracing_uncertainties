@@ -7,13 +7,14 @@ from utils import imgstackRGB2graystack
 
 
 class Env():
-    def __init__(self, img_stack=4, seed=0, clip_reward=None, path_render=None, validations=1, evaluation=False):
+    def __init__(self, img_stack=4, seed=0, clip_reward=None, path_render=None, validations=1, evaluation=False, action_repeat=1):
         """Environment Constructor
 
         Args:
             img_stack (int, optional): Number of consecutive frames to stack. Defaults to 4.
             seed (int, optional): Random seed env generator. Defaults to 0.
         """
+        self._action_repeat = action_repeat
         self.render = path_render is not None
         self.evaluation = evaluation
         env = gym.make('CarRacing-v0')
@@ -51,24 +52,33 @@ class Env():
             np.ndarray: Last n gray frames stack finishing in time t+1
             float: Reward of the transition t to t+1
             done: Whether the episode is finished or not
-        """        
-        next_state, reward, done, _ = self._env.step(action)
-        # green penalty last state
-        if np.mean(next_state[-1][:, :, 1]) > 185.0:
-            reward -= 0.05
-        
-        if self._clip_reward is not None:
-            reward = np.clip(reward, a_max=self._clip_reward)
+        """
+        reward = 0
+        for _ in range(self._action_repeat):
+            next_state, rwd, done, _ = self._env.step(action)
+            # green penalty last state
+            if np.mean(next_state[-1][:, :, 1]) > 185.0:
+                rwd -= 0.05
+            
+            # reward for full gas
+            if action[1] == 1 and action[2] == 0:
+                rwd += 1.5*np.abs(rwd)
+            
+            if self._clip_reward is not None:
+                rwd = np.clip(rwd, a_max=self._clip_reward)
 
-        # push reward in memory
-        # self._reward_memory.append(reward)
+            # push reward in memory
+            # self._reward_memory.append(reward)
 
-        # penalty for die state
-        # die = sum(self._reward_memory) <= -5
-        # if not self.evaluation and die:
-        #     done = True
-        #     #reward -= 20
-        #     reward += 100
+            # penalty for die state
+            # die = sum(self._reward_memory) <= -5
+            # if not self.evaluation and die:
+            #     done = True
+            #     #reward -= 20
+            #     reward += 100
+            reward += rwd
+            if done:
+                break
         
         return imgstackRGB2graystack(next_state), reward, done
     
