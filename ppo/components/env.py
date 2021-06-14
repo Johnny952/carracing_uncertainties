@@ -13,7 +13,7 @@ class Env():
         self.render = path_render is not None
         self.evaluation = evaluation
         if not self.render:
-            self.env = gym.make('CarRacing-v0')
+            self.env = gym.make('CarRacing-v0', verbose=0)
         else:
             self.validations = validations
             self.idx_val = validations // 2

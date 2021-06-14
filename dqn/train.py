@@ -8,7 +8,7 @@ import glob
 
 from pyvirtualdisplay import Display
 
-from components import Agent, Env
+from components import make_agent, Env
 from utils import str2bool, save_uncert, init_uncert_file
 
 
@@ -24,13 +24,12 @@ def train_agent(env, eval_env, agent, nb_training_ep, nb_steps_target_replace, e
     tr_step = 0
     best_eval_score = -100
 
+    if skip_zoom is not None:
+        for _ in range(skip_zoom):
+            ob_t, _, _ = env.step([0, 0, 0])
 
-    while episode_nb < nb_training_ep:
-    #for tr_step in range(nb_training_steps):
 
-        # if (tr_step + 1) % nb_steps_target_replace == 0:
-        #     agent.replace_target_network()
-        
+    while episode_nb < nb_training_ep:       
         action, action_idx = agent.select_action(ob_t)
         
         ob_t1, reward, done = env.step(action)
@@ -49,18 +48,14 @@ def train_agent(env, eval_env, agent, nb_training_ep, nb_steps_target_replace, e
         episode_steps += 1
 
         if done:
-            if episode_nb == 0:
-                running_score = episode_reward
-            else:
-                running_score = running_score * 0.99 + episode_reward * 0.01
+            running_score = episode_reward if episode_nb == 0 else running_score * 0.99 + episode_reward * 0.01
             
-
             if episode_nb % nb_steps_target_replace == 0:
                 agent.replace_target_network()
 
             print('Global training step %5d | Training episode %5d | Steps: %4d | Reward: %4d | RunningScore: %4d | | Epsilon: %.3f' % \
-                        (tr_step + 1, episode_nb + 1, episode_steps, episode_reward, running_score, agent._epsilon))
-            wandb.log({'Train Episode': episode_nb + 1, 'Train Episode Score': float(episode_reward), "Train Episode Steps": episode_steps, "Train Running Score": running_score, 'Epsilon': agent._epsilon})
+                        (tr_step + 1, episode_nb + 1, episode_steps, episode_reward, running_score, agent.epsilon()))
+            wandb.log({'Train Episode': episode_nb + 1, 'Train Episode Score': float(episode_reward), "Train Episode Steps": episode_steps, "Train Running Score": running_score, 'Epsilon': agent.epsilon()})
             episode_nb += 1
             ob_t = env.reset()
             done = False
@@ -79,9 +74,6 @@ def train_agent(env, eval_env, agent, nb_training_ep, nb_steps_target_replace, e
                 eval_nb += 1
                 if mean_rwds >= best_eval_score:
                     agent.save_param(episode_nb)
-            
-            # if (episode_nb + 1) % checkpoint == 0:
-            #     agent.save_param(episode_nb)
             
             if running_score > env.reward_threshold:
                 print("Solved! Running reward is now {} and the last episode runs to {}!".format(running_score, score))
@@ -177,23 +169,35 @@ if __name__ == "__main__":
         default=0.95, 
         help='Discount factor')
     parser.add_argument(
-        '-E',
-        '--epsilon', 
+        '-EM',
+        '--epsilon-method', 
+        type=str, 
+        default='linear', 
+        help='Epsilon decay method: constant, linear, exp or inverse_sigmoid')
+    parser.add_argument(
+        '-EMa',
+        '--epsilon-max', 
         type=float, 
         default=1, 
-        help='Epsilon greedy')
+        help='The minimum value of epsilon, used this value in constant')
     parser.add_argument(
-        '-ED',
-        '--epsilon-decay', 
-        type=float, 
-        default=0.992, 
-        help='Epsilon decay factor')
-    parser.add_argument(
-        '-EM',
+        '-EMi',
         '--epsilon-min', 
         type=float, 
         default=0.1, 
-        help='If epsilon decay, the minimum value of epsilon')
+        help='The minimum value of epsilon')
+    parser.add_argument(
+        '-EF',
+        '--epsilon-factor', 
+        type=float, 
+        default=3, 
+        help='Factor parameter of epsilon decay, only used when method is exp or inverse_sigmoid')
+    parser.add_argument(
+        '-EMS',
+        '--epsilon-max-steps', 
+        type=int, 
+        default=500, 
+        help='Max Epsilon Steps parameter, when epsilon is close to the minimum')
     parser.add_argument(
         '-NTS',
         '--training-ep', 
@@ -205,7 +209,7 @@ if __name__ == "__main__":
         '--nb-target-replace', 
         type=int, 
         default=5, 
-        help='Number episodes target network replace')
+        help='Number episodes target network replace, only used when model is dqn')
     parser.add_argument(
         '-BC',
         '--buffer-capacity', 
@@ -248,6 +252,18 @@ if __name__ == "__main__":
         type=int, 
         default=2, 
         help='Number of steps to skip at episode start')
+    parser.add_argument(
+        '-M',
+        '--model', 
+        type=str, 
+        default='dqn', 
+        help='Which RL model use: dqn, ddqn2015 or ddqn2018')
+    parser.add_argument(
+        '-T',
+        '--tau', 
+        type=float, 
+        default=0.1, 
+        help='DDQN Tau parameter, only used when model is ddqn2015')
     args = parser.parse_args()
     
     old_settings = np.seterr(all='raise')
@@ -328,18 +344,23 @@ if __name__ == "__main__":
     wandb.init(project=config["project"], entity=config["entity"])
 
     # Init Agent and Environment
-    agent = Agent(
+    agent = make_agent(
+        args.model,
         args.image_stack, 
         actions, 
         args.learning_rate, 
         args.gamma, 
-        args.epsilon, 
+        args.training_ep,
         args.buffer_capacity, 
         args.batch_size, 
         device=device, 
-        epsilon_decay=args.epsilon_decay, 
-        clip_grad=True, 
-        epsilon_min=args.epsilon_min)
+        clip_grad=False, 
+        epsilon_method=args.epsilon_method,
+        epsilon_max=args.epsilon_max,
+        epsilon_min=args.epsilon_min,
+        epsilon_factor=args.epsilon_factor,
+        epsilon_max_steps=args.epsilon_max_steps,
+        tau=args.tau)
     env = Env(
         img_stack=args.image_stack, 
         seed=args.train_seed, 
@@ -358,10 +379,11 @@ if __name__ == "__main__":
     config = wandb.config
     config.args = args
 
-    if isinstance(agent._net, list):
-        wandb.watch(agent._net)
-    else:
-        wandb.watch(agent._net)
+    
+    if args.model.lower() in ['dqn', 'ddqn2015']:
+        wandb.watch(agent._model)
+    elif args.model.lower() in ['ddqn2018']:
+        wandb.watch(agent._model1)
 
     train_agent(
         env, eval_env, agent, 

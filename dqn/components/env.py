@@ -17,7 +17,7 @@ class Env():
         self._action_repeat = action_repeat
         self.render = path_render is not None
         self.evaluation = evaluation
-        env = gym.make('CarRacing-v0')
+        env = gym.make('CarRacing-v0', verbose=0)
         self._env = gym.wrappers.FrameStack(env, img_stack)
         if self.render:
             self.validations = validations
