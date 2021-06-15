@@ -201,7 +201,8 @@ if __name__ == "__main__":
         action_repeat=args.action_repeat,
         seed=args.seed,
         path_render='' if args.render else None,
-        validations=args.validations
+        validations=args.validations,
+        evaluation=True
     )
     agent.load_param(args.from_checkpoint)
     #agent.eval_mode()

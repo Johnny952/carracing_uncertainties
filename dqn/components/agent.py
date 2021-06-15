@@ -408,14 +408,14 @@ class DDQNAgent2018(Agent):
         dones = torch.cat(batch.done).to(self._device)
 
         # compute loss
-        curr_Q1 = self._model1.forward(states).gather(1, actions).squeeze(dim=-1)
-        curr_Q2 = self._model2.forward(states).gather(1, actions).squeeze(dim=-1)
+        curr_Q1 = self._model1(states).gather(1, actions).squeeze(dim=-1)
+        curr_Q2 = self._model2(states).gather(1, actions).squeeze(dim=-1)
 
-        next_Q1 = self._model1.forward(next_states)
-        next_Q2 = self._model2.forward(next_states)
+        # next_Q1 = self._model1(next_states)
+        # next_Q2 = self._model2(next_states)
         next_Q = torch.min(
-            torch.max(self._model1.forward(next_states), 1)[0],
-            torch.max(self._model2.forward(next_states), 1)[0]
+            torch.max(self._model1(next_states), 1)[0],
+            torch.max(self._model2(next_states), 1)[0]
         )
         next_Q = next_Q.squeeze(dim=-1)
         expected_Q = rewards + (1 - dones) * self._gamma * next_Q

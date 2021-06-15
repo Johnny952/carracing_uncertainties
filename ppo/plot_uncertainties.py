@@ -6,6 +6,12 @@ from plotly.subplots import make_subplots
 import os
 from scipy.ndimage import gaussian_filter1d
 
+eps = 1e-15
+
+def scale01(array):
+    max_ = np.max(array)
+    min_ = np.min(array)
+    return (array - min_) / (max_ - min_ + eps)
 
 def read_uncert(path):
     epochs = []
@@ -97,12 +103,15 @@ def plot_uncert_train(paths, names, colors=None, linewidths=None, unc_path='imag
             mean_reward = gaussian_filter1d(mean_reward, smooth)
             mean_epist = gaussian_filter1d(mean_epist, smooth)
             mean_aleat = gaussian_filter1d(mean_aleat, smooth)
+        
+        mean_epist = scale01(mean_epist)
+        mean_aleat = scale01(mean_aleat)
 
         # Plot uncertainties
         if name.lower() != 'base':
-            ax_unc[0].plot(unique_ep, mean_epist/np.max(mean_epist), color, label="Mean " + name, linewidth=linewidth)
+            ax_unc[0].plot(unique_ep, mean_epist, color, label="Mean " + name, linewidth=linewidth)
             #ax_unc[0].fill_between(unique_ep, (mean_epist/np.max(mean_epist) - std_epist/np.max(std_epist)), (mean_epist/np.max(mean_epist) + std_epist/np.max(std_epist)), color=color, alpha=0.2, label="Std " + name)
-            ax_unc[1].plot(unique_ep, mean_aleat/np.max(mean_aleat), color, label="Mean " + name, linewidth=linewidth)
+            ax_unc[1].plot(unique_ep, mean_aleat, color, label="Mean " + name, linewidth=linewidth)
             #ax_unc[1].fill_between(unique_ep, (mean_aleat/np.max(mean_aleat) - std_aleat/np.max(std_aleat)), (mean_aleat/np.max(mean_aleat) + std_aleat/np.max(std_aleat)), color=color, alpha=0.2, label="Std " + name)
         
         # Plot rewards
@@ -135,6 +144,9 @@ def plotly_train(paths, names, colors=None, save_fig='images/uncertainties_train
             mean_reward = gaussian_filter1d(mean_reward, smooth)
             mean_epist = gaussian_filter1d(mean_epist, smooth)
             mean_aleat = gaussian_filter1d(mean_aleat, smooth)
+
+        mean_epist = scale01(mean_epist)
+        mean_aleat = scale01(mean_aleat)
         
         rwd_upper, rwd_lower = mean_reward + std_reward, (mean_reward - std_reward)
 
@@ -162,14 +174,14 @@ def plotly_train(paths, names, colors=None, save_fig='images/uncertainties_train
 
         if name.lower() != 'base':
             fig.add_trace(go.Scatter(
-                x=unique_ep, y=mean_epist/np.max(mean_epist),
+                x=unique_ep, y=mean_epist,
                 line_color=color,
                 showlegend=False,
                 legendgroup=name,
                 name=name,
             ), row=1, col=1)
             fig.add_trace(go.Scatter(
-                x=unique_ep, y=mean_aleat/np.max(mean_aleat),
+                x=unique_ep, y=mean_aleat,
                 line_color=color,
                 showlegend=False,
                 legendgroup=name,
@@ -224,12 +236,18 @@ def plot_uncert_test(paths, names, colors=None, linewidths=None, unc_path='image
             mean_reward = gaussian_filter1d(mean_reward, smooth)
             mean_epist = gaussian_filter1d(mean_epist, smooth)
             mean_aleat = gaussian_filter1d(mean_aleat, smooth)
+        
+        #if 'mix' in name.lower():
+        #    mean_epist = 1 - np.exp(mean_epist)
+
+        mean_epist = scale01(mean_epist)
+        mean_aleat = scale01(mean_aleat)
 
         # Plot uncertainties
         if name.lower() != 'base':
-            ax_unc[0].plot(sigma, mean_epist/np.max(mean_epist), color, label="Mean " + name, linewidth=linewidth)
+            ax_unc[0].plot(sigma, mean_epist, color, label="Mean " + name, linewidth=linewidth)
             #ax_unc[0].fill_between(sigma, (mean_epist/np.max(mean_epist) - std_epist/np.max(std_epist)), (mean_epist/np.max(mean_epist) + std_epist/np.max(std_epist)), color=color, alpha=0.2, label="Std " + name)
-            ax_unc[1].plot(sigma, mean_aleat/np.max(mean_aleat), color, label="Mean " + name, linewidth=linewidth)
+            ax_unc[1].plot(sigma, mean_aleat, color, label="Mean " + name, linewidth=linewidth)
             #ax_unc[1].fill_between(sigma, (mean_aleat/np.max(mean_aleat) - std_aleat/np.max(std_aleat)), (mean_aleat/np.max(mean_aleat) + std_aleat/np.max(std_aleat)), color=color, alpha=0.2, label="Std " + name)
         
         # Plot rewards
@@ -262,6 +280,9 @@ def plotly_test(paths, names, colors=None, save_fig='images/uncertainties_test.h
             mean_epist = gaussian_filter1d(mean_epist, smooth)
             mean_aleat = gaussian_filter1d(mean_aleat, smooth)
         
+        mean_epist = scale01(mean_epist)
+        mean_aleat = scale01(mean_aleat)
+        
         rwd_upper, rwd_lower = mean_reward + std_reward, (mean_reward - std_reward)
 
         aux = color.lstrip('#')
@@ -288,14 +309,14 @@ def plotly_test(paths, names, colors=None, save_fig='images/uncertainties_test.h
 
         if name.lower() != 'base':
             fig.add_trace(go.Scatter(
-                x=sigma, y=mean_epist/np.max(mean_epist),
+                x=sigma, y=mean_epist,
                 line_color=color,
                 showlegend=False,
                 legendgroup=name,
                 name=name,
             ), row=1, col=1)
             fig.add_trace(go.Scatter(
-                x=sigma, y=mean_aleat/np.max(mean_aleat),
+                x=sigma, y=mean_aleat,
                 line_color=color,
                 showlegend=False,
                 legendgroup=name,
@@ -324,19 +345,23 @@ if __name__ == "__main__":
         'uncertainties/train/sens.txt',
         'uncertainties/train/drop100.txt',
         'uncertainties/train/boot10.txt',
+        'uncertainties/train/bnn10.txt',
+        'uncertainties/train/mix50.txt',
     ]
     names = [
         'Base',
         'Sensitivity',
         'Dropout 100',
         'Bootstrap 10',
+        'BNN 10',
+        'Mixture 50'
     ]
     colors = [
-        'k', 'r', 'y', 'g', 'b'
+        'k', 'r', 'y', 'g', 'b', 'c', 'm', 'tab:cyan'
     ]
     colors_px = px.colors.qualitative.Plotly
     linewidths = [
-        2, 2, 2, 2, 2
+        2, 2, 2, 2, 2, 2, 2, 2
     ]
 
     if not os.path.exists('images'):
@@ -352,11 +377,13 @@ if __name__ == "__main__":
 
     test_paths = [
         'uncertainties/test/base.txt',
-        'uncertainties/test/drop100.txt',
+        'uncertainties/test/drop10.txt',
+        'uncertainties/test/mix50.txt',
     ]
     names = [
         'Base',
-        'Dropout 100',
+        'Dropout 10',
+        'Mixture 50'
     ]
 
     plot_uncert_test(test_paths, names, colors=colors, linewidths=linewidths, smooth=2)
