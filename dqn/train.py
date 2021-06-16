@@ -257,7 +257,7 @@ if __name__ == "__main__":
         '-M',
         '--model', 
         type=str, 
-        default='dqn', 
+        default='ddqn2018', 
         help='Which RL model use: dqn, ddqn2015 or ddqn2018')
     parser.add_argument(
         '-T',
