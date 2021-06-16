@@ -32,6 +32,9 @@ class Env():
         self.reward_threshold = self._env.spec.reward_threshold
 
         self._clip_reward=clip_reward
+    
+    def close(self):
+        self._env.close()
 
     def reset(self):
         """Resets the environment

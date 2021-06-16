@@ -35,7 +35,12 @@ class ReplayMemory(object):
         """        
         if len(self) < self.batch_size:
             raise Exception('Number of experiences is less than the required')
-        return random.sample(self.memory, self.batch_size)
+        random_samp =  random.sample(self.memory, self.batch_size)
+        return self._Transition(*zip(*random_samp))
+    
+    def dataset(self):
+        data =  self._Transition(*zip(*self.memory))
+        return data
 
     def __len__(self):
         return len(self.memory)
@@ -43,8 +48,9 @@ class ReplayMemory(object):
 
 if __name__ == "__main__":
     import numpy as np
+    from collections import namedtuple
 
-    buffer = ReplayMemory(50, 16)
+    buffer = ReplayMemory(50, 16, namedtuple('Transition', ('state', 'action', 'next_state', 'reward', 'done')))
 
     for i in range(60):
         state = np.random.randn(96, 96, 4)
@@ -55,6 +61,6 @@ if __name__ == "__main__":
 
         buffer.push(state, action, next_state, reward, done)
 
-        print(f"Experiences: {i+1}\tSaved: {len(buffer)}")
+        #print(f"Experiences: {i+1}\tSaved: {len(buffer)}")
     
-    print("\nSample:", len(buffer.sample()))
+    #print("\nSample:", len(buffer.sample()))

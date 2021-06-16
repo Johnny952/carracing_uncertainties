@@ -1,6 +1,7 @@
-import copy
 import torch
 import torch.nn as nn
+#from torch.utils.data import TensorDataset, DataLoader
+from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 import numpy as np
 from collections import namedtuple
 
@@ -23,6 +24,7 @@ class Agent:
     
         self._device = device
         self._clip_grad = clip_grad
+        self._batch_size = batch_size
         
         self._Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward', 'done'))
         self._buffer = ReplayMemory(buffer_capacity, batch_size, self._Transition)
@@ -36,7 +38,7 @@ class Agent:
         
         self._criterion = nn.MSELoss()
 
-        self.nb_updates = 1
+        self.nb_updates = 10
     
     def empty_buffer(self):
         """Empty replay buffer"""        
@@ -88,6 +90,17 @@ class Agent:
     def train_mode(self):
         pass
 
+    def update_minibatch(self):
+        pass
+
+    def unpack(self, batch):
+        states = torch.cat(batch.state).float().to(self._device)
+        actions = torch.cat(batch.action).long().to(self._device)
+        next_states = torch.cat(batch.next_state).float().to(self._device)
+        rewards = torch.cat(batch.reward).to(self._device)
+        dones = torch.cat(batch.done).to(self._device)
+
+        return states, actions, next_states, rewards, dones
 
 
 
@@ -162,28 +175,36 @@ class DQNAgent(Agent):
 
     def update(self):
         """Trains agent model"""
+        states, actions, next_states, rewards, dones = self.unpack(self._buffer.sample())
+
+        loss = self.compute_loss(states, actions, next_states, rewards, dones)
+        self._optimizer.zero_grad()
+        loss.backward()
+        if self._clip_grad:
+            for param in self._model.parameters():
+                param.grad.data.clamp_(-1, 1)
+        self._optimizer.step()
+
+    def update_minibatch(self):
+        states, actions, next_states, rewards, dones = self.unpack(self._buffer.dataset())
         for _ in range(self.nb_updates):
-            transitions = self._buffer.sample()
-            batch = self._Transition(*zip(*transitions))
+            rand_sampler = SubsetRandomSampler(range(len(self._buffer)))
+            sampler = BatchSampler(rand_sampler, self._batch_size, False)
+            for index in sampler:
+                loss = self.compute_loss(states[index], actions[index], next_states[index], rewards[index], dones[index])
 
-            loss = self.compute_loss(batch)
-            self._optimizer.zero_grad()
-            loss.backward()
-            if self._clip_grad:
-                for param in self._model.parameters():
-                    param.grad.data.clamp_(-1, 1)
-            self._optimizer.step()
+                loss = self.compute_loss(states, actions, next_states, rewards, dones)
+                self._optimizer.zero_grad()
+                loss.backward()
+                if self._clip_grad:
+                    for param in self._model.parameters():
+                        param.grad.data.clamp_(-1, 1)
+                self._optimizer.step()
 
-    def compute_loss(self, batch):
-        state_batch = torch.cat(batch.state).float().to(self._device)
-        action_batch = torch.cat(batch.action).long().to(self._device)
-        next_state_batch = torch.cat(batch.next_state).float().to(self._device)
-        reward_batch = torch.cat(batch.reward).to(self._device)
-        done_batch = torch.cat(batch.done).to(self._device)
-
-        state_action_values = self._model(state_batch).gather(1, action_batch).squeeze(dim=-1)
-        next_state_values = ((1 - done_batch)*self._target_model(next_state_batch).max(1)[0]).detach()
-        expected_state_action_values = (next_state_values * self._gamma) + reward_batch
+    def compute_loss(self, states, actions, next_states, rewards, dones):
+        state_action_values = self._model(states).gather(1, actions).squeeze(dim=-1)
+        next_state_values = ((1 - dones)*self._target_model(next_states).max(1)[0]).detach()
+        expected_state_action_values = (next_state_values * self._gamma) + rewards
 
         return self._criterion(expected_state_action_values, state_action_values)# + self.K*torch.mean(state_action_values)
 
@@ -287,13 +308,7 @@ class DDQNAgent2015(Agent):
         return self._actions[index], index.cpu()
 
 
-    def compute_loss(self, batch):     
-        states = torch.cat(batch.state).float().to(self._device)
-        actions = torch.cat(batch.action).long().to(self._device)
-        next_states = torch.cat(batch.next_state).float().to(self._device)
-        rewards = torch.cat(batch.reward).to(self._device)
-        dones = torch.cat(batch.done).to(self._device)
-
+    def compute_loss(self, states, actions, next_states, rewards, dones):     
         # compute loss
         curr_Q = self._model(states).gather(1, actions).squeeze(dim=-1)
         next_Q = self._target_model(next_states)
@@ -306,21 +321,38 @@ class DDQNAgent2015(Agent):
         return loss
     
     def update(self):
+        states, actions, next_states, rewards, dones = self.unpack(self._buffer.sample())
+        loss = self.compute_loss(states, actions, next_states, rewards, dones)
+
+        self._optimizer.zero_grad()
+        loss.backward()
+        if self._clip_grad:
+            for param in self._model.parameters():
+                param.grad.data.clamp_(-1, 1)
+        self._optimizer.step()
+
+        # target network update
+        for target_param, param in zip(self._target_model.parameters(), self._model.parameters()):
+            target_param.data.copy_(self._tau * param + (1 - self._tau) * target_param)
+    
+    def update_minibatch(self):
+        states, actions, next_states, rewards, dones = self.unpack(self._buffer.dataset())
         for _ in range(self.nb_updates):
-            transitions = self._buffer.sample()
-            batch = self._Transition(*zip(*transitions))
-            loss = self.compute_loss(batch)
+            rand_sampler = SubsetRandomSampler(range(len(self._buffer)))
+            sampler = BatchSampler(rand_sampler, self._batch_size, False)
+            for index in sampler:
+                loss = self.compute_loss(states[index], actions[index], next_states[index], rewards[index], dones[index])
 
-            self._optimizer.zero_grad()
-            loss.backward()
-            if self._clip_grad:
-                for param in self._model.parameters():
-                    param.grad.data.clamp_(-1, 1)
-            self._optimizer.step()
+                self._optimizer.zero_grad()
+                loss.backward()
+                if self._clip_grad:
+                    for param in self._model.parameters():
+                        param.grad.data.clamp_(-1, 1)
+                self._optimizer.step()
 
-            # target network update
-            for target_param, param in zip(self._target_model.parameters(), self._model.parameters()):
-                target_param.data.copy_(self._tau * param + (1 - self._tau) * target_param)
+                # target network update
+                for target_param, param in zip(self._target_model.parameters(), self._model.parameters()):
+                    target_param.data.copy_(self._tau * param + (1 - self._tau) * target_param)
     
     def save_param(self, epoch):
         tosave = {
@@ -400,13 +432,7 @@ class DDQNAgent2018(Agent):
         return self._actions[index], index.cpu()
 
 
-    def compute_loss(self, batch):     
-        states = torch.cat(batch.state).float().to(self._device)
-        actions = torch.cat(batch.action).long().to(self._device)
-        next_states = torch.cat(batch.next_state).float().to(self._device)
-        rewards = torch.cat(batch.reward).to(self._device)
-        dones = torch.cat(batch.done).to(self._device)
-
+    def compute_loss(self, states, actions, next_states, rewards, dones):     
         # compute loss
         curr_Q1 = self._model1(states).gather(1, actions).squeeze(dim=-1)
         curr_Q2 = self._model2(states).gather(1, actions).squeeze(dim=-1)
@@ -426,25 +452,45 @@ class DDQNAgent2018(Agent):
         return loss1, loss2
     
     def update(self):
-        for _ in range(self.nb_updates):
-            transitions = self._buffer.sample()
-            batch = self._Transition(*zip(*transitions))
-            loss1, loss2 = self.compute_loss(batch)
+        states, actions, next_states, rewards, dones = self.unpack(self._buffer.sample())
+        loss1, loss2 = self.compute_loss(states, actions, next_states, rewards, dones)
 
-            self._optimizer1.zero_grad()
-            loss1.backward()
-            if self._clip_grad:
-                for param in self._model1.parameters():
-                    param.grad.data.clamp_(-1, 1)
-            self._optimizer1.step()
+        self._optimizer1.zero_grad()
+        loss1.backward()
+        if self._clip_grad:
+            for param in self._model1.parameters():
+                param.grad.data.clamp_(-1, 1)
+        self._optimizer1.step()
 
-            self._optimizer2.zero_grad()
-            loss2.backward()
-            if self._clip_grad:
-                for param in self._model2.parameters():
-                    param.grad.data.clamp_(-1, 1)
-            self._optimizer2.step()
+        self._optimizer2.zero_grad()
+        loss2.backward()
+        if self._clip_grad:
+            for param in self._model2.parameters():
+                param.grad.data.clamp_(-1, 1)
+        self._optimizer2.step()
     
+    def update_minibatch(self):
+        states, actions, next_states, rewards, dones = self.unpack(self._buffer.dataset())
+        for _ in range(self.nb_updates):
+            rand_sampler = SubsetRandomSampler(range(len(self._buffer)))
+            sampler = BatchSampler(rand_sampler, self._batch_size, False)
+            for index in sampler:
+                loss1, loss2 = self.compute_loss(states[index], actions[index], next_states[index], rewards[index], dones[index])
+
+                self._optimizer1.zero_grad()
+                loss1.backward()
+                if self._clip_grad:
+                    for param in self._model1.parameters():
+                        param.grad.data.clamp_(-1, 1)
+                self._optimizer1.step()
+
+                self._optimizer2.zero_grad()
+                loss2.backward()
+                if self._clip_grad:
+                    for param in self._model2.parameters():
+                        param.grad.data.clamp_(-1, 1)
+                self._optimizer2.step()
+            
     def save_param(self, epoch):
         tosave = {
             'epoch': epoch,

@@ -38,7 +38,8 @@ def train_agent(env, eval_env, agent, nb_training_ep, nb_steps_target_replace, e
 
         if tr_step % update_each == 0 and agent.number_experiences() >= updates_after:
             #print("Updating")
-            agent.update()
+            agent.update_minibatch()
+            #agent.update()
             #agent.epsilon_step()
             #agent.empty_buffer()
         
@@ -214,13 +215,13 @@ if __name__ == "__main__":
         '-BC',
         '--buffer-capacity', 
         type=int, 
-        default=5000, 
+        default=2000, 
         help='Replay buffer capacity')
     parser.add_argument(
         '-BS',
         '--batch-size', 
         type=int, 
-        default=64, 
+        default=128, 
         help='Batch size')
     parser.add_argument(
         '-CR',
@@ -244,7 +245,7 @@ if __name__ == "__main__":
         '-UE',
         '--update-each', 
         type=int, 
-        default=1, 
+        default=2000, 
         help='Updates every number of steps')
     parser.add_argument(
         '-SZ',
