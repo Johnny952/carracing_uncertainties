@@ -75,8 +75,6 @@ class Agent:
     def epsilon(self):
         return self._epsilon.epsilon()
 
-    def replace_target_network(self):
-        pass
     def select_action(self, observation, greedy=False):
         pass
     def update(self):
@@ -94,11 +92,11 @@ class Agent:
         pass
 
     def unpack(self, batch):
-        states = torch.cat(batch.state).float().to(self._device)
-        actions = torch.cat(batch.action).long().to(self._device)
-        next_states = torch.cat(batch.next_state).float().to(self._device)
-        rewards = torch.cat(batch.reward).to(self._device)
-        dones = torch.cat(batch.done).to(self._device)
+        states = torch.cat(batch.state).float()
+        actions = torch.cat(batch.action).long()
+        next_states = torch.cat(batch.next_state).float()
+        rewards = torch.cat(batch.reward)
+        dones = torch.cat(batch.done)
 
         return states, actions, next_states, rewards, dones
 
@@ -107,14 +105,15 @@ class Agent:
 class DQNAgent(Agent):
     def __init__(
         self, img_stack, actions, learning_rate, 
-        gamma, nb_training_steps, buffer_capacity, batch_size, 
+        gamma, buffer_capacity, batch_size, 
         device='cpu',  
         clip_grad=False,
         epsilon_method='linear',
         epsilon_max=1,
         epsilon_min=0.1,
         epsilon_factor=3,
-        epsilon_max_steps=1000
+        epsilon_max_steps=1000,
+        nb_target_replace=1
         ):
         """Constructor of Agent class
 
@@ -142,6 +141,9 @@ class DQNAgent(Agent):
         self._model = Net(img_stack, len(actions)).to(self._device)
         self._target_model = Net(img_stack, len(actions)).to(self._device)
         self.replace_target_network()
+
+        self._updates = 0
+        self._nb_target_replace = nb_target_replace
         
         self._optimizer = torch.optim.Adam(self._model.parameters(), lr=learning_rate, eps=1e-07)
 
@@ -185,6 +187,10 @@ class DQNAgent(Agent):
                 param.grad.data.clamp_(-1, 1)
         self._optimizer.step()
 
+        self._updates += 1
+        if self._updates % self._nb_target_replace == 0:
+            self.replace_target_network()
+
     def update_minibatch(self):
         states, actions, next_states, rewards, dones = self.unpack(self._buffer.dataset())
         for _ in range(self.nb_updates):
@@ -200,8 +206,14 @@ class DQNAgent(Agent):
                     for param in self._model.parameters():
                         param.grad.data.clamp_(-1, 1)
                 self._optimizer.step()
+        
+        self._updates += 1
+        if self._updates % self._nb_target_replace == 0:
+            self.replace_target_network()
 
     def compute_loss(self, states, actions, next_states, rewards, dones):
+        states, actions, next_states, rewards, dones = states.to(self._device), actions.to(self._device), next_states.to(self._device), rewards.to(self._device), dones.to(self._device)
+
         state_action_values = self._model(states).gather(1, actions).squeeze(dim=-1)
         next_state_values = ((1 - dones)*self._target_model(next_states).max(1)[0]).detach()
         expected_state_action_values = (next_state_values * self._gamma) + rewards
@@ -255,7 +267,7 @@ class DQNAgent(Agent):
 class DDQNAgent2015(Agent):
     def __init__(
         self, img_stack, actions, learning_rate, 
-        gamma, nb_training_steps, buffer_capacity, batch_size, 
+        gamma, buffer_capacity, batch_size, 
         device='cpu',  
         clip_grad=False,
         epsilon_method='linear',
@@ -308,7 +320,8 @@ class DDQNAgent2015(Agent):
         return self._actions[index], index.cpu()
 
 
-    def compute_loss(self, states, actions, next_states, rewards, dones):     
+    def compute_loss(self, states, actions, next_states, rewards, dones):
+        states, actions, next_states, rewards, dones = states.to(self._device), actions.to(self._device), next_states.to(self._device), rewards.to(self._device), dones.to(self._device)
         # compute loss
         curr_Q = self._model(states).gather(1, actions).squeeze(dim=-1)
         next_Q = self._target_model(next_states)
@@ -384,7 +397,7 @@ class DDQNAgent2015(Agent):
 class DDQNAgent2018(Agent):
     def __init__(
         self, img_stack, actions, learning_rate, 
-        gamma, nb_training_steps, buffer_capacity, batch_size, 
+        gamma, buffer_capacity, batch_size, 
         device='cpu',  
         clip_grad=False,
         epsilon_method='linear',
@@ -432,7 +445,8 @@ class DDQNAgent2018(Agent):
         return self._actions[index], index.cpu()
 
 
-    def compute_loss(self, states, actions, next_states, rewards, dones):     
+    def compute_loss(self, states, actions, next_states, rewards, dones):
+        states, actions, next_states, rewards, dones = states.to(self._device), actions.to(self._device), next_states.to(self._device), rewards.to(self._device), dones.to(self._device)    
         # compute loss
         curr_Q1 = self._model1(states).gather(1, actions).squeeze(dim=-1)
         curr_Q2 = self._model2(states).gather(1, actions).squeeze(dim=-1)
@@ -530,7 +544,6 @@ def make_agent(
     actions, 
     learning_rate, 
     gamma, 
-    training_ep,
     buffer_capacity, 
     batch_size, 
     device='cpu', 
@@ -540,14 +553,14 @@ def make_agent(
     epsilon_min=0.1,
     epsilon_factor=3,
     epsilon_max_steps=1000,
-    tau=0.1):
+    tau=0.1,
+    nb_target_replace=1):
     model = model.lower()
     if model == 'dqn':
         return DQNAgent(image_stack, 
                     actions, 
                     learning_rate, 
                     gamma, 
-                    training_ep,
                     buffer_capacity, 
                     batch_size, 
                     device=device, 
@@ -556,13 +569,13 @@ def make_agent(
                     epsilon_max=epsilon_max,
                     epsilon_min=epsilon_min,
                     epsilon_factor=epsilon_factor,
-                    epsilon_max_steps=epsilon_max_steps)
+                    epsilon_max_steps=epsilon_max_steps,
+                    nb_target_replace=nb_target_replace)
     elif model == 'ddqn2015':
         return DDQNAgent2015(image_stack, 
                     actions, 
                     learning_rate, 
                     gamma, 
-                    training_ep,
                     buffer_capacity, 
                     batch_size, 
                     device=device, 
@@ -579,7 +592,6 @@ def make_agent(
                     actions, 
                     learning_rate, 
                     gamma, 
-                    training_ep,
                     buffer_capacity, 
                     batch_size, 
                     device=device, 

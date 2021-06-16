@@ -12,7 +12,7 @@ from components import make_agent, Env
 from utils import str2bool, save_uncert, init_uncert_file
 
 
-def train_agent(env, eval_env, agent, nb_training_ep, nb_steps_target_replace, eval_episodes=3, eval_every=10, updates_after=1000, update_each=256, skip_zoom=None):
+def train_agent(env, eval_env, agent, nb_training_ep, eval_episodes=3, eval_every=10, updates_after=1000, update_each=256, skip_zoom=None):
     
     ob_t = env.reset()
     done = False
@@ -50,9 +50,6 @@ def train_agent(env, eval_env, agent, nb_training_ep, nb_steps_target_replace, e
 
         if done:
             running_score = episode_reward if episode_nb == 0 else running_score * 0.99 + episode_reward * 0.01
-            
-            if episode_nb % nb_steps_target_replace == 0:
-                agent.replace_target_network()
 
             print('Global training step %5d | Training episode %5d | Steps: %4d | Reward: %4d | RunningScore: %4d | | Epsilon: %.3f' % \
                         (tr_step + 1, episode_nb + 1, episode_steps, episode_reward, running_score, agent.epsilon()))
@@ -173,7 +170,7 @@ if __name__ == "__main__":
         '-EM',
         '--epsilon-method', 
         type=str, 
-        default='linear', 
+        default='exp', 
         help='Epsilon decay method: constant, linear, exp or inverse_sigmoid')
     parser.add_argument(
         '-EMa',
@@ -197,13 +194,13 @@ if __name__ == "__main__":
         '-EMS',
         '--epsilon-max-steps', 
         type=int, 
-        default=500, 
+        default=1000, 
         help='Max Epsilon Steps parameter, when epsilon is close to the minimum')
     parser.add_argument(
         '-NTS',
         '--training-ep', 
         type=int, 
-        default=1000, 
+        default=2000, 
         help='Number traning episodes')
     parser.add_argument(
         '-NTR',
@@ -335,6 +332,7 @@ if __name__ == "__main__":
             torch.cuda.manual_seed(args.train_seed)
     else:
         device = args.device
+    print(f"Training using {device}")
     
     # Clip reward
     clip_reward = args.clip_reward.split(',') if args.clip_reward else None
@@ -351,7 +349,6 @@ if __name__ == "__main__":
         actions, 
         args.learning_rate, 
         args.gamma, 
-        args.training_ep,
         args.buffer_capacity, 
         args.batch_size, 
         device=device, 
@@ -361,7 +358,8 @@ if __name__ == "__main__":
         epsilon_min=args.epsilon_min,
         epsilon_factor=args.epsilon_factor,
         epsilon_max_steps=args.epsilon_max_steps,
-        tau=args.tau)
+        tau=args.tau,
+        nb_target_replace=args.nb_target_replace)
     env = Env(
         img_stack=args.image_stack, 
         seed=args.train_seed, 
@@ -389,7 +387,6 @@ if __name__ == "__main__":
     train_agent(
         env, eval_env, agent, 
         args.training_ep,
-        args.nb_target_replace, 
         eval_episodes=args.eval_episodes, 
         eval_every=args.eval_every, 
         updates_after=args.batch_size, 
