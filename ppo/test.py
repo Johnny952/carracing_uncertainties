@@ -195,7 +195,8 @@ if __name__ == "__main__":
         args.nb_nets, 
         args.img_stack,
         args.gamma,
-        model=args.model)
+        model=args.model,
+        device=device)
     env = Env(
         img_stack=args.img_stack,
         action_repeat=args.action_repeat,

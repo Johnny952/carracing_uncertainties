@@ -64,8 +64,8 @@ class Env():
                 rwd -= 0.05
             
             # reward for full gas
-            if action[1] == 1 and action[2] == 0:
-                rwd += 1.5*np.abs(rwd)
+            #if action[1] == 1 and action[2] == 0:
+            #    rwd += 1.5*np.abs(rwd)
             
             if self._clip_reward is not None:
                 rwd = np.clip(rwd, a_max=self._clip_reward)
@@ -81,6 +81,7 @@ class Env():
             #     reward += 100
             reward += rwd
             if done:
+                reward += 100
                 break
         
         return imgstackRGB2graystack(next_state), reward, done
