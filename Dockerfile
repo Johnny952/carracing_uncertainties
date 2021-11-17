@@ -20,7 +20,6 @@ COPY requirements.txt /opt/app/requirements.txt
 RUN pip install -r /opt/app/requirements.txt
 
 # Copy code, uncomment this before build image
-RUN mkdir /home/user/workspace
-RUN mkdir /home/user/workspace/sync
-WORKDIR /home/user/workspace/sync
-RUN git clone https://github.com/Johnny952/carracing_uncertainties.git
+WORKDIR /home/user/workspace
+#COPY . .
+#RUN git clone https://github.com/Johnny952/carracing_uncertainties.git

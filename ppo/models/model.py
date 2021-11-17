@@ -33,6 +33,17 @@ class Net(nn.Module):
         if isinstance(m, nn.Conv2d):
             nn.init.xavier_uniform_(m.weight, gain=nn.init.calculate_gain('relu'))
             nn.init.constant_(m.bias, 0.1)
+    
+    def partial_forward(self, x):
+        x = self.cnn_base(x)
+        x = x.view(-1, 256)
+
+        v = self.v(x)
+        y = self.fc(x)
+        alpha = self.alpha_head(y) + 1
+        beta = self.beta_head(y) + 1
+
+        return x, (alpha, beta), v
 
     def forward(self, x):
         x = self.cnn_base(x)
@@ -43,3 +54,20 @@ class Net(nn.Module):
         beta = self.beta_head(x) + 1
 
         return (alpha, beta), v
+
+class NoiseNet(Net):
+    def __init__(self, img_stack):
+        super(NoiseNet, self).__init__(img_stack)
+        self._sigma_head = nn.Sequential(
+            nn.Linear(256, 100), 
+            nn.ReLU(),
+            nn.Linear(100, 1), 
+            nn.Softplus()
+            )
+        super(NoiseNet, self).apply(self._weights_init)
+    
+    def forward(self, x):
+        x, (alpha, beta), v = super(NoiseNet, self).partial_forward(x)
+        
+        sigma = self._sigma_head(x)
+        return (alpha, beta), v, sigma
