@@ -12,7 +12,6 @@ class SensitivityTrainerModel(BaseTrainerModel):
         super(SensitivityTrainerModel, self).__init__(nb_nets, lr, img_stack, gamma, batch_size, buffer_capacity, device=device)
 
         self._model = Sensitivity(img_stack).double().to(self.device)
-        self._forward = self.sensitivity_uncert
         self.input_range = [0, 255]
         self.factor = 1/255
         self.delta = self.factor * (self.input_range[1] - self.input_range[0])
@@ -27,14 +26,15 @@ class SensitivityTrainerModel(BaseTrainerModel):
 
         # Estimate uncertainties
         with torch.no_grad():
-            (alpha, beta), v, sigma = self._model(rand_dir)
+            (alpha, beta), v = self._model(rand_dir)
 
         #var = alpha*beta / ((alpha+beta+1)*(alpha+beta)**2)
         epistemic = torch.mean(torch.var(alpha / (alpha + beta), dim=0))
-        aleatoric = torch.mean(sigma, dim=0)
+        aleatoric = torch.tensor([0])
 
         # Predict
-        # (alpha, beta), v, sigma = self._model(state)
+        with torch.no_grad():
+            (alpha, beta), v = self._model(state)
         # aleatoric = sigma
 
         #return (torch.mean(alpha, dim=0).view(1, -1), torch.mean(beta, dim=0).view(1, -1)), torch.mean(v, dim=0), (epistemic, aleatoric)

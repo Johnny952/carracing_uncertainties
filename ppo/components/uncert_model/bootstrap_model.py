@@ -73,7 +73,8 @@ class BootstrapTrainerModel(BaseTrainerModel):
         sigma_list = []
         v_list = []
         for net in self._model:
-            (alpha, beta), v, sigma = net(state)
+            with torch.no_grad():
+                (alpha, beta), v, sigma = net(state)
             sigma_list.append(sigma)
             alpha_list.append(alpha)
             beta_list.append(beta)

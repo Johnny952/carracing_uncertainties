@@ -25,12 +25,6 @@ class Sensitivity(nn.Module):
         self.fc = nn.Sequential(nn.Linear(256, 100), nn.ReLU())
         self.alpha_head = nn.Sequential(nn.Linear(100, 3), nn.Softplus())
         self.beta_head = nn.Sequential(nn.Linear(100, 3), nn.Softplus())
-        self.sigma_head = nn.Sequential(
-            nn.Linear(256, 100),
-            nn.ReLU(), 
-            nn.Linear(100, 1),
-            nn.Softplus()
-        )
         self.apply(self._weights_init)
 
     @staticmethod
@@ -43,9 +37,8 @@ class Sensitivity(nn.Module):
         x = self.cnn_base(x)
         x = x.view(-1, 256)
         v = self.v(x)
-        sigma = self.sigma_head(x)
         x = self.fc(x)
         alpha = self.alpha_head(x) + 1
         beta = self.beta_head(x) + 1
 
-        return (alpha, beta), v, sigma
+        return (alpha, beta), v

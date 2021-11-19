@@ -45,7 +45,6 @@ class Agent():
             dist = Beta(alpha, beta)
             action = dist.sample()
             a_logp = dist.log_prob(action).sum(dim=1)
-
             action = action.squeeze().cpu().numpy()
             a_logp = a_logp.item()
         return action, a_logp, (epistemic, aleatoric)
