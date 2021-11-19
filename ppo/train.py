@@ -8,20 +8,13 @@ import glob
 from tqdm import tqdm
 from termcolor import colored
 
-from utilities import str2bool, save_uncert, init_uncert_file, Memory, add_random_std_noise
+from utilities import str2bool, save_uncert, init_uncert_file, Memory, generate_noise_variance
 from components import Agent, Env
 
 from pyvirtualdisplay import Display
 
 
-def train_agent(agent, env, eval_env, episodes, nb_validations=1, init_ep=0, log_interval=10, val_interval=10, add_noise=None, img_stack=4):
-    use_noise = False
-    if add_noise and add_noise is list:
-        assert len(add_noise) > 2
-        use_noise = True
-        noise_lower, noise_upper = add_noise[0], add_noise[1]
-        noise_memory = Memory(img_stack)
-
+def train_agent(agent, env, eval_env, episodes, nb_validations=1, init_ep=0, log_interval=10, val_interval=10):
     running_score = 0
     state = env.reset()
 
@@ -31,20 +24,11 @@ def train_agent(agent, env, eval_env, episodes, nb_validations=1, init_ep=0, log
         score = 0
         steps = 0
         state = env.reset()
-        # First state noisy
-        if use_noise:
-            noisy_state = add_random_std_noise(state[-1, :, :], noise_upper, noise_lower)
-            [noise_memory.push(noisy_state) for _ in range(img_stack)]
-            state = noise_memory.sample()
 
         for _ in range(1000):
-            action, a_logp, (_, _) = agent.select_action(state)
+            action, a_logp = agent.select_action(state)[:2]
             state_, reward, done, die = env.step(
                 action * np.array([2., 1., 1.]) + np.array([-1., 0., 0.]))
-            if use_noise:
-                noisy_state = add_random_std_noise(state[-1, :, :], noise_upper, noise_lower)
-                noise_memory.push(noisy_state)
-                state = noise_memory.sample()
             if agent.store_transition((state, action, a_logp, reward, state_)):
                 print('updating')
                 agent.update()
@@ -67,7 +51,7 @@ def train_agent(agent, env, eval_env, episodes, nb_validations=1, init_ep=0, log
         if i_ep % log_interval == 0:
             print('Ep {}\tLast score: {:.2f}\tMoving average score: {:.2f}'.format(
                 i_ep, score, running_score))
-            agent.save_param(i_ep)
+            agent.save(i_ep)
 
         if running_score > env.reward_threshold:
             print("Solved! Running reward is now {} and the last episode runs to {}!".format(
@@ -103,7 +87,7 @@ def eval_agent(agent, env, validations, epoch):
 
         uncert = []
         while not die:
-            action, a_logp, (epis, aleat) = agent.select_action(
+            action, _, (epis, aleat) = agent.select_action(
                 state, eval=True)
             uncert.append([epis.view(-1).cpu().numpy()[0],
                           aleat.view(-1).cpu().numpy()[0]])
@@ -168,7 +152,7 @@ if __name__ == "__main__":
         '-VI',
         '--val-interval',
         type=int,
-        default=10,
+        default=20,
         help='Interval between evaluations')
     parser.add_argument(
         '-FC',
@@ -197,7 +181,7 @@ if __name__ == "__main__":
         '--model',
         type=str,
         default='base',
-        help='Type of uncertainty model: "base", "sensitivity", "dropout", "bootstrap", "mixture" or "bnn"')
+        help='Type of uncertainty model: "base", "sensitivity", "dropout", "bootstrap" or "bnn"')
     parser.add_argument(
         '-NN',
         '--nb-nets',
@@ -220,7 +204,8 @@ if __name__ == "__main__":
         '-N',
         '--noise',
         type=str,
-        default=None,
+        default='0,0.3',
+        # default=None,
         help='Whether to use noise or not, and standard deviation bounds separated by comma (ex. "0,0.5")')
     args = parser.parse_args()
 
@@ -263,6 +248,14 @@ if __name__ == "__main__":
 
     #print("Training model: {} with {} networks".format(args.model, args.uncert_q))
 
+    # Noise parser
+    if args.noise:
+        add_noise = [float(bound) for bound in args.noise.split(',')]
+        print_arg = f'noisy observation with {args.noise} std bounds'
+    else:
+        add_noise = None
+        print_arg = ''
+
     # Init Agent and Environment
     print(colored('Initializing agent and environments', 'blue'))
     agent = Agent(
@@ -274,7 +267,8 @@ if __name__ == "__main__":
     env = Env(
         img_stack=args.img_stack,
         action_repeat=args.action_repeat,
-        seed=args.seed
+        seed=args.seed,
+        noise=add_noise,
     )
     eval_env = Env(
         img_stack=args.img_stack,
@@ -282,11 +276,12 @@ if __name__ == "__main__":
         seed=args.eval_seed,
         path_render='' if args.val_render else None,
         validations=args.validations,
-        evaluation=True
+        evaluation=True,
+        noise=add_noise,
     )
     init_epoch = 0
     if args.from_checkpoint:
-        init_epoch = agent.load_param()
+        init_epoch = agent.load()
     print(colored('Agent and environments created successfully', 'green'))
 
     # Wandb config specification
@@ -305,15 +300,8 @@ if __name__ == "__main__":
     else:
         wandb.watch(agent._model._model)
 
-    # Noise parser
-    if args.noise:
-        add_noise = [float(bound) for bound in args.noise.split(',')]
-        print_arg = f'noisy observation with {args.noise} std bounds'
-    else:
-        add_noise = None
-        print_arg = ''
-    
-    print(colored(f'Training {args.model} during {args.epochs} and {print_arg}', 'magenta'))
+    print(colored(
+        f'Training {args.model} during {args.epochs} epochs and {print_arg} noise std bounds', 'magenta'))
 
     train_agent(
         agent, env, eval_env,
@@ -322,5 +310,4 @@ if __name__ == "__main__":
         init_ep=init_epoch,
         log_interval=args.log_interval,
         val_interval=args.val_interval,
-        add_noise=add_noise,
-        img_stack=args.img_stack)
+    )

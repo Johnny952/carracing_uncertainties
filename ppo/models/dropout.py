@@ -3,26 +3,26 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class DropoutModel(nn.Module):
-    def __init__(self, img_stack, probs=[0.1]*7):
+    def __init__(self, img_stack, prob=0.25):
         super(DropoutModel, self).__init__()
         self.cnn_base = nn.Sequential(  # input shape (4, 96, 96)
             nn.Conv2d(img_stack, 8, kernel_size=4, stride=2),
-            nn.Dropout(p=probs[0]),
+            # nn.Dropout(p=prob),
             nn.ReLU(),  # activation
             nn.Conv2d(8, 16, kernel_size=3, stride=2),  # (8, 47, 47)
-            nn.Dropout(p=probs[1]),
+            # nn.Dropout(p=prob),
             nn.ReLU(),  # activation
             nn.Conv2d(16, 32, kernel_size=3, stride=2),  # (16, 23, 23)
-            nn.Dropout(p=probs[2]),
+            # nn.Dropout(p=prob),
             nn.ReLU(),  # activation
             nn.Conv2d(32, 64, kernel_size=3, stride=2),  # (32, 11, 11)
-            nn.Dropout(p=probs[3]),
+            # nn.Dropout(p=prob),
             nn.ReLU(),  # activation
             nn.Conv2d(64, 128, kernel_size=3, stride=1),  # (64, 5, 5)
-            nn.Dropout(p=probs[4]),
+            # nn.Dropout(p=prob),
             nn.ReLU(),  # activation
             nn.Conv2d(128, 256, kernel_size=3, stride=1),  # (128, 3, 3)
-            nn.Dropout(p=probs[5]),
+            # nn.Dropout(p=prob),
             nn.ReLU(),  # activation
         )  # output shape (256, 1, 1)
         self.v = nn.Sequential(
@@ -32,8 +32,8 @@ class DropoutModel(nn.Module):
         )
         self.fc = nn.Sequential(
             nn.Linear(256, 100), 
-            nn.Dropout(p=probs[-1]),
-            nn.ReLU()
+            nn.ReLU(),
+            nn.Dropout(p=prob),
         )
         self.alpha_head = nn.Sequential(
             nn.Linear(100, 3), 
@@ -41,12 +41,6 @@ class DropoutModel(nn.Module):
         )
         self.beta_head = nn.Sequential(
             nn.Linear(100, 3), 
-            nn.Softplus()
-        )
-        self.sigma_head = nn.Sequential(
-            nn.Linear(256, 100),
-            nn.ReLU(), 
-            nn.Linear(100, 1),
             nn.Softplus()
         )
         self.apply(self._weights_init)
@@ -71,13 +65,11 @@ class DropoutModel(nn.Module):
         x = self.cnn_base(x)
         x = x.view(-1, 256)
         v = self.v(x)
-        sigma = self.sigma_head(x)
         x = self.fc(x)
         alpha = self.alpha_head(x) + 1
         beta = self.beta_head(x) + 1
-        #sigma = self.sigma_head(x)
 
-        return (alpha, beta), v, sigma
+        return (alpha, beta), v
     
     def use_dropout(self, val=False):
         if val:

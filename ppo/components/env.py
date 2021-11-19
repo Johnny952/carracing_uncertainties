@@ -1,15 +1,18 @@
-import gym
-from gym.wrappers import Monitor
-import numpy as np
-
 import imageio
+from utilities.noise import generate_noise_variance, add_noise
+import numpy as np
+from gym.wrappers import Monitor
+import gym
+import sys
+sys.path.append('..')
+
 
 class Env():
     """
     Environment wrapper for CarRacing 
     """
 
-    def __init__(self, img_stack, action_repeat, seed=0, path_render=None, validations=1, evaluation=False):
+    def __init__(self, img_stack, action_repeat, seed=0, path_render=None, validations=1, evaluation=False, noise=None):
         self.render = path_render is not None
         self.evaluation = evaluation
         if not self.render:
@@ -17,13 +20,22 @@ class Env():
         else:
             self.validations = validations
             self.idx_val = validations // 2
-            self.env = Monitor(gym.make('CarRacing-v0', verbose=0), './render/{}'.format(path_render), video_callable=lambda episode_id: episode_id%validations==self.idx_val, force=True)
+            self.env = Monitor(gym.make('CarRacing-v0', verbose=0), './render/{}'.format(path_render),
+                               video_callable=lambda episode_id: episode_id % validations == self.idx_val, force=True)
         self.env.seed(seed)
         self.reward_threshold = self.env.spec.reward_threshold
         self.img_stack = img_stack
         self.action_repeat = action_repeat
         #self.env._max_episode_steps = your_value
-    
+
+        # Noise in initial observations
+        self.use_noise = False
+        if noise and noise is list:
+            assert len(noise) > 2
+            self.use_noise = True
+            self.noise_lower, self.noise_upper = noise[0], noise[1]
+            self.random_noise = 0
+
     def plot_uncert(self, index, uncertainties, width=56, out_video='render/test.mp4'):
         index = self.validations-1 if index == 0 else index-1
         if self.render and self.idx_val == index:
@@ -39,9 +51,11 @@ class Env():
                 if idx > 0:
                     unct_idx = (idx-1) // self.action_repeat
                     bg = np.zeros((400, width, 3), dtype=np.uint8)
-                    epist_height = int(200 * uncertainties[unct_idx, 0] / max_unc[0])
+                    epist_height = int(
+                        200 * uncertainties[unct_idx, 0] / max_unc[0])
                     bg[200:200+epist_height, :, :] = [255, 0, 0]
-                    aleat_height = int(200 * uncertainties[unct_idx, 1] / max_unc[1])
+                    aleat_height = int(
+                        200 * uncertainties[unct_idx, 1] / max_unc[1])
                     bg[:aleat_height, :, :] = [0, 0, 255]
                     image = np.concatenate((image, bg), axis=1)
                     writer.append_data(image)
@@ -54,6 +68,12 @@ class Env():
         self.die = False
         img_rgb = self.env.reset()
         img_gray = self.rgb2gray(img_rgb)
+
+        if self.use_noise:
+            self.random_noise = generate_noise_variance(
+                self.noise_lower, self.noise_upper)
+            img_gray = add_noise(img_gray, self.random_noise)
+
         self.stack = [img_gray] * self.img_stack  # four frames for decision
         return np.array(self.stack)
 
@@ -73,6 +93,9 @@ class Env():
             if done or die:
                 break
         img_gray = self.rgb2gray(img_rgb)
+        # Add noise in observation
+        if self.use_noise:
+            img_gray = add_noise(img_gray, self.random_noise)
         self.stack.pop(0)
         self.stack.append(img_gray)
         assert len(self.stack) == self.img_stack
@@ -109,10 +132,10 @@ class Env():
 def make_env(img_stack, action_repeat, seed=0, path_render=None, validations=1, evaluation=False):
     def fn():
         env = Env(
-            img_stack, 
+            img_stack,
             action_repeat,
-            seed=seed, 
-            path_render=path_render, 
+            seed=seed,
+            path_render=path_render,
             validations=validations,
             evaluation=evaluation
         )
