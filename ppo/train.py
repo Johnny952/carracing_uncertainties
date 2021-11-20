@@ -301,7 +301,7 @@ if __name__ == "__main__":
         wandb.watch(agent._model._model)
 
     print(colored(
-        f'Training {args.model} during {args.epochs} epochs and {print_arg} noise std bounds', 'magenta'))
+        f'Training {args.model} during {args.epochs} epochs and {print_arg}', 'magenta'))
 
     train_agent(
         agent, env, eval_env,

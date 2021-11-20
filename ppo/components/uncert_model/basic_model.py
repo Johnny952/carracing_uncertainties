@@ -45,7 +45,7 @@ class BaseTrainerModel:
             if self._use_sigma:
                 (alpha, beta), v, sigma = net(s[index])
             else:
-                alpha, beta = net(s[index])[0]
+                (alpha, beta), v = net(s[index])
             dist = Beta(alpha, beta)
             a_logp = dist.log_prob(a[index]).sum(dim=1, keepdim=True)
             ratio = torch.exp(a_logp - old_a_logp[index])
