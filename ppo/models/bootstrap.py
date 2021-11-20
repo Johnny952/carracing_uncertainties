@@ -1,13 +1,15 @@
 import torch.nn as nn
 import torch.nn.functional as F
+import torch
 
 class BootstrapModel(nn.Module):
     """
     Actor-Critic Network for PPO
     """
 
-    def __init__(self, img_stack):
+    def __init__(self, img_stack, epsilon=1e-6):
         super(BootstrapModel, self).__init__()
+        self.epsilon = epsilon
         self.cnn_base = nn.Sequential(  # input shape (4, 96, 96)
             nn.Conv2d(img_stack, 8, kernel_size=4, stride=2),
             nn.ReLU(),  # activation
@@ -44,7 +46,7 @@ class BootstrapModel(nn.Module):
         x = self.cnn_base(x)
         x = x.view(-1, 256)
         v = self.v(x)
-        sigma = self.sigma_head(x)
+        sigma = self.sigma_head(x)     # always being positive
         x = self.fc(x)
         alpha = self.alpha_head(x) + 1
         beta = self.beta_head(x) + 1

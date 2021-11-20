@@ -1,5 +1,6 @@
 import torch
 
+
 def smooth_l1_loss(
     input: torch.Tensor, target: torch.Tensor, sigma: torch.Tensor, beta: float, reduction: str = "none", epsilon: float = 1e-10
 ) -> torch.Tensor:
@@ -52,7 +53,8 @@ def smooth_l1_loss(
         n = torch.abs(input - target)
         cond = n < beta
         sigma_ = sigma + epsilon
-        loss = torch.where(cond, 0.5 * n ** 2 / beta / sigma_**2 + 0.5*torch.log(sigma_**2), (n - 0.5 * beta) / sigma_ + torch.log(sigma_))
+        loss = torch.where(cond, 0.5 * n ** 2 / beta / sigma_**2 + 0.5 *
+                           torch.log(sigma_**2), (n - 0.5 * beta) / sigma_ + torch.log(sigma_))
 
     if reduction == "mean":
         loss = loss.mean()
@@ -61,3 +63,10 @@ def smooth_l1_loss(
     return loss
 
 
+def gaussian_loss(input: torch.Tensor, target: torch.Tensor, sigma: torch.Tensor, beta: float, reduction: str = "none", epsilon: float = 1e-10) -> torch.Tensor:
+    loss = 0.5 * torch.log(sigma) + 0.5 * torch.square(target - input) / sigma
+    if reduction == "mean":
+        loss = loss.mean()
+    elif reduction == "sum":
+        loss = loss.sum()
+    return loss + epsilon

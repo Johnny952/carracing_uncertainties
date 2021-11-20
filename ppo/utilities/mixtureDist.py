@@ -24,6 +24,31 @@ class Mixture:
         return self.gmm.log_prob(x.reshape((x.shape[0], -1))).to(self.device)
 
 
+class GaussianMixture:
+    def __init__(self, means, stdevs, device='cpu'):
+        weights = torch.ones(means.shape[0]).to(device)
+        self.dims = list(means.shape)[1:]
+        self.device = device
+
+        mix = D.Categorical(weights)
+        comp = D.Independent(D.Normal(means, stdevs), 1)
+        self.gmm = MixtureSameFamily(mix, comp)
+
+    def std(self):
+        return self.gmm.stddev
+
+    def var(self):
+        return self.gmm.variance
+
+    def mean(self):
+        return self.gmm.mean
+    
+    def sample(self, n_samples: int):
+        return self.gmm.sample(sample_shape=(n_samples,)).reshape(tuple([n_samples]+self.dims)).float().to(self.device)
+    
+    def logp(self, x):
+        return self.gmm.log_prob(x.reshape((x.shape[0], -1))).to(self.device)
+
 if __name__ == "__main__":
     # 10 Image 50x50
     dims = (10, 50, 50)

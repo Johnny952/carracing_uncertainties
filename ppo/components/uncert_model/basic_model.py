@@ -43,7 +43,7 @@ class BaseTrainerModel:
         for index in sampler:
 
             if self._use_sigma:
-                (alpha, beta), _, sigma = net(s[index])
+                (alpha, beta), v, sigma = net(s[index])
             else:
                 alpha, beta = net(s[index])[0]
             dist = Beta(alpha, beta)
@@ -54,9 +54,9 @@ class BaseTrainerModel:
             surr2 = torch.clamp(ratio, 1.0 - clip_param, 1.0 + clip_param) * adv[index]
             action_loss = -torch.min(surr1, surr2).mean()
             if self._use_sigma:
-                value_loss = self._criterion(net(s[index])[1], target_v[index], sigma, 1.0, reduction="mean")
+                value_loss = self._criterion(v, target_v[index], sigma, 1.0, reduction="mean")
             else:
-                value_loss = self._criterion(net(s[index])[1], target_v[index])
+                value_loss = self._criterion(v, target_v[index])
             loss = action_loss + 2. * value_loss
 
             optimizer.zero_grad()

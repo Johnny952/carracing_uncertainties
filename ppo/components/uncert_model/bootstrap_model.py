@@ -2,7 +2,7 @@ import sys
 sys.path.append('..')
 
 from models import BootstrapModel
-from utilities import smooth_l1_loss
+from utilities import gaussian_loss, GaussianMixture
 from .basic_model import BaseTrainerModel
 
 import torch
@@ -13,7 +13,7 @@ class BootstrapTrainerModel(BaseTrainerModel):
         super(BootstrapTrainerModel, self).__init__(nb_nets, lr, img_stack, gamma, batch_size, buffer_capacity, device=device)
         
         self._model = [BootstrapModel(img_stack).double().to(self.device) for _ in range(nb_nets)]
-        self._criterion = smooth_l1_loss
+        self._criterion = gaussian_loss
         self._use_sigma = True
 
         self._optimizer = [optim.Adam(net.parameters(), lr=lr) for net in self._model]
@@ -43,7 +43,10 @@ class BootstrapTrainerModel(BaseTrainerModel):
         target_v = r + self.gamma * self.forward_nograd(s_)[1]
         adv = target_v - self.forward_nograd(s)[1]
 
-        indices = [torch.utils.data.RandomSampler(range(self.buffer_capacity), num_samples=self.buffer_capacity, replacement=True) for _ in range(self.nb_nets)]
+        # Random bagging
+        # indices = [torch.utils.data.RandomSampler(range(self.buffer_capacity), num_samples=self.buffer_capacity, replacement=True) for _ in range(self.nb_nets)]
+        # Random permutation
+        indices = [torch.randperm(self.buffer_capacity) for _ in range(self.nb_nets)]
 
         for _ in range(epochs):
             for net, optimizer, index in zip(self._model, self._optimizer, indices):
@@ -79,13 +82,14 @@ class BootstrapTrainerModel(BaseTrainerModel):
             alpha_list.append(alpha)
             beta_list.append(beta)
             v_list.append(v)
-        sigma_list = torch.stack(sigma_list)
+        sigma_list = torch.sqrt(torch.stack(sigma_list))    # sigma ** 2 -- sigma 
         alpha_list = torch.stack(alpha_list)
         beta_list = torch.stack(beta_list)
         v_list = torch.stack(v_list)
 
-        #var = alpha*beta / ((alpha+beta+1)*(alpha+beta)**2)
-        #epistemic = torch.mean(torch.var(alpha_list, dim=0)) + torch.mean(torch.var(beta_list, dim=0))
-        epistemic = torch.mean(torch.var(alpha_list / (alpha_list + beta_list), dim=0))
-        aleatoric = torch.mean(sigma_list, dim=0)
+        std_devs = [GaussianMixture(alpha_list[:, :, i], sigma_list.squeeze(dim=-1), device=self.device).var() for i in range(alpha_list.shape[-1])]
+
+        # Sum std deviations over action dimension
+        epistemic = torch.sum(torch.stack(std_devs))
+        aleatoric = torch.tensor([0])
         return (torch.mean(alpha_list, dim=0), torch.mean(beta_list, dim=0)), torch.mean(v_list, dim=0), (epistemic, aleatoric)
