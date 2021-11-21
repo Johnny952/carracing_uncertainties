@@ -8,7 +8,7 @@ import glob
 from tqdm import tqdm
 from termcolor import colored
 
-from utilities import str2bool, save_uncert, init_uncert_file, Memory, generate_noise_variance
+from utilities import save_uncert, init_uncert_file
 from components import Agent, Env
 
 from pyvirtualdisplay import Display
@@ -157,18 +157,12 @@ if __name__ == "__main__":
     parser.add_argument(
         '-FC',
         '--from-checkpoint',
-        type=str2bool,
-        nargs='?',
-        const=True,
-        default=False,
+        action='store_true',
         help='Whether to use checkpoint file')
     parser.add_argument(
         '-VR',
         '--val-render',
-        type=str2bool,
-        nargs='?',
-        const=True,
-        default=False,
+        action='store_true',
         help='render the environment on evaluation')
     parser.add_argument(
         '-E',
