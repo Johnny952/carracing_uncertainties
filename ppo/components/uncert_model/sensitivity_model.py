@@ -10,7 +10,6 @@ import torch.optim as optim
 class SensitivityTrainerModel(BaseTrainerModel):
     def __init__(self, nb_nets, lr, img_stack, gamma, batch_size, buffer_capacity, device='cpu'):
         super(SensitivityTrainerModel, self).__init__(nb_nets, lr, img_stack, gamma, batch_size, buffer_capacity, device=device)
-
         self._model = Sensitivity(img_stack).double().to(self.device)
         self.input_range = [0, 255]
         self.factor = 1/255

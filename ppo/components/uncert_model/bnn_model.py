@@ -12,7 +12,6 @@ from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 class BNNTrainerModel(BaseTrainerModel):
     def __init__(self, nb_nets, lr, img_stack, gamma, batch_size, buffer_capacity, device='cpu'):
         super(BNNTrainerModel, self).__init__(nb_nets, lr, img_stack, gamma, batch_size, buffer_capacity, device=device)
-
         self._model = BayesianModel(img_stack).double().to(self.device)
         self.sample_nbr = 50
         self.complexity_cost_weight = 1e-6
@@ -46,7 +45,7 @@ class BNNTrainerModel(BaseTrainerModel):
             for index in sampler:
                 loss = 0
                 for _ in range(self.sample_nbr):
-                    (alpha, beta) = self._model(s[index])[0]
+                    (alpha, beta), v = self._model(s[index])
                     dist = Beta(alpha, beta)
                     a_logp = dist.log_prob(a[index]).sum(dim=1, keepdim=True)
                     ratio = torch.exp(a_logp - old_a_logp[index])
@@ -54,7 +53,7 @@ class BNNTrainerModel(BaseTrainerModel):
                     surr1 = ratio * adv[index]
                     surr2 = torch.clamp(ratio, 1.0 - clip_param, 1.0 + clip_param) * adv[index]
                     action_loss = -torch.min(surr1, surr2).mean()
-                    value_loss = self._criterion(self._model(s[index])[1], target_v[index])
+                    value_loss = self._criterion(v, target_v[index])
                     kl_loss = self._model.nn_kl_divergence() * self.complexity_cost_weight
                     
                     loss += action_loss + 2. * value_loss + kl_loss

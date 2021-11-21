@@ -17,7 +17,6 @@ class BaseTrainerModel:
         self.batch_size = batch_size
         self.buffer_capacity = buffer_capacity
         self._criterion = F.smooth_l1_loss
-        self._use_sigma = False
 
         self._model = Net(img_stack).double().to(self.device)
         self._optimizer = optim.Adam(self._model.parameters(), lr=lr)
@@ -42,10 +41,8 @@ class BaseTrainerModel:
 
         for index in sampler:
 
-            if self._use_sigma:
-                (alpha, beta), v, sigma = net(s[index])
-            else:
-                (alpha, beta), v = net(s[index])
+            prediction = net(s[index])
+            alpha, beta = prediction[0]
             dist = Beta(alpha, beta)
             a_logp = dist.log_prob(a[index]).sum(dim=1, keepdim=True)
             ratio = torch.exp(a_logp - old_a_logp[index])
@@ -53,10 +50,7 @@ class BaseTrainerModel:
             surr1 = ratio * adv[index]
             surr2 = torch.clamp(ratio, 1.0 - clip_param, 1.0 + clip_param) * adv[index]
             action_loss = -torch.min(surr1, surr2).mean()
-            if self._use_sigma:
-                value_loss = self._criterion(v, target_v[index], sigma, 1.0, reduction="mean")
-            else:
-                value_loss = self._criterion(v, target_v[index])
+            value_loss = self.get_value_loss(prediction, target_v[index])
             loss = action_loss + 2. * value_loss
 
             optimizer.zero_grad()
@@ -64,6 +58,9 @@ class BaseTrainerModel:
             # nn.utils.clip_grad_norm_(net.parameters(), self.max_grad_norm)
             optimizer.step()
 
+    def get_value_loss(self, prediction, target_v):
+        return self._criterion(prediction[1], target_v)
+    
     def save(self, epoch, path='param/ppo_net_params.pkl'):
         tosave = {
             'epoch': epoch,

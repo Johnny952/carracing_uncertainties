@@ -11,11 +11,8 @@ import torch.optim as optim
 class BootstrapTrainerModel(BaseTrainerModel):
     def __init__(self, nb_nets, lr, img_stack, gamma, batch_size, buffer_capacity, device='cpu'):
         super(BootstrapTrainerModel, self).__init__(nb_nets, lr, img_stack, gamma, batch_size, buffer_capacity, device=device)
-        
         self._model = [BootstrapModel(img_stack).double().to(self.device) for _ in range(nb_nets)]
         self._criterion = gaussian_loss
-        self._use_sigma = True
-
         self._optimizer = [optim.Adam(net.parameters(), lr=lr) for net in self._model]
 
     def forward_nograd(self, state):
@@ -52,6 +49,11 @@ class BootstrapTrainerModel(BaseTrainerModel):
             for net, optimizer, index in zip(self._model, self._optimizer, indices):
                 self.train_once(net, optimizer, target_v, adv, old_a_logp, s, a, clip_param, index)
     
+    def get_value_loss(self, prediction, target_v):
+        v = prediction[1]
+        sigma = prediction[-1]
+        return self._criterion(v, target_v, sigma, 1.0, reduction="mean")
+
     def save(self, epoch, path='param/ppo_net_params.pkl'):
         tosave = {'epoch': epoch}
         for idx, (net, optimizer) in enumerate(zip(self._model, self._optimizer)):
@@ -87,9 +89,6 @@ class BootstrapTrainerModel(BaseTrainerModel):
         beta_list = torch.stack(beta_list)
         v_list = torch.stack(v_list)
 
-        std_devs = [GaussianMixture(alpha_list[:, :, i], sigma_list.squeeze(dim=-1), device=self.device).var() for i in range(alpha_list.shape[-1])]
-
-        # Sum std deviations over action dimension
-        epistemic = torch.sum(torch.stack(std_devs))
+        epistemic = GaussianMixture(v_list.squeeze(dim=1), sigma_list.squeeze(dim=1), device=self.device).var()
         aleatoric = torch.tensor([0])
         return (torch.mean(alpha_list, dim=0), torch.mean(beta_list, dim=0)), torch.mean(v_list, dim=0), (epistemic, aleatoric)

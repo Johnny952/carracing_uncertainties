@@ -14,11 +14,8 @@ class DropoutTrainerModel(BaseTrainerModel):
         self.prob = 0.25
         self._model = DropoutModel(img_stack, prob=self.prob).double().to(self.device)
         # self._model.use_dropout(val=True)                          # Dropout turned off during training
-        # self._forward = self.dropout_uncert
         # self._criterion = smooth_l1_loss
-        # self._use_sigma = True
         self.weight_decay = 1e-6
-        
         self._optimizer = optim.Adam(self._model.parameters(), lr=lr, weight_decay=self.weight_decay)
 
     def get_uncert(self, state):
