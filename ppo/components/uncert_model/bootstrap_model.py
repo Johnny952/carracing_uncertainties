@@ -63,6 +63,7 @@ class BootstrapTrainerModel(BaseTrainerModel):
                 acc_value_loss += value_loss
                 loss += acc_loss
             self.log_loss(loss, action_loss, value_loss)
+            self._nb_update += 1
 
     def get_value_loss(self, prediction, target_v):
         v = prediction[1]
