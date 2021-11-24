@@ -28,11 +28,13 @@ class BootstrapTrainerModel(BaseTrainerModel):
                 alpha_list.append(alpha)
                 beta_list.append(beta)
                 v_list.append(v)
-            sigma_list = torch.stack(sigma_list)
+            sigma_list = torch.sqrt(torch.stack(sigma_list))
             alpha_list = torch.stack(alpha_list)
             beta_list = torch.stack(beta_list)
             v_list = torch.stack(v_list)
-        return (torch.mean(alpha_list, dim=0), torch.mean(beta_list, dim=0)), torch.mean(v_list, dim=0)
+            distribution = GaussianMixture(v_list.squeeze(dim=-1), sigma_list.squeeze(dim=-1), device=self.device)
+            v = distribution.mean.unsqueeze(dim=-1)
+        return (torch.mean(alpha_list, dim=0), torch.mean(beta_list, dim=0)), v
 
 
     def train(self, epochs, clip_param, database):
@@ -53,7 +55,7 @@ class BootstrapTrainerModel(BaseTrainerModel):
     def get_value_loss(self, prediction, target_v):
         v = prediction[1]
         sigma = prediction[-1]
-        return self._criterion(v, target_v, sigma, 1.0, reduction="mean")
+        return self._criterion(v, target_v, sigma)
 
     def save(self, epoch, path='param/ppo_net_params.pkl'):
         tosave = {'epoch': epoch}
@@ -90,6 +92,7 @@ class BootstrapTrainerModel(BaseTrainerModel):
         beta_list = torch.stack(beta_list)
         v_list = torch.stack(v_list)
 
-        epistemic = GaussianMixture(v_list.squeeze(dim=1), sigma_list.squeeze(dim=1), device=self.device).var()
+        distribution = GaussianMixture(v_list.squeeze(dim=1), sigma_list.squeeze(dim=1), device=self.device)
+        epistemic = distribution.var
         aleatoric = torch.tensor([0])
-        return (torch.mean(alpha_list, dim=0), torch.mean(beta_list, dim=0)), torch.mean(v_list, dim=0), (epistemic, aleatoric)
+        return (torch.mean(alpha_list, dim=0), torch.mean(beta_list, dim=0)), distribution.mean, (epistemic, aleatoric)

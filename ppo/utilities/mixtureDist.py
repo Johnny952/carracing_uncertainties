@@ -34,14 +34,9 @@ class GaussianMixture:
         comp = D.Independent(D.Normal(means, stdevs), 1)
         self.gmm = MixtureSameFamily(mix, comp)
 
-    def std(self):
-        return self.gmm.stddev
-
-    def var(self):
-        return self.gmm.variance
-
-    def mean(self):
-        return self.gmm.mean
+        self.var = self.gmm.variance
+        self.std = self.gmm.stddev
+        self.mean = self.gmm.mean
     
     def sample(self, n_samples: int):
         return self.gmm.sample(sample_shape=(n_samples,)).reshape(tuple([n_samples]+self.dims)).float().to(self.device)

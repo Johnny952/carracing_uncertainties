@@ -64,13 +64,9 @@ def smooth_l1_loss(
     return loss
 
 
-def gaussian_loss(input: torch.Tensor, target: torch.Tensor, sigma: torch.Tensor, beta: float, reduction: str = "none", epsilon: float = 1e-10) -> torch.Tensor:
+def gaussian_loss(input: torch.Tensor, target: torch.Tensor, sigma: torch.Tensor, epsilon: float = 1e-10) -> torch.Tensor:
     loss = 0.5 * torch.log(sigma) + 0.5 * torch.square(target - input) / sigma
-    if reduction == "mean":
-        loss = loss.mean()
-    elif reduction == "sum":
-        loss = loss.sum()
-    return loss + epsilon
+    return loss.mean() + epsilon
 
 def ll_gaussian(y, mu, log_var):   #log-likelihood of gaussian
     sigma = torch.exp(0.5 * log_var)
