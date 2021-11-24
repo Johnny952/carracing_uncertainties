@@ -14,6 +14,7 @@ class BootstrapTrainerModel(BaseTrainerModel):
         self._model = [BootstrapModel(img_stack).double().to(
             self.device) for _ in range(nb_nets)]
         self._criterion = gaussian_loss
+        self._value_scale = 1/10
         self._optimizer = [optim.Adam(net.parameters(), lr=lr)
                            for net in self._model]
 
@@ -66,7 +67,7 @@ class BootstrapTrainerModel(BaseTrainerModel):
     def get_value_loss(self, prediction, target_v):
         v = prediction[1]
         sigma = prediction[-1]
-        return self._criterion(v, target_v, sigma)
+        return self._criterion(v, target_v, sigma) * self._value_scale
 
     def save(self, epoch, path='param/ppo_net_params.pkl'):
         tosave = {'epoch': epoch}
