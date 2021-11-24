@@ -1,17 +1,16 @@
+import torch.optim as optim
+import torch
+from utilities import det_loss
+from .basic_model import BaseTrainerModel
+from models import Aleatoric
 import sys
 sys.path.append('../..')
-
-from models import Aleatoric
-from .basic_model import BaseTrainerModel
-from utilities import det_loss
-
-import torch
-import torch.optim as optim
 
 
 class AleatoricTrainerModel(BaseTrainerModel):
     def __init__(self, nb_nets, lr, img_stack, gamma, batch_size, buffer_capacity, device='cpu'):
-        super(AleatoricTrainerModel, self).__init__(nb_nets, lr, img_stack, gamma, batch_size, buffer_capacity, device=device)
+        super(AleatoricTrainerModel, self).__init__(nb_nets, lr,
+                                                    img_stack, gamma, batch_size, buffer_capacity, device=device)
         self._model = Aleatoric(img_stack).double().to(self.device)
         self._criterion = det_loss
         self._optimizer = optim.Adam(self._model.parameters(), lr=lr)

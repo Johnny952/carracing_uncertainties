@@ -2,6 +2,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch
 
+
 class BootstrapModel(nn.Module):
     """
     Actor-Critic Network for PPO
@@ -24,13 +25,14 @@ class BootstrapModel(nn.Module):
             nn.Conv2d(128, 256, kernel_size=3, stride=1),  # (128, 3, 3)
             nn.ReLU(),  # activation
         )  # output shape (256, 1, 1)
-        self.v = nn.Sequential(nn.Linear(256, 100), nn.ReLU(), nn.Linear(100, 1))
+        self.v = nn.Sequential(nn.Linear(256, 100),
+                               nn.ReLU(), nn.Linear(100, 1))
         self.fc = nn.Sequential(nn.Linear(256, 100), nn.ReLU())
         self.alpha_head = nn.Sequential(nn.Linear(100, 3), nn.Softplus())
         self.beta_head = nn.Sequential(nn.Linear(100, 3), nn.Softplus())
         self.sigma_head = nn.Sequential(
             nn.Linear(256, 100),
-            nn.ReLU(), 
+            nn.ReLU(),
             nn.Linear(100, 1),
             nn.Softplus()
         )
@@ -39,7 +41,8 @@ class BootstrapModel(nn.Module):
     @staticmethod
     def _weights_init(m):
         if isinstance(m, nn.Conv2d):
-            nn.init.xavier_uniform_(m.weight, gain=nn.init.calculate_gain('relu'))
+            nn.init.xavier_uniform_(
+                m.weight, gain=nn.init.calculate_gain('relu'))
             nn.init.constant_(m.bias, 0.1)
 
     def forward(self, x):

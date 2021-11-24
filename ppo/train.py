@@ -45,7 +45,7 @@ def train_agent(agent, env, eval_env, episodes, nb_validations=1, init_ep=0, log
             'Train Episode': i_ep,
             'Episode Running Score': float(running_score),
             'Episode Score': float(score),
-            'Episode Steps': float(steps)
+            'Episode Steps': float(steps),
         })
 
         if i_ep % log_interval == 0:
