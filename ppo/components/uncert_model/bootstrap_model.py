@@ -47,10 +47,10 @@ class BootstrapTrainerModel(BaseTrainerModel):
         adv = target_v - self.forward_nograd(s)[1]
 
         # Random bagging
-        # indices = [torch.utils.data.RandomSampler(range(self.buffer_capacity), num_samples=self.buffer_capacity, replacement=True) for _ in range(self.nb_nets)]
+        indices = [torch.utils.data.RandomSampler(range(self.buffer_capacity), num_samples=self.buffer_capacity, replacement=True) for _ in range(self.nb_nets)]
         # Random permutation
-        indices = [torch.randperm(self.buffer_capacity)
-                   for _ in range(self.nb_nets)]
+        # indices = [torch.randperm(self.buffer_capacity)
+        #            for _ in range(self.nb_nets)]
 
         for _ in range(epochs):
             acc_action_loss = 0
