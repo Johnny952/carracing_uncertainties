@@ -31,7 +31,7 @@ class BootstrapTrainerModel(BaseTrainerModel):
                 alpha_list.append(alpha)
                 beta_list.append(beta)
                 v_list.append(v)
-            sigma_list = torch.sqrt(torch.stack(sigma_list))
+            sigma_list = torch.abs(torch.stack(sigma_list))
             alpha_list = torch.stack(alpha_list)
             beta_list = torch.stack(beta_list)
             v_list = torch.stack(v_list)
@@ -103,8 +103,7 @@ class BootstrapTrainerModel(BaseTrainerModel):
             alpha_list.append(alpha)
             beta_list.append(beta)
             v_list.append(v)
-        sigma_list = torch.sqrt(torch.stack(sigma_list)
-                                )    # sigma ** 2 -- sigma
+        sigma_list = torch.abs(torch.stack(sigma_list))
         alpha_list = torch.stack(alpha_list)
         beta_list = torch.stack(beta_list)
         v_list = torch.stack(v_list)
