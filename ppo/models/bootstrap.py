@@ -34,7 +34,7 @@ class BootstrapModel(nn.Module):
             nn.Linear(256, 100),
             nn.ReLU(),
             nn.Linear(100, 1),
-            nn.Softplus()
+            # nn.Softplus()
         )
         self.apply(self._weights_init)
 

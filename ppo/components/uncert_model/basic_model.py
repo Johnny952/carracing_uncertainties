@@ -40,13 +40,16 @@ class BaseTrainerModel:
             self.log_loss(loss, action_loss, value_loss)
             self._nb_update += 1
 
-    def log_loss(self, loss, action_loss, value_loss):
-        wandb.log({
+    def log_loss(self, loss, action_loss, value_loss, other_loss=None):
+        to_log = {
             'Update Step': self._nb_update,
             'Loss': float(loss),
             'Action Loss': float(action_loss),
             'Value Loss': float(value_loss),
-        })
+        }
+        if other_loss:
+            to_log['Other Loss'] = float(other_loss)
+        wandb.log(to_log)
 
     def train_once(self, net, optimizer, target_v, adv, old_a_logp, s, a, clip_param, rand_sampler):
         sampler = BatchSampler(rand_sampler, self.batch_size, False)
