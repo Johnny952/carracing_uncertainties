@@ -3,7 +3,7 @@ import numpy as np
 
 
 def smooth_l1_loss(
-    input: torch.Tensor, target: torch.Tensor, sigma: torch.Tensor, beta: float, reduction: str = "none", epsilon: float = 1e-10
+    input: torch.Tensor, target: torch.Tensor, sigma: torch.Tensor, beta: float = 1, reduction: str = "mean", epsilon: float = 1e-10
 ) -> torch.Tensor:
     """
     Smooth L1 loss defined in the Fast R-CNN paper as:

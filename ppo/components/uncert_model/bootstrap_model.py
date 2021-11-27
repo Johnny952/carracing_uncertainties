@@ -1,7 +1,7 @@
 import torch.optim as optim
 import torch
 from .basic_model import BaseTrainerModel
-from utilities import gaussian_loss, GaussianMixture
+from utilities import gaussian_loss, smooth_l1_loss, GaussianMixture
 from models import BootstrapModel
 import sys
 sys.path.append('..')
@@ -13,31 +13,30 @@ class BootstrapTrainerModel(BaseTrainerModel):
                                                     img_stack, gamma, batch_size, buffer_capacity, device=device)
         self._model = [BootstrapModel(img_stack).double().to(
             self.device) for _ in range(nb_nets)]
-        self._criterion = gaussian_loss
+        self._criterion = smooth_l1_loss
         self._value_scale = 1
         self._optimizer = [optim.Adam(net.parameters(), lr=lr)
                            for net in self._model]
 
     def forward_nograd(self, state):
-        with torch.no_grad():
-            alpha_list = []
-            beta_list = []
-            sigma_list = []
-            v_list = []
-            for net in self._model:
-                with torch.no_grad():
-                    (alpha, beta), v, sigma = net(state)
-                sigma_list.append(sigma)
-                alpha_list.append(alpha)
-                beta_list.append(beta)
-                v_list.append(v)
-            sigma_list = torch.abs(torch.stack(sigma_list))
-            alpha_list = torch.stack(alpha_list)
-            beta_list = torch.stack(beta_list)
-            v_list = torch.stack(v_list)
-            distribution = GaussianMixture(v_list.squeeze(
-                dim=-1), sigma_list.squeeze(dim=-1), device=self.device)
-            v = distribution.mean.unsqueeze(dim=-1)
+        alpha_list = []
+        beta_list = []
+        sigma_list = []
+        v_list = []
+        for net in self._model:
+            with torch.no_grad():
+                (alpha, beta), v, sigma = net(state)
+            sigma_list.append(sigma)
+            alpha_list.append(alpha)
+            beta_list.append(beta)
+            v_list.append(v)
+        sigma_list = torch.abs(torch.stack(sigma_list))
+        alpha_list = torch.stack(alpha_list)
+        beta_list = torch.stack(beta_list)
+        v_list = torch.stack(v_list)
+        distribution = GaussianMixture(v_list.squeeze(
+            dim=-1), sigma_list.squeeze(dim=-1), device=self.device)
+        v = distribution.mean.unsqueeze(dim=-1)
         return (torch.mean(alpha_list, dim=0), torch.mean(beta_list, dim=0)), torch.mean(v_list, dim=0)
 
     def train(self, epochs, clip_param, database):
@@ -63,7 +62,7 @@ class BootstrapTrainerModel(BaseTrainerModel):
                 acc_action_loss += action_loss
                 acc_value_loss += value_loss
                 loss += acc_loss
-            self.log_loss(loss, action_loss, value_loss)
+            self.log_loss(acc_loss, acc_action_loss, acc_value_loss)
             self._nb_update += 1
 
     def get_value_loss(self, prediction, target_v):
