@@ -67,7 +67,7 @@ def gaussian_loss(input: torch.Tensor, target: torch.Tensor, sigma: torch.Tensor
     sigma_ = sigma + epsilon
     n = torch.abs(input - target)
     loss = 0.5 * torch.log(sigma_**2) + 0.5 * \
-        torch.square(n) / sigma_**2
+        n ** 2 / sigma_**2
     return loss.mean()
 
 
