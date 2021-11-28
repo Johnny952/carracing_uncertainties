@@ -14,7 +14,7 @@ class BootstrapTrainerModel(BaseTrainerModel):
         self._model = [BootstrapModel(img_stack).double().to(
             self.device) for _ in range(nb_nets)]
         self._criterion = gaussian_loss
-        self._value_scale = 1 / 2
+        self._value_scale = 1 / nb_nets
         self._optimizer = [optim.Adam(net.parameters(), lr=lr)
                            for net in self._model]
 
