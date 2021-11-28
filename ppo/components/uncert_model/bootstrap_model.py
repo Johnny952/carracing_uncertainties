@@ -59,10 +59,6 @@ class BootstrapTrainerModel(BaseTrainerModel):
             for net, optimizer, index in zip(self._model, self._optimizer, indices):
                 loss, action_loss, value_loss = self.train_once(
                     net, optimizer, target_v, adv, old_a_logp, s, a, clip_param, index)
-                print(loss)
-                print(action_loss)
-                print(value_loss)
-                raise Exception
                 acc_action_loss += action_loss
                 acc_value_loss += value_loss
                 loss += acc_loss
