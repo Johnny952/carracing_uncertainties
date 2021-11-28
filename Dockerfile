@@ -19,7 +19,8 @@ RUN pip install gym[box2d]==0.17.2 pyvirtualdisplay > /dev/null 2>&1
 COPY requirements.txt /opt/app/requirements.txt
 RUN pip install -r /opt/app/requirements.txt
 
+RUN pip install --upgrade git+https://github.com/VincentStimper/normalizing-flows.git
+
 # Copy code, uncomment this before build image
 WORKDIR /home/user/workspace
 #COPY . .
-#RUN git clone https://github.com/Johnny952/carracing_uncertainties.git

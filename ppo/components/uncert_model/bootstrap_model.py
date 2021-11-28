@@ -13,7 +13,7 @@ class BootstrapTrainerModel(BaseTrainerModel):
                                                     img_stack, gamma, batch_size, buffer_capacity, device=device)
         self._model = [BootstrapModel(img_stack).double().to(
             self.device) for _ in range(nb_nets)]
-        self._criterion = smooth_l1_loss
+        self._criterion = gaussian_loss
         self._value_scale = 1
         self._optimizer = [optim.Adam(net.parameters(), lr=lr)
                            for net in self._model]
@@ -59,6 +59,10 @@ class BootstrapTrainerModel(BaseTrainerModel):
             for net, optimizer, index in zip(self._model, self._optimizer, indices):
                 loss, action_loss, value_loss = self.train_once(
                     net, optimizer, target_v, adv, old_a_logp, s, a, clip_param, index)
+                print(loss)
+                print(action_loss)
+                print(value_loss)
+                raise Exception
                 acc_action_loss += action_loss
                 acc_value_loss += value_loss
                 loss += acc_loss
