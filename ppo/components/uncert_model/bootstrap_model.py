@@ -14,7 +14,7 @@ class BootstrapTrainerModel(BaseTrainerModel):
         self._model = [BootstrapModel(img_stack).double().to(
             self.device) for _ in range(nb_nets)]
         self._criterion = gaussian_loss
-        self._value_scale = 1 / nb_nets
+        self._value_scale = 1
         self._optimizer = [optim.Adam(net.parameters(), lr=lr)
                            for net in self._model]
 
@@ -37,7 +37,7 @@ class BootstrapTrainerModel(BaseTrainerModel):
         distribution = GaussianMixture(v_list.squeeze(
             dim=-1), sigma_list.squeeze(dim=-1), device=self.device)
         v = distribution.mean.unsqueeze(dim=-1)
-        return (torch.mean(alpha_list, dim=0), torch.mean(beta_list, dim=0)), torch.mean(v_list, dim=0)
+        return (torch.mean(alpha_list, dim=0), torch.mean(beta_list, dim=0)), v
 
     def train(self, epochs, clip_param, database):
         (s, a, r, s_, old_a_logp) = database
@@ -113,4 +113,4 @@ class BootstrapTrainerModel(BaseTrainerModel):
         epistemic = distribution.var
         aleatoric = torch.tensor([0])
         v = distribution.mean
-        return (torch.mean(alpha_list, dim=0), torch.mean(beta_list, dim=0)), torch.mean(v_list, dim=0), (epistemic, aleatoric)
+        return (torch.mean(alpha_list, dim=0), torch.mean(beta_list, dim=0)), v, (epistemic, aleatoric)
