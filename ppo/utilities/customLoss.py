@@ -63,11 +63,11 @@ def smooth_l1_loss(
     return loss
 
 
-def gaussian_loss(input: torch.Tensor, target: torch.Tensor, sigma: torch.Tensor, epsilon: float = 1e-10) -> torch.Tensor:
-    sigma_ = sigma + epsilon
+def gaussian_loss(input: torch.Tensor, target: torch.Tensor, log_sigma: torch.Tensor, epsilon: float = 1e-10) -> torch.Tensor:
     n = torch.abs(input - target)
-    loss = 0.5 * torch.log(sigma_**2) + 0.5 * \
-        n ** 2 / sigma_**2
+    loss = log_sigma + 0.5 * n ** 2 / torch.exp(log_sigma) ** 2
+    # loss = 0.5 * torch.log(log_sigma_**2) + 0.5 * \
+    #     n ** 2 / log_sigma_**2
     return loss.mean()
 
 
@@ -92,3 +92,7 @@ def elbo(y_pred, y, mu, log_var):
 
 def det_loss(y_pred, y, mu, log_var):
     return -elbo(y_pred, y, mu, log_var)
+
+
+def flow_loss(log_prob_z0, log_prob_zk, log_det, x_hat, X_batch, loss_fn):
+    return torch.mean(log_prob_z0) + loss_fn(x_hat, X_batch) - torch.mean(log_prob_zk) - torch.mean(log_det)

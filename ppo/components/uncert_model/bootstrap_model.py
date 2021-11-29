@@ -21,16 +21,16 @@ class BootstrapTrainerModel(BaseTrainerModel):
     def forward_nograd(self, state):
         alpha_list = []
         beta_list = []
-        sigma_list = []
+        log_sigma_list = []
         v_list = []
         for net in self._model:
             with torch.no_grad():
                 (alpha, beta), v, sigma = net(state)
-            sigma_list.append(sigma)
+            log_sigma_list.append(sigma)
             alpha_list.append(alpha)
             beta_list.append(beta)
             v_list.append(v)
-        sigma_list = torch.abs(torch.stack(sigma_list))
+        sigma_list = torch.exp(torch.stack(log_sigma_list))
         alpha_list = torch.stack(alpha_list)
         beta_list = torch.stack(beta_list)
         v_list = torch.stack(v_list)
@@ -95,23 +95,23 @@ class BootstrapTrainerModel(BaseTrainerModel):
     def get_uncert(self, state):
         alpha_list = []
         beta_list = []
-        sigma_list = []
+        log_sigma_list = []
         v_list = []
         for net in self._model:
             with torch.no_grad():
                 (alpha, beta), v, sigma = net(state)
-            sigma_list.append(sigma)
+            log_sigma_list.append(sigma)
             alpha_list.append(alpha)
             beta_list.append(beta)
             v_list.append(v)
-        sigma_list = torch.abs(torch.stack(sigma_list))
+        sigma_list = torch.exp(torch.stack(log_sigma_list))
         alpha_list = torch.stack(alpha_list)
         beta_list = torch.stack(beta_list)
         v_list = torch.stack(v_list)
 
         distribution = GaussianMixture(v_list.squeeze(
             dim=1), sigma_list.squeeze(dim=1), device=self.device)
-        epistemic = distribution.var
+        epistemic = distribution.std
         aleatoric = torch.tensor([0])
         #v = distribution.mean
         v = torch.mean(v_list, dim=0)

@@ -34,7 +34,7 @@ class BootstrapModel(nn.Module):
             nn.Linear(256, 100),
             nn.ReLU(),
             nn.Linear(100, 1),
-            nn.Softplus()
+            # nn.Softplus()
         )
         self.apply(self._weights_init)
 
@@ -49,9 +49,9 @@ class BootstrapModel(nn.Module):
         x = self.cnn_base(x)
         x = x.view(-1, 256)
         v = self.v(x)
-        sigma = self.sigma_head(x)     # always being positive
+        log_sigma = self.sigma_head(x)     # always being positive
         x = self.fc(x)
         alpha = self.alpha_head(x) + 1
         beta = self.beta_head(x) + 1
 
-        return (alpha, beta), v, sigma
+        return (alpha, beta), v, log_sigma
