@@ -4,11 +4,12 @@ import torch
 
 ACTIVATION_DERIVATIVES = {
     torch.tanh: lambda x: 1 - torch.pow(torch.tanh(x), 2),
-    F.leaky_relu: lambda x: (x > 0).type(torch.FloatTensor) + \
+    F.leaky_relu: lambda x: (x > 0).type(torch.FloatTensor) +
                             (x < 0).type(torch.FloatTensor) * -0.01,
-    F.elu: lambda x: (x > 0).type(torch.FloatTensor) + \
-                     (x < 0).type(torch.FloatTensor) * torch.exp(x)
+    F.Relu: lambda x: (x > 0).type(torch.FloatTensor) +
+    (x < 0).type(torch.FloatTensor) * torch.exp(x)
 }
+
 
 class PlanarFlow(nn.Module):
     def __init__(self, D, activation=torch.tanh):
@@ -28,8 +29,7 @@ class PlanarFlow(nn.Module):
         lin = (z @ self.w + self.b).unsqueeze(1)  # shape: (B, 1)
         f = z + self.u * self.activation(lin)  # shape: (B, D)
         phi = self.activation_derivative(lin) * self.w  # shape: (B, D)
-        log_det = torch.log(torch.abs(1 + phi @ self.u)) # shape: (B,)
-        
+        log_det = torch.log(torch.abs(1 + phi @ self.u))  # shape: (B,)
 
         return f, log_det
 
@@ -45,10 +45,9 @@ class RadialFlow(nn.Module):
         self.activation_derivative = ACTIVATION_DERIVATIVES[activation]
         self.D = D
 
-        nn.init.normal_(self.z0) 
+        nn.init.normal_(self.z0)
         nn.init.normal_(self.log_alpha)
         nn.init.normal_(self.beta)
-
 
     def forward(self, z: torch.Tensor):
         z_sub = z - self.z0
@@ -57,6 +56,7 @@ class RadialFlow(nn.Module):
         h = 1 / (alpha + r)
         f = z + self.beta * h * z_sub
         log_det = (self.D - 1) * torch.log(1 + self.beta * h) + \
-            torch.log(1 + self.beta * h + self.beta - self.beta * r / (alpha + r) ** 2)
+            torch.log(1 + self.beta * h + self.beta -
+                      self.beta * r / (alpha + r) ** 2)
 
         return f, log_det

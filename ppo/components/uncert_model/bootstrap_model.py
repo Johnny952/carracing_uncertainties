@@ -34,10 +34,10 @@ class BootstrapTrainerModel(BaseTrainerModel):
         alpha_list = torch.stack(alpha_list)
         beta_list = torch.stack(beta_list)
         v_list = torch.stack(v_list)
-        # distribution = GaussianMixture(v_list.squeeze(
-        #     dim=-1), sigma_list.squeeze(dim=-1), device=self.device)
-        # v = distribution.mean.unsqueeze(dim=-1)
-        v = torch.mean(v_list, dim=0)
+        distribution = GaussianMixture(v_list.squeeze(
+            dim=-1), sigma_list.squeeze(dim=-1), device=self.device)
+        v = distribution.mean.unsqueeze(dim=-1)
+        # v = torch.mean(v_list, dim=0)
         return (torch.mean(alpha_list, dim=0), torch.mean(beta_list, dim=0)), v
 
     def train(self, epochs, clip_param, database):
@@ -113,6 +113,6 @@ class BootstrapTrainerModel(BaseTrainerModel):
             dim=1), sigma_list.squeeze(dim=1), device=self.device)
         epistemic = distribution.std
         aleatoric = torch.tensor([0])
-        #v = distribution.mean
-        v = torch.mean(v_list, dim=0)
+        v = distribution.mean
+        # v = torch.mean(v_list, dim=0)
         return (torch.mean(alpha_list, dim=0), torch.mean(beta_list, dim=0)), v, (epistemic, aleatoric)
