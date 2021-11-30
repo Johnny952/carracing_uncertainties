@@ -8,7 +8,7 @@ import math
 
 
 class FCNEncoder(nn.Module):
-    def __init__(self, hidden_sizes: List[int], dim_input: int, activation=nn.ReLU()):
+    def __init__(self, hidden_sizes: list(int), dim_input: int, activation=nn.ReLU()):
         super().__init__()
         hidden_sizes = [dim_input] + hidden_sizes
         self.net = []
@@ -22,7 +22,7 @@ class FCNEncoder(nn.Module):
 
 
 class FlowModel(nn.Module):
-    def __init__(self, flows: List[str], D: int, activation=torch.tanh):
+    def __init__(self, flows: list(str), D: int, activation=torch.tanh):
         super().__init__()
         self.prior = MultivariateNormal(torch.zeros(D), torch.eye(D))
         self.net = []
@@ -64,7 +64,7 @@ class FlowModel(nn.Module):
 
 
 class FCNDecoder(nn.Module):
-    def __init__(self, hidden_sizes: List[int], dim_input: int, activation=nn.ReLU):
+    def __init__(self, hidden_sizes: list(int), dim_input: int, activation=nn.ReLU):
         super().__init__()
         hidden_sizes = [dim_input] + hidden_sizes
         self.net = []
