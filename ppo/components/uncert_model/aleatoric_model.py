@@ -28,5 +28,5 @@ class AleatoricTrainerModel(BaseTrainerModel):
         with torch.no_grad():
             (alpha, beta), (v, mu, log_var) = self._model(state)
         epistemic = torch.tensor([0])
-        aleatoric = log_var
+        aleatoric = torch.exp(log_var)
         return (alpha, beta), mu, (epistemic, aleatoric)

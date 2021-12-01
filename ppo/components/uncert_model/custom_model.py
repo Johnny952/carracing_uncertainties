@@ -1,3 +1,4 @@
+from torch import optim
 from torch.utils.data.sampler import BatchSampler
 from torch.distributions import Beta
 import torch.nn as nn
@@ -12,13 +13,17 @@ sys.path.append('..')
 class CustomTrainerModel(BaseTrainerModel):
     def __init__(self, nb_nets, lr, img_stack, gamma, batch_size, buffer_capacity, device='cpu'):
         super(CustomTrainerModel, self).__init__(nb_nets, lr,
-                                                    img_stack, gamma, batch_size, buffer_capacity, device=device)
-        
-        D = 40
-        self._encoder = FCNEncoder(hidden_sizes=[128, 64, 2*D], dim_input=28*28)
-        self._flow_model = FlowModel(flows=['PlanarFlow'] * 10, D=40)
-        self._decoder = FCNDecoder(hidden_sizes=[64, 128, 784], dim_input=40)
-        # TODO: Crear modelo que tiene encoder, flow model y decoder, acá dejar el modelo que los contiene con su optimizador
+                                                 img_stack, gamma, batch_size, buffer_capacity, device=device)
+
+        latent_size = 64
+        self._encoder = FCNEncoder(img_stack, output_dim=latent_size)
+        self._flow_model = FlowModel(flows=['PlanarFlow'] * 10, D=latent_size)
+        self._decoder = FCNDecoder(img_stack, input_dim=latent_size)
+
+        parameters = list(self._encoder.parameters()) \
+            + list(self._flow_model.parameters())\
+            + list(self._decoder.parameters())
+        self._flow_optimizer = optim.Adam(parameters, lr=lr)
 
         self._loss_fn = flow_loss
         self._loss_autoencoding = nn.MSELoss
@@ -50,10 +55,16 @@ class CustomTrainerModel(BaseTrainerModel):
             # nn.utils.clip_grad_norm_(net.parameters(), self.max_grad_norm)
             optimizer.step()
 
-
             # Normalizing flow training
-            # TODO: training
-
+            mu, log_sigma = self._encoder(s[index])
+            z_k, log_prob_z0, log_prob_zk, log_det = self._flow_model(
+                mu, log_sigma)
+            x_hat = self._decoder(z_k)
+            norm_flow_loss = flow_loss(log_prob_z0, log_prob_zk, log_det,
+                                       x_hat, s[index], self._loss_autoencoding)
+            self._flow_optimizer.zero_grad()
+            norm_flow_loss.backward()
+            self._flow_optimizer.step()
 
             acc_action_loss += action_loss.item()
             acc_value_loss += value_loss.item()
@@ -68,6 +79,7 @@ class CustomTrainerModel(BaseTrainerModel):
             'encoder': self._encoder.state_dict(),
             'flow': self._flow_model.state_dict(),
             'decoder': self._decoder.state_dict(),
+            'flow_optimizer': self._flow_optimizer.state()
         }
         torch.save(tosave, path)
 
@@ -78,6 +90,7 @@ class CustomTrainerModel(BaseTrainerModel):
         self._encoder.load_state_dict(checkpoint['encoder'])
         self._flow_model.load_state_dict(checkpoint['flow'])
         self._decoder.load_state_dict(checkpoint['decoder'])
+        self._flow_optimizer.load_state_dict(checkpoint['flow_optimizer'])
         if eval_mode:
             self._model.eval()
             self._encoder.eval()
@@ -93,11 +106,12 @@ class CustomTrainerModel(BaseTrainerModel):
     def get_uncert(self, state):
         with torch.no_grad():
             mu, log_sigma = self._encoder(state)
-            z_k, log_prob_z0, log_prob_zk, log_det = self._flow_model(mu, log_sigma)
+            z_k, log_prob_z0, log_prob_zk, log_det = self._flow_model(
+                mu, log_sigma)
             # x_hat = self._decoder(z_k)
 
         # TODO: Aleatoric estimation
-        epistemic = torch.exp(log_prob_z0)
+        epistemic = 1 - torch.exp(log_prob_z0)
         aleatoric = torch.Tensor([0])
 
         (alpha, beta), v = self.forward_nograd(state)
