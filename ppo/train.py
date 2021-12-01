@@ -151,7 +151,7 @@ if __name__ == "__main__":
         '-LI',
         '--log-interval',
         type=int,
-        default=5000,
+        default=10,
         help='Interval between training status logs')
     parser.add_argument(
         '-VI',
