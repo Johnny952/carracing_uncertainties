@@ -49,8 +49,8 @@ class Agent():
             a_logp = a_logp.item()
         return action, a_logp, (epistemic, aleatoric)
 
-    def save(self, epoch):
-        self._model.save(epoch=epoch)
+    def save(self, epoch, path='param/ppo_net_params.pkl'):
+        self._model.save(epoch=epoch, path=path)
 
     def load(self, path, eval_mode=False):
         return self._model.load(path, eval_mode=eval_mode)

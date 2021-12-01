@@ -19,6 +19,7 @@ def train_agent(agent, env, eval_env, episodes, nb_validations=1, init_ep=0, log
     state = env.reset()
 
     eval_idx = 0
+    best_score = 0
 
     for i_ep in tqdm(range(init_ep, episodes)):
         score = 0
@@ -68,6 +69,10 @@ def train_agent(agent, env, eval_env, episodes, nb_validations=1, init_ep=0, log
                 'Eval Mean Aleat Uncert': float(mean_uncert[1]),
                 'Eval Mean Steps': float(mean_steps)
             })
+            if mean_score > best_score:
+                agent.save(i_ep, path='param/best_agent.pkl')
+                best_score = mean_score
+
             eval_idx += 1
             print("Eval score: {}\tSteps: {}\tUncertainties: {}".format(
                 mean_score, mean_steps, mean_uncert))
