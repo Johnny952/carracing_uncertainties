@@ -4,9 +4,9 @@ import torch
 
 ACTIVATION_DERIVATIVES = {
     torch.tanh: lambda x: 1 - torch.pow(torch.tanh(x), 2),
-    F.leaky_relu: lambda x: (x > 0).type(torch.FloatTensor) +
+    nn.functional.leaky_relu: lambda x: (x > 0).type(torch.FloatTensor) +
                             (x < 0).type(torch.FloatTensor) * -0.01,
-    F.Relu: lambda x: (x > 0).type(torch.FloatTensor) +
+    nn.functional.relu: lambda x: (x > 0).type(torch.FloatTensor) +
     (x < 0).type(torch.FloatTensor) * torch.exp(x)
 }
 

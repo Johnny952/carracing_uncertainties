@@ -180,7 +180,7 @@ if __name__ == "__main__":
         '--model',
         type=str,
         default='base',
-        help='Type of uncertainty model: "base", "sensitivity", "dropout", "bootstrap" or "bnn"')
+        help='Type of uncertainty model: "base", "sensitivity", "dropout", "bootstrap", "aleatoric", "bnn" or "custom"')
     parser.add_argument(
         '-NN',
         '--nb-nets',

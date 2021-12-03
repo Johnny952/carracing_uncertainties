@@ -30,11 +30,17 @@ class Env():
 
         # Noise in initial observations
         self.use_noise = False
-        if noise and noise is list:
-            assert len(noise) > 2
-            self.use_noise = True
-            self.noise_lower, self.noise_upper = noise[0], noise[1]
-            self.random_noise = 0
+        if noise:
+            if noise is list:
+                assert len(noise) > 2
+                self.use_noise = True
+                self.generate_noise = True
+                self.noise_lower, self.noise_upper = noise[0], noise[1]
+                self.random_noise = 0
+            elif noise is float:
+                self.use_noise = True
+                self.generate_noise = False
+                self.random_noise = noise
 
     def plot_uncert(self, index, uncertainties, width=56, out_video='render/test.mp4'):
         index = self.validations-1 if index == 0 else index-1
@@ -70,8 +76,9 @@ class Env():
         img_gray = self.rgb2gray(img_rgb)
 
         if self.use_noise:
-            self.random_noise = generate_noise_variance(
-                self.noise_lower, self.noise_upper)
+            if self.generate_noise:
+                self.random_noise = generate_noise_variance(
+                    self.noise_lower, self.noise_upper)
             img_gray = add_noise(img_gray, self.random_noise)
 
         self.stack = [img_gray] * self.img_stack  # four frames for decision

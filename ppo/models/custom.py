@@ -2,6 +2,7 @@ import torch.nn as nn
 import torch
 from torch.distributions import MultivariateNormal
 import math
+from utilities.normalizing_flows import PlanarFlow, RadialFlow
 
 # https://towardsdatascience.com/variational-inference-with-normalizing-flows-on-mnist-9258bbcf8810
 class FCNEncoder(nn.Module):
@@ -41,8 +42,9 @@ class FCNEncoder(nn.Module):
 
 
 class FlowModel(nn.Module):
-    def __init__(self, flows: 'list(str)', D: int, activation=torch.tanh):
+    def __init__(self, flows: 'list(str)', D: int, activation=torch.tanh, device='cpu'):
         super().__init__()
+        self.device = device
         self.prior = MultivariateNormal(torch.zeros(D), torch.eye(D))
         self.net = []
         for i in range(len(flows)):
@@ -50,6 +52,7 @@ class FlowModel(nn.Module):
             self.net.append(layer_class(D, activation))
         self.net = nn.Sequential(*self.net)
         self.D = D
+        self.log_pi = torch.log(torch.tensor(2 * math.pi).to(self.device))
 
     def forward(self, mu: torch.Tensor, log_sigma: torch.Tensor):
         """
@@ -58,23 +61,30 @@ class FlowModel(nn.Module):
         """
         sigma = torch.exp(log_sigma)
         batch_size = mu.shape[0]
-        samples = self.prior.sample(torch.Size([batch_size]))
+        samples = self.prior.sample(torch.Size([batch_size])).to(self.device)
         z = samples * sigma + mu
 
         z0 = z.clone().detach()
+        # log_prob_z0 = torch.sum(
+        #     -0.5 * torch.log(torch.tensor(2 * math.pi)) -
+        #     log_sigma - 0.5 * ((z - mu) / sigma) ** 2,
+        #     axis=1)
         log_prob_z0 = torch.sum(
-            -0.5 * torch.log(torch.tensor(2 * math.pi)) -
+            -0.5 * self.log_pi -
             log_sigma - 0.5 * ((z - mu) / sigma) ** 2,
             axis=1)
 
-        log_det = torch.zeros((batch_size,))
+        log_det = torch.zeros((batch_size,)).to(self.device)
 
         for layer in self.net:
             z, ld = layer(z)
             log_det += ld
 
+        # log_prob_zk = torch.sum(
+        #     -0.5 * (torch.log(torch.tensor(2 * math.pi)) + z ** 2),
+        #     axis=1)
         log_prob_zk = torch.sum(
-            -0.5 * (torch.log(torch.tensor(2 * math.pi)) + z ** 2),
+            -0.5 * (self.log_pi + z ** 2),
             axis=1)
 
         return z, log_prob_z0, log_prob_zk, log_det

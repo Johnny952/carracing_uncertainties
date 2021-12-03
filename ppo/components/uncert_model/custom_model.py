@@ -16,9 +16,12 @@ class CustomTrainerModel(BaseTrainerModel):
                                                  img_stack, gamma, batch_size, buffer_capacity, device=device)
 
         latent_size = 64
-        self._encoder = FCNEncoder(img_stack, output_dim=latent_size)
-        self._flow_model = FlowModel(flows=['PlanarFlow'] * 10, D=latent_size)
-        self._decoder = FCNDecoder(img_stack, input_dim=latent_size)
+        self._encoder = FCNEncoder(
+            img_stack, output_dim=latent_size).double().to(self.device)
+        self._flow_model = FlowModel(
+            flows=['PlanarFlow'] * 10, D=latent_size, device=self.device).double().to(self.device)
+        self._decoder = FCNDecoder(
+            img_stack, input_dim=latent_size).double().to(self.device)
 
         parameters = list(self._encoder.parameters()) \
             + list(self._flow_model.parameters())\
@@ -26,7 +29,7 @@ class CustomTrainerModel(BaseTrainerModel):
         self._flow_optimizer = optim.Adam(parameters, lr=lr)
 
         self._loss_fn = flow_loss
-        self._loss_autoencoding = nn.MSELoss
+        self._loss_autoencoding = nn.MSELoss()
         self._value_scale = 1
 
     def train_once(self, net, optimizer, target_v, adv, old_a_logp, s, a, clip_param, rand_sampler):
@@ -79,7 +82,7 @@ class CustomTrainerModel(BaseTrainerModel):
             'encoder': self._encoder.state_dict(),
             'flow': self._flow_model.state_dict(),
             'decoder': self._decoder.state_dict(),
-            'flow_optimizer': self._flow_optimizer.state()
+            'flow_optimizer': self._flow_optimizer.state_dict()
         }
         torch.save(tosave, path)
 
