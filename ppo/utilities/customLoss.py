@@ -94,5 +94,9 @@ def det_loss(y_pred, y, mu, log_var):
     return -elbo(y_pred, y, mu, log_var)
 
 
-def flow_loss(log_prob_z0, log_prob_zk, log_det, x_hat, X_batch, loss_fn):
-    return torch.mean(log_prob_z0) + loss_fn(x_hat, X_batch) - torch.mean(log_prob_zk) - torch.mean(log_det)
+def flow_loss(log_prob_z0, log_prob_zk, log_det, x_hat, X_batch, loss_fn, scale=1):
+    return torch.mean(log_prob_z0) + scale * loss_fn(x_hat, X_batch) - torch.mean(log_prob_zk) - torch.mean(log_det)
+
+
+def flow_loss_split(log_prob_z0, log_prob_zk, log_det, x_hat, X_batch, loss_fn):
+    return torch.mean(log_prob_z0) - torch.mean(log_prob_zk) - torch.mean(log_det), loss_fn(x_hat, X_batch)
