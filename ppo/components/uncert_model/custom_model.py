@@ -32,7 +32,7 @@ class CustomTrainerModel(BaseTrainerModel):
         self._loss_autoencoding = nn.MSELoss()
         self._nb_flow_epochs = 10
         self._nb_flow_update = 0
-        self._encode_loss_scale = 1
+        self._encode_loss_scale = 100
 
     def train(self, epochs, clip_param, database):
         (s, a, r, s_, old_a_logp) = database
