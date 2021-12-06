@@ -26,16 +26,13 @@ def train_agent(env, eval_env, agent, nb_training_ep, eval_episodes=3, eval_ever
 
         if skip_zoom is not None:
             for _ in range(skip_zoom):
-                ob_t, _, _ = env.step([0, 0, 0])
+                ob_t, _, _, _ = env.step([0, 0, 0])
 
         for _ in range(1000):
             action, action_idx = agent.select_action(ob_t)
             ob_t1, reward, done, die = env.step(action)
-            # if agent.number_experiences() >= updates_after:
             if agent.store_transition(ob_t, action_idx, ob_t1, reward, (done or die)):
-                # print("Updating")
                 agent.update()
-                agent.epsilon_step()
 
             score += reward
             ob_t = ob_t1
@@ -44,37 +41,37 @@ def train_agent(env, eval_env, agent, nb_training_ep, eval_episodes=3, eval_ever
             if done or die:
                 break
 
-            running_score = running_score * 0.99 + score * 0.01
+        running_score = running_score * 0.99 + score * 0.01
+        wandb.log({
+            'Train Episode': episode_nb,
+            'Episode Running Score': float(running_score),
+            'Episode Score': float(score),
+            'Episode Steps': float(steps),
+            'Epsilon': agent.epsilon()
+        })
+
+        if (episode_nb + 1) % eval_every == 0:
+            mean_score, mean_uncert, mean_steps = eval_agent(
+                eval_env, agent, eval_nb, nb_episodes=eval_episodes)
+            print('Evaluation Mean Steps: %4d | Mean Reward: %4d' %
+                    (mean_steps, mean_score))
             wandb.log({
-                'Train Episode': episode_nb,
-                'Episode Running Score': float(running_score),
-                'Episode Score': float(score),
-                'Episode Steps': float(steps),
-                'Epsilon': agent.epsilon()
+                'Eval Episode': eval_nb,
+                'Eval Mean Score': float(mean_score),
+                'Eval Mean Epist Uncert': float(mean_uncert[0]),
+                'Eval Mean Aleat Uncert': float(mean_uncert[1]),
+                'Eval Mean Steps': float(mean_steps)
             })
-
-            if (episode_nb + 1) % eval_every == 0:
-                mean_score, mean_uncert, mean_steps = eval_agent(
-                    eval_env, agent, eval_nb, nb_episodes=eval_episodes)
-                print('Evaluation Mean Steps: %4d | Mean Reward: %4d' %
-                      (mean_steps, mean_score))
-                wandb.log({
-                    'Eval Episode': eval_nb,
-                    'Eval Mean Score': float(mean_score),
-                    'Eval Mean Epist Uncert': float(mean_uncert[0]),
-                    'Eval Mean Aleat Uncert': float(mean_uncert[1]),
-                    'Eval Mean Steps': float(mean_steps)
-                })
-                eval_nb += 1
-                if mean_score >= best_score:
-                    agent.save_param(episode_nb)
-                    best_score = mean_score
-
-            if running_score > env.reward_threshold:
-                print("Solved! Running reward is now {} and the last episode runs to {}!".format(
-                    running_score, score))
+            eval_nb += 1
+            if mean_score >= best_score:
                 agent.save_param(episode_nb)
-                break
+                best_score = mean_score
+
+        if running_score > env.reward_threshold:
+            print("Solved! Running reward is now {} and the last episode runs to {}!".format(
+                running_score, score))
+            agent.save_param(episode_nb)
+            break
 
 
 def eval_agent(env, agent, eval_idx, nb_episodes=3):
@@ -115,7 +112,7 @@ if __name__ == "__main__":
         '-AR',
         '--action-repeat',
         type=int,
-        default=1,
+        default=8,
         help='Number steps using same action')
     env_config.add_argument(
         '-N',
@@ -212,13 +209,13 @@ if __name__ == "__main__":
         '-EF',
         '--epsilon-factor',
         type=float,
-        default=3,
+        default=4,
         help='Factor parameter of epsilon decay, only used when method is exp or inverse_sigmoid')
     epsilon_config.add_argument(
         '-EMS',
         '--epsilon-max-steps',
         type=int,
-        default=1000,
+        default=2000000,
         help='Max Epsilon Steps parameter, when epsilon is close to the minimum')
 
     # Training Config

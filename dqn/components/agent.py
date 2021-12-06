@@ -474,6 +474,7 @@ class DDQNAgent2018(Agent):
                 param.grad.data.clamp_(-1, 1)
         self._optimizer2.step()
 
+        self.epsilon_step()
         self.log_loss(loss1.item(), loss2.item())
         self._nb_update += 1
 
@@ -482,6 +483,7 @@ class DDQNAgent2018(Agent):
             'Update Step': self._nb_update,
             'Loss 1': float(loss1),
             'Loss 2': float(loss2),
+            'Epsilon': float(self.epsilon()),
         })
 
     def save_param(self, epoch):
