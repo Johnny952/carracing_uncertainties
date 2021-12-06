@@ -125,7 +125,7 @@ class CustomTrainerModel(BaseTrainerModel):
             # x_hat = self._decoder(z_k)
 
         # TODO: Aleatoric estimation
-        epistemic = 1 - torch.exp(log_prob_z0)
+        epistemic = 1 - torch.exp(log_prob_zk)
         aleatoric = torch.Tensor([0])
 
         (alpha, beta), v = self.forward_nograd(state)

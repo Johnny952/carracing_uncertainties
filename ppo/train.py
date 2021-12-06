@@ -37,8 +37,6 @@ def train_agent(agent, env, eval_env, episodes, nb_validations=1, init_ep=0, log
             state = state_
             steps += 1
 
-            #wandb.log({'Step Reward': float(reward), 'Step Score': float(score)})
-
             if done or die:
                 break
         running_score = running_score * 0.99 + score * 0.01
@@ -49,10 +47,10 @@ def train_agent(agent, env, eval_env, episodes, nb_validations=1, init_ep=0, log
             'Episode Steps': float(steps),
         })
 
-        if i_ep % log_interval == 0:
-            print('Ep {}\tLast score: {:.2f}\tMoving average score: {:.2f}'.format(
-                i_ep, score, running_score))
-            agent.save(i_ep)
+        # if i_ep % log_interval == 0:
+        #     print('Ep {}\tLast score: {:.2f}\tMoving average score: {:.2f}'.format(
+        #         i_ep, score, running_score))
+        #     agent.save(i_ep)
 
         if running_score > env.reward_threshold:
             print("Solved! Running reward is now {} and the last episode runs to {}!".format(

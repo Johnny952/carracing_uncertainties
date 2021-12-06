@@ -44,6 +44,9 @@ class ReplayMemory(object):
 
     def __len__(self):
         return len(self.memory)
+    
+    def able_sample(self):
+        return len(self) >= self.batch_size
 
 
 if __name__ == "__main__":

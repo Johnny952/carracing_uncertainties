@@ -5,7 +5,7 @@ from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 import numpy as np
 from collections import namedtuple
 
-from utils import ReplayMemory, Epsilon
+from utilities import ReplayMemory, Epsilon
 from models import Net
 
 
@@ -37,8 +37,6 @@ class Agent:
         self._actions = actions
         
         self._criterion = nn.MSELoss()
-
-        self.nb_updates = 10
     
     def empty_buffer(self):
         """Empty replay buffer"""        
@@ -62,12 +60,13 @@ class Agent:
             done (bool): Whether state in time t+1 is terminal or not
         """
         self._buffer.push(
-            torch.from_numpy(np.array(state, dtype=np.float32)/255).unsqueeze(dim=0), 
+            torch.from_numpy(np.array(state, dtype=np.float32)).unsqueeze(dim=0), 
             action.unsqueeze(dim=0), 
-            torch.from_numpy(np.array(next_state, dtype=np.float32)/255).unsqueeze(dim=0), 
+            torch.from_numpy(np.array(next_state, dtype=np.float32)).unsqueeze(dim=0), 
             torch.Tensor([reward]), 
             torch.Tensor([done])
             )
+        return self._buffer.able_sample()
 
     def epsilon_step(self):
         """Epsilon decay e = e*factor"""        
@@ -88,15 +87,12 @@ class Agent:
     def train_mode(self):
         pass
 
-    def update_minibatch(self):
-        pass
-
     def unpack(self, batch):
-        states = torch.cat(batch.state).float()
-        actions = torch.cat(batch.action).long()
-        next_states = torch.cat(batch.next_state).float()
-        rewards = torch.cat(batch.reward)
-        dones = torch.cat(batch.done)
+        states = torch.cat(batch.state).float().to(self._device)
+        actions = torch.cat(batch.action).long().to(self._device)
+        next_states = torch.cat(batch.next_state).float().to(self._device)
+        rewards = torch.cat(batch.reward).to(self._device)
+        dones = torch.cat(batch.done).to(self._device)
 
         return states, actions, next_states, rewards, dones
 
@@ -168,7 +164,7 @@ class DQNAgent(Agent):
         if np.random.rand() > self._epsilon.epsilon() or greedy:
             # Select action greedily
             with torch.no_grad():
-                values = self._model((torch.from_numpy(observation).unsqueeze(dim=0).float()/255).to(self._device))
+                values = self._model((torch.from_numpy(observation).unsqueeze(dim=0).float()).to(self._device))
                 _, index = torch.max(values, dim=-1)
         else:
             # Select random action
@@ -191,29 +187,7 @@ class DQNAgent(Agent):
         if self._updates % self._nb_target_replace == 0:
             self.replace_target_network()
 
-    def update_minibatch(self):
-        states, actions, next_states, rewards, dones = self.unpack(self._buffer.dataset())
-        for _ in range(self.nb_updates):
-            rand_sampler = SubsetRandomSampler(range(len(self._buffer)))
-            sampler = BatchSampler(rand_sampler, self._batch_size, False)
-            for index in sampler:
-                loss = self.compute_loss(states[index], actions[index], next_states[index], rewards[index], dones[index])
-
-                loss = self.compute_loss(states, actions, next_states, rewards, dones)
-                self._optimizer.zero_grad()
-                loss.backward()
-                if self._clip_grad:
-                    for param in self._model.parameters():
-                        param.grad.data.clamp_(-1, 1)
-                self._optimizer.step()
-        
-        self._updates += 1
-        if self._updates % self._nb_target_replace == 0:
-            self.replace_target_network()
-
     def compute_loss(self, states, actions, next_states, rewards, dones):
-        states, actions, next_states, rewards, dones = states.to(self._device), actions.to(self._device), next_states.to(self._device), rewards.to(self._device), dones.to(self._device)
-
         state_action_values = self._model(states).gather(1, actions).squeeze(dim=-1)
         next_state_values = ((1 - dones)*self._target_model(next_states).max(1)[0]).detach()
         expected_state_action_values = (next_state_values * self._gamma) + rewards
@@ -312,7 +286,7 @@ class DDQNAgent2015(Agent):
         if np.random.rand() > self._epsilon.epsilon() or greedy:
             # Select action greedily
             with torch.no_grad():
-                values = self._model((torch.from_numpy(observation).unsqueeze(dim=0).float()/255).to(self._device))
+                values = self._model((torch.from_numpy(observation).unsqueeze(dim=0).float()).to(self._device))
                 _, index = torch.max(values, dim=-1)
         else:
             # Select random action
@@ -321,8 +295,6 @@ class DDQNAgent2015(Agent):
 
 
     def compute_loss(self, states, actions, next_states, rewards, dones):
-        states, actions, next_states, rewards, dones = states.to(self._device), actions.to(self._device), next_states.to(self._device), rewards.to(self._device), dones.to(self._device)
-        # compute loss
         curr_Q = self._model(states).gather(1, actions).squeeze(dim=-1)
         next_Q = self._target_model(next_states)
         max_next_Q = torch.max(next_Q, 1)[0]
@@ -347,25 +319,6 @@ class DDQNAgent2015(Agent):
         # target network update
         for target_param, param in zip(self._target_model.parameters(), self._model.parameters()):
             target_param.data.copy_(self._tau * param + (1 - self._tau) * target_param)
-    
-    def update_minibatch(self):
-        states, actions, next_states, rewards, dones = self.unpack(self._buffer.dataset())
-        for _ in range(self.nb_updates):
-            rand_sampler = SubsetRandomSampler(range(len(self._buffer)))
-            sampler = BatchSampler(rand_sampler, self._batch_size, False)
-            for index in sampler:
-                loss = self.compute_loss(states[index], actions[index], next_states[index], rewards[index], dones[index])
-
-                self._optimizer.zero_grad()
-                loss.backward()
-                if self._clip_grad:
-                    for param in self._model.parameters():
-                        param.grad.data.clamp_(-1, 1)
-                self._optimizer.step()
-
-                # target network update
-                for target_param, param in zip(self._target_model.parameters(), self._model.parameters()):
-                    target_param.data.copy_(self._tau * param + (1 - self._tau) * target_param)
     
     def save_param(self, epoch):
         tosave = {
@@ -434,10 +387,10 @@ class DDQNAgent2018(Agent):
             int: The action taken
             int: The corresponding action index
         """        
-        if np.random.rand() > self._epsilon.epsilon() or greedy:
+        if greedy or np.random.rand() > self._epsilon.epsilon():
             # Select action greedily
             with torch.no_grad():
-                values = self._model1((torch.from_numpy(observation).unsqueeze(dim=0).float()/255).to(self._device))
+                values = self._model1((torch.from_numpy(observation).unsqueeze(dim=0).float()).to(self._device))
                 _, index = torch.max(values, dim=-1)
         else:
             # Select random action
@@ -446,8 +399,6 @@ class DDQNAgent2018(Agent):
 
 
     def compute_loss(self, states, actions, next_states, rewards, dones):
-        states, actions, next_states, rewards, dones = states.to(self._device), actions.to(self._device), next_states.to(self._device), rewards.to(self._device), dones.to(self._device)    
-        # compute loss
         curr_Q1 = self._model1(states).gather(1, actions).squeeze(dim=-1)
         curr_Q2 = self._model2(states).gather(1, actions).squeeze(dim=-1)
 
@@ -456,8 +407,7 @@ class DDQNAgent2018(Agent):
         next_Q = torch.min(
             torch.max(self._model1(next_states), 1)[0],
             torch.max(self._model2(next_states), 1)[0]
-        )
-        next_Q = next_Q.squeeze(dim=-1)
+        ).squeeze(dim=-1)
         expected_Q = rewards + (1 - dones) * self._gamma * next_Q
 
         loss1 = self._criterion(curr_Q1, expected_Q.detach())
@@ -482,28 +432,6 @@ class DDQNAgent2018(Agent):
             for param in self._model2.parameters():
                 param.grad.data.clamp_(-1, 1)
         self._optimizer2.step()
-    
-    def update_minibatch(self):
-        states, actions, next_states, rewards, dones = self.unpack(self._buffer.dataset())
-        for _ in range(self.nb_updates):
-            rand_sampler = SubsetRandomSampler(range(len(self._buffer)))
-            sampler = BatchSampler(rand_sampler, self._batch_size, False)
-            for index in sampler:
-                loss1, loss2 = self.compute_loss(states[index], actions[index], next_states[index], rewards[index], dones[index])
-
-                self._optimizer1.zero_grad()
-                loss1.backward()
-                if self._clip_grad:
-                    for param in self._model1.parameters():
-                        param.grad.data.clamp_(-1, 1)
-                self._optimizer1.step()
-
-                self._optimizer2.zero_grad()
-                loss2.backward()
-                if self._clip_grad:
-                    for param in self._model2.parameters():
-                        param.grad.data.clamp_(-1, 1)
-                self._optimizer2.step()
             
     def save_param(self, epoch):
         tosave = {
@@ -608,7 +536,7 @@ def make_agent(
 
 if __name__ == "__main__":
     import gym
-    from utils import imgstackRGB2graystack
+    from utilities import imgstackRGB2graystack
 
     env = gym.make('CarRacing-v0')
     img_stack = 4

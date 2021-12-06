@@ -1,105 +1,150 @@
-import gym
-from gym.wrappers import Monitor
+import imageio
+from utilities.noise import generate_noise_variance, add_noise
 import numpy as np
-from collections import deque
-
-from utils import imgstackRGB2graystack
+from gym.wrappers import Monitor
+import gym
+import sys
+sys.path.append('..')
 
 
 class Env():
-    def __init__(self, img_stack=4, seed=0, clip_reward=None, path_render=None, validations=1, evaluation=False, action_repeat=1):
-        """Environment Constructor
+    """
+    Environment wrapper for CarRacing 
+    """
 
-        Args:
-            img_stack (int, optional): Number of consecutive frames to stack. Defaults to 4.
-            seed (int, optional): Random seed env generator. Defaults to 0.
-        """
-        self._action_repeat = action_repeat
+    def __init__(self, img_stack, action_repeat, seed=0, path_render=None, validations=1, evaluation=False, noise=None):
         self.render = path_render is not None
         self.evaluation = evaluation
-        env = gym.make('CarRacing-v0', verbose=0)
-        self._env = gym.wrappers.FrameStack(env, img_stack)
-        if self.render:
+        if not self.render:
+            self.env = gym.make('CarRacing-v0', verbose=0)
+        else:
             self.validations = validations
             self.idx_val = validations // 2
-            self._env = Monitor(self._env, './render/{}'.format(path_render), video_callable=lambda episode_id: episode_id%validations==self.idx_val, force=True)    
-        self._env.seed(seed)
+            self.env = Monitor(gym.make('CarRacing-v0', verbose=0), './render/{}'.format(path_render),
+                               video_callable=lambda episode_id: episode_id % validations == self.idx_val, force=True)
+        self.env.seed(seed)
+        self.reward_threshold = self.env.spec.reward_threshold
+        self.img_stack = img_stack
+        self.action_repeat = action_repeat
+        #self.env._max_episode_steps = your_value
 
-        self.low_state = self._env.action_space.low
-        self.high_state = self._env.action_space.high
-        self._reward_memory = deque([], maxlen=50)
+        # Noise in initial observations
+        self.use_noise = False
+        if noise:
+            if noise is list:
+                assert len(noise) > 2
+                self.use_noise = True
+                self.generate_noise = True
+                self.noise_lower, self.noise_upper = noise[0], noise[1]
+                self.random_noise = 0
+            elif noise is float:
+                self.use_noise = True
+                self.generate_noise = False
+                self.random_noise = noise
 
-        self.reward_threshold = self._env.spec.reward_threshold
+    def plot_uncert(self, index, uncertainties, width=56, out_video='render/test.mp4'):
+        index = self.validations-1 if index == 0 else index-1
+        if self.render and self.idx_val == index:
+            max_unc = np.max(uncertainties, axis=0) + 1e-10
 
-        self._clip_reward=clip_reward
-    
-    def close(self):
-        self._env.close()
+            # Append uncertainties to video
+            vid = imageio.get_reader(self.env.videos[-1][0])
+            fps = vid.get_meta_data()['fps']
+
+            writer = imageio.get_writer(out_video, fps=fps)
+            for idx, image in enumerate(vid.iter_data()):
+                # action reapeat
+                if idx > 0:
+                    unct_idx = (idx-1) // self.action_repeat
+                    bg = np.zeros((400, width, 3), dtype=np.uint8)
+                    epist_height = int(
+                        200 * uncertainties[unct_idx, 0] / max_unc[0])
+                    bg[200:200+epist_height, :, :] = [255, 0, 0]
+                    aleat_height = int(
+                        200 * uncertainties[unct_idx, 1] / max_unc[1])
+                    bg[:aleat_height, :, :] = [0, 0, 255]
+                    image = np.concatenate((image, bg), axis=1)
+                    writer.append_data(image)
+            writer.close()
 
     def reset(self):
-        """Resets the environment
+        self.counter = 0
+        self.av_r = self.reward_memory()
 
-        Returns:
-            np.ndarray: Last n gray frames stack
-        """        
-        self._reward_memory.clear()
-        return imgstackRGB2graystack(self._env.reset())
-    
+        self.die = False
+        img_rgb = self.env.reset()
+        img_gray = self.rgb2gray(img_rgb)
+
+        if self.use_noise:
+            if self.generate_noise:
+                self.random_noise = generate_noise_variance(
+                    self.noise_lower, self.noise_upper)
+            img_gray = add_noise(img_gray, self.random_noise)
+
+        self.stack = [img_gray] * self.img_stack  # four frames for decision
+        return np.array(self.stack)
+
     def step(self, action):
-        """Step in the environment. Transition to the next state.
-
-        Args:
-            action (array): 3 dimensional array, first dimension steering angle in range [-1, 1], second dimension throttle in range [0, 1] and last dimensino brake in range [0, 1]
-
-        Returns:
-            np.ndarray: Last n gray frames stack finishing in time t+1
-            float: Reward of the transition t to t+1
-            done: Whether the episode is finished or not
-        """
-        reward = 0
-        for _ in range(self._action_repeat):
-            next_state, rwd, done, _ = self._env.step(action)
-            # green penalty last state
-            if np.mean(next_state[-1][:, :, 1]) > 185.0:
-                rwd -= 0.05
-            
-            # reward for full gas
-            #if action[1] == 1 and action[2] == 0:
-            #    rwd += 1.5*np.abs(rwd)
-            
-            if self._clip_reward is not None:
-                rwd = np.clip(rwd, a_max=self._clip_reward)
-
-            # push reward in memory
-            # self._reward_memory.append(reward)
-
-            # penalty for die state
-            # die = sum(self._reward_memory) <= -5
-            # if not self.evaluation and die:
-            #     done = True
-            #     #reward -= 20
-            #     reward += 100
-            reward += rwd
-            if done:
+        total_reward = 0
+        for _ in range(self.action_repeat):
+            img_rgb, reward, die, _ = self.env.step(action)
+            # don't penalize "die state"
+            if die:
                 reward += 100
+            # green penalty
+            if np.mean(img_rgb[:, :, 1]) > 185.0:
+                reward -= 0.05
+            total_reward += reward
+            # if no reward recently, end the episode
+            done = True if self.av_r(reward) <= -0.1 else False
+            if done or die:
                 break
-        
-        return imgstackRGB2graystack(next_state), reward, done
-    
-    def render(self, *args):
-        """Show the state of the environment"""        
-        self._env.render(*args)
+        img_gray = self.rgb2gray(img_rgb)
+        # Add noise in observation
+        if self.use_noise:
+            img_gray = add_noise(img_gray, self.random_noise)
+        self.stack.pop(0)
+        self.stack.append(img_gray)
+        assert len(self.stack) == self.img_stack
+        return np.array(self.stack), total_reward, done, die
+
+    def render(self, *arg):
+        self.env.render(*arg)
+
+    @staticmethod
+    def rgb2gray(rgb, norm=True):
+        # rgb image -> gray [0, 1]
+        gray = np.dot(rgb[..., :], [0.299, 0.587, 0.114])
+        if norm:
+            # normalize
+            gray = gray / 128. - 1.
+        return gray
+
+    @staticmethod
+    def reward_memory():
+        # record reward for last 100 steps
+        count = 0
+        length = 100
+        history = np.zeros(length)
+
+        def memory(reward):
+            nonlocal count
+            history[count] = reward
+            count = (count + 1) % length
+            return np.mean(history)
+
+        return memory
 
 
-if __name__ == "__main__":
-    env = Env()
-
-    s0 = env.reset()
-
-    for i in range(100):
-        next_state, reward, done = env.step([0, 1, 0])
-        if done:
-            break
-        print("Step: {:.0f}, Reward: {:.3f}, Done: {}".format(i+1, reward, done))
-        env.render()
-    print("")
+def make_env(img_stack, action_repeat, seed=0, path_render=None, validations=1, evaluation=False):
+    def fn():
+        env = Env(
+            img_stack,
+            action_repeat,
+            seed=seed,
+            path_render=path_render,
+            validations=validations,
+            evaluation=evaluation
+        )
+        return env
+    return fn
