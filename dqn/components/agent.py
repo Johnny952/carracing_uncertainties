@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
-#from torch.utils.data import TensorDataset, DataLoader
+
+# from torch.utils.data import TensorDataset, DataLoader
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 import numpy as np
 from collections import namedtuple
@@ -12,15 +13,20 @@ from models import Net
 
 class Agent:
     def __init__(
-        self, img_stack, actions, learning_rate,
-        gamma, buffer_capacity, batch_size,
-        device='cpu',
+        self,
+        img_stack,
+        actions,
+        learning_rate,
+        gamma,
+        buffer_capacity,
+        batch_size,
+        device="cpu",
         clip_grad=False,
-        epsilon_method='linear',
+        epsilon_method="linear",
         epsilon_max=1,
         epsilon_min=0.1,
         epsilon_factor=3,
-        epsilon_max_steps=1000
+        epsilon_max_steps=1000,
     ):
 
         self._device = device
@@ -31,13 +37,18 @@ class Agent:
         self._img_stack = img_stack
         self._actions = actions
         self._criterion = nn.MSELoss()
-        self._epsilon = Epsilon(epsilon_max_steps, method=epsilon_method,
-                                epsilon_max=epsilon_max, epsilon_min=epsilon_min, factor=epsilon_factor)
+        self._epsilon = Epsilon(
+            epsilon_max_steps,
+            method=epsilon_method,
+            epsilon_max=epsilon_max,
+            epsilon_min=epsilon_min,
+            factor=epsilon_factor,
+        )
 
         self._Transition = namedtuple(
-            'Transition', ('state', 'action', 'next_state', 'reward', 'done'))
-        self._buffer = ReplayMemory(
-            buffer_capacity, batch_size, self._Transition)
+            "Transition", ("state", "action", "next_state", "reward", "done")
+        )
+        self._buffer = ReplayMemory(buffer_capacity, batch_size, self._Transition)
 
         self._nb_update = 0
 
@@ -64,13 +75,11 @@ class Agent:
             done (bool): Whether state in time t+1 is terminal or not
         """
         self._buffer.push(
-            torch.from_numpy(np.array(state, dtype=np.float32)
-                             ).unsqueeze(dim=0),
+            torch.from_numpy(np.array(state, dtype=np.float32)).unsqueeze(dim=0),
             action.unsqueeze(dim=0),
-            torch.from_numpy(
-                np.array(next_state, dtype=np.float32)).unsqueeze(dim=0),
+            torch.from_numpy(np.array(next_state, dtype=np.float32)).unsqueeze(dim=0),
             torch.Tensor([reward]),
-            torch.Tensor([done])
+            torch.Tensor([done]),
         )
         return self._buffer.able_sample()
 
@@ -87,7 +96,7 @@ class Agent:
     def update(self):
         pass
 
-    def save_param(self, epoch):
+    def save_param(self, epoch, path="param/ppo_net_param.pkl"):
         pass
 
     def load_param(self, path, eval_mode=False):
@@ -111,16 +120,21 @@ class Agent:
 
 class DQNAgent(Agent):
     def __init__(
-        self, img_stack, actions, learning_rate,
-        gamma, buffer_capacity, batch_size,
-        device='cpu',
+        self,
+        img_stack,
+        actions,
+        learning_rate,
+        gamma,
+        buffer_capacity,
+        batch_size,
+        device="cpu",
         clip_grad=False,
-        epsilon_method='linear',
+        epsilon_method="linear",
         epsilon_max=1,
         epsilon_min=0.1,
         epsilon_factor=3,
         epsilon_max_steps=1000,
-        nb_target_replace=1
+        nb_target_replace=1,
     ):
         """Constructor of Agent class
 
@@ -135,15 +149,20 @@ class DQNAgent(Agent):
             device (str, optional): Use cuda or cpu. Defaults to 'cpu'.
         """
         super(DQNAgent, self).__init__(
-            img_stack, actions, learning_rate,
-            gamma, buffer_capacity, batch_size,
+            img_stack,
+            actions,
+            learning_rate,
+            gamma,
+            buffer_capacity,
+            batch_size,
             device=device,
             clip_grad=clip_grad,
             epsilon_method=epsilon_method,
             epsilon_max=epsilon_max,
             epsilon_min=epsilon_min,
             epsilon_factor=epsilon_factor,
-            epsilon_max_steps=epsilon_max_steps)
+            epsilon_max_steps=epsilon_max_steps,
+        )
 
         self._model = Net(img_stack, len(actions)).to(self._device)
         self._target_model = Net(img_stack, len(actions)).to(self._device)
@@ -153,9 +172,10 @@ class DQNAgent(Agent):
         self._nb_target_replace = nb_target_replace
 
         self._optimizer = torch.optim.Adam(
-            self._model.parameters(), lr=learning_rate, eps=1e-07)
+            self._model.parameters(), lr=learning_rate, eps=1e-07
+        )
 
-        #self.K = 0.05
+        # self.K = 0.05
 
     def replace_target_network(self):
         """Replace target network with actual network
@@ -177,7 +197,10 @@ class DQNAgent(Agent):
             # Select action greedily
             with torch.no_grad():
                 values = self._model(
-                    (torch.from_numpy(observation).unsqueeze(dim=0).float()).to(self._device))
+                    (torch.from_numpy(observation).unsqueeze(dim=0).float()).to(
+                        self._device
+                    )
+                )
                 _, index = torch.max(values, dim=-1)
         else:
             # Select random action
@@ -187,7 +210,8 @@ class DQNAgent(Agent):
     def update(self):
         """Trains agent model"""
         states, actions, next_states, rewards, dones = self.unpack(
-            self._buffer.sample())
+            self._buffer.sample()
+        )
 
         loss = self.compute_loss(states, actions, next_states, rewards, dones)
         self._optimizer.zero_grad()
@@ -205,35 +229,33 @@ class DQNAgent(Agent):
         self._nb_update += 1
 
     def log_loss(self, loss):
-        wandb.log({
-            'Update Step': self._nb_update,
-            'Loss': float(loss),
-        })
+        wandb.log(
+            {"Update Step": self._nb_update, "Loss": float(loss),}
+        )
 
     def compute_loss(self, states, actions, next_states, rewards, dones):
-        state_action_values = self._model(
-            states).gather(1, actions).squeeze(dim=-1)
+        state_action_values = self._model(states).gather(1, actions).squeeze(dim=-1)
         next_state_values = (
-            (1 - dones)*self._target_model(next_states).max(1)[0]).detach()
-        expected_state_action_values = (
-            next_state_values * self._gamma) + rewards
+            (1 - dones) * self._target_model(next_states).max(1)[0]
+        ).detach()
+        expected_state_action_values = (next_state_values * self._gamma) + rewards
 
         # + self.K*torch.mean(state_action_values)
         return self._criterion(expected_state_action_values, state_action_values)
 
-    def save_param(self, epoch):
+    def save_param(self, epoch, path="param/ppo_net_param.pkl"):
         """Save agent's parameters
 
         Args:
             epoch (int): Training epoch
         """
         tosave = {
-            'epoch': epoch,
-            'model_state_disct': self._model.state_dict(),
-            'target_model_state_dict': self._target_model.state_dict(),
-            'optimizer_state_dict': self._optimizer.state_dict()
+            "epoch": epoch,
+            "model_state_disct": self._model.state_dict(),
+            "target_model_state_dict": self._target_model.state_dict(),
+            "optimizer_state_dict": self._optimizer.state_dict(),
         }
-        torch.save(tosave, 'param/ppo_net_param.pkl')
+        torch.save(tosave, path)
 
     def load_param(self, path, eval_mode=False):
         """Load Agent checkpoint
@@ -246,16 +268,15 @@ class DQNAgent(Agent):
             int: checkpoint epoch
         """
         checkpoint = torch.load(path)
-        self._model.load_state_dict(checkpoint['model_state_disct'])
-        self._target_model.load_state_dict(
-            checkpoint['target_model_state_dict'])
-        self._optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        self._model.load_state_dict(checkpoint["model_state_disct"])
+        self._target_model.load_state_dict(checkpoint["target_model_state_dict"])
+        self._optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
 
         if eval_mode:
             self._model.eval()
         else:
             self._model.train()
-        return checkpoint['epoch']
+        return checkpoint["epoch"]
 
     def eval_mode(self):
         """Prediction network in evaluation mode"""
@@ -268,34 +289,46 @@ class DQNAgent(Agent):
 
 class DDQNAgent2015(Agent):
     def __init__(
-        self, img_stack, actions, learning_rate,
-        gamma, buffer_capacity, batch_size,
-        device='cpu',
+        self,
+        img_stack,
+        actions,
+        learning_rate,
+        gamma,
+        buffer_capacity,
+        batch_size,
+        device="cpu",
         clip_grad=False,
-        epsilon_method='linear',
+        epsilon_method="linear",
         epsilon_max=1,
         epsilon_min=0.1,
         epsilon_factor=3,
         epsilon_max_steps=1000,
-        tau=0.1
+        tau=0.1,
     ):
         super(DDQNAgent2015, self).__init__(
-            img_stack, actions, learning_rate,
-            gamma, buffer_capacity, batch_size,
+            img_stack,
+            actions,
+            learning_rate,
+            gamma,
+            buffer_capacity,
+            batch_size,
             device=device,
             clip_grad=clip_grad,
             epsilon_method=epsilon_method,
             epsilon_max=epsilon_max,
             epsilon_min=epsilon_min,
             epsilon_factor=epsilon_factor,
-            epsilon_max_steps=epsilon_max_steps)
+            epsilon_max_steps=epsilon_max_steps,
+        )
 
         self._model = Net(img_stack, len(actions)).to(self._device)
         self._target_model = Net(img_stack, len(actions)).to(self._device)
 
         self._tau = tau
 
-        for target_param, param in zip(self._model.parameters(), self._target_model.parameters()):
+        for target_param, param in zip(
+            self._model.parameters(), self._target_model.parameters()
+        ):
             target_param.data.copy_(param)
 
         self._optimizer = torch.optim.Adam(self._model.parameters())
@@ -315,7 +348,10 @@ class DDQNAgent2015(Agent):
             # Select action greedily
             with torch.no_grad():
                 values = self._model(
-                    (torch.from_numpy(observation).unsqueeze(dim=0).float()).to(self._device))
+                    (torch.from_numpy(observation).unsqueeze(dim=0).float()).to(
+                        self._device
+                    )
+                )
                 _, index = torch.max(values, dim=-1)
         else:
             # Select random action
@@ -333,7 +369,8 @@ class DDQNAgent2015(Agent):
 
     def update(self):
         states, actions, next_states, rewards, dones = self.unpack(
-            self._buffer.sample())
+            self._buffer.sample()
+        )
         loss = self.compute_loss(states, actions, next_states, rewards, dones)
 
         self._optimizer.zero_grad()
@@ -344,40 +381,39 @@ class DDQNAgent2015(Agent):
         self._optimizer.step()
 
         # target network update
-        for target_param, param in zip(self._target_model.parameters(), self._model.parameters()):
-            target_param.data.copy_(
-                self._tau * param + (1 - self._tau) * target_param)
+        for target_param, param in zip(
+            self._target_model.parameters(), self._model.parameters()
+        ):
+            target_param.data.copy_(self._tau * param + (1 - self._tau) * target_param)
 
         self.log_loss(loss)
         self._nb_update += 1
 
     def log_loss(self, loss):
-        wandb.log({
-            'Update Step': self._nb_update,
-            'Loss': float(loss),
-        })
+        wandb.log(
+            {"Update Step": self._nb_update, "Loss": float(loss),}
+        )
 
-    def save_param(self, epoch):
+    def save_param(self, epoch, path="param/ppo_net_param.pkl"):
         tosave = {
-            'epoch': epoch,
-            'model_state_disct': self._model.state_dict(),
-            'target_model_state_dict': self._target_model.state_dict(),
-            'optimizer_state_dict': self._optimizer.state_dict()
+            "epoch": epoch,
+            "model_state_disct": self._model.state_dict(),
+            "target_model_state_dict": self._target_model.state_dict(),
+            "optimizer_state_dict": self._optimizer.state_dict(),
         }
-        torch.save(tosave, 'param/ppo_net_param.pkl')
+        torch.save(tosave, path)
 
     def load_param(self, path, eval_mode=False):
         checkpoint = torch.load(path)
-        self._model.load_state_dict(checkpoint['model_state_disct'])
-        self._target_model.load_state_dict(
-            checkpoint['target_model_state_dict'])
-        self._optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        self._model.load_state_dict(checkpoint["model_state_disct"])
+        self._target_model.load_state_dict(checkpoint["target_model_state_dict"])
+        self._optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
 
         if eval_mode:
             self._model.eval()
         else:
             self._model.train()
-        return checkpoint['epoch']
+        return checkpoint["epoch"]
 
     def eval_mode(self):
         self._model._eval()
@@ -388,26 +424,36 @@ class DDQNAgent2015(Agent):
 
 class DDQNAgent2018(Agent):
     def __init__(
-        self, img_stack, actions, learning_rate,
-        gamma, buffer_capacity, batch_size,
-        device='cpu',
+        self,
+        img_stack,
+        actions,
+        learning_rate,
+        gamma,
+        buffer_capacity,
+        batch_size,
+        device="cpu",
         clip_grad=False,
-        epsilon_method='linear',
+        epsilon_method="linear",
         epsilon_max=1,
         epsilon_min=0.1,
         epsilon_factor=3,
         epsilon_max_steps=1000,
     ):
         super(DDQNAgent2018, self).__init__(
-            img_stack, actions, learning_rate,
-            gamma, buffer_capacity, batch_size,
+            img_stack,
+            actions,
+            learning_rate,
+            gamma,
+            buffer_capacity,
+            batch_size,
             device=device,
             clip_grad=clip_grad,
             epsilon_method=epsilon_method,
             epsilon_max=epsilon_max,
             epsilon_min=epsilon_min,
             epsilon_factor=epsilon_factor,
-            epsilon_max_steps=epsilon_max_steps)
+            epsilon_max_steps=epsilon_max_steps,
+        )
 
         self._model1 = Net(img_stack, len(actions)).to(self._device)
         self._model2 = Net(img_stack, len(actions)).to(self._device)
@@ -430,7 +476,10 @@ class DDQNAgent2018(Agent):
             # Select action greedily
             with torch.no_grad():
                 values = self._model1(
-                    (torch.from_numpy(observation).unsqueeze(dim=0).float()).to(self._device))
+                    (torch.from_numpy(observation).unsqueeze(dim=0).float()).to(
+                        self._device
+                    )
+                )
                 _, index = torch.max(values, dim=-1)
         else:
             # Select random action
@@ -445,7 +494,7 @@ class DDQNAgent2018(Agent):
         # next_Q2 = self._model2(next_states)
         next_Q = torch.min(
             torch.max(self._model1(next_states), 1)[0],
-            torch.max(self._model2(next_states), 1)[0]
+            torch.max(self._model2(next_states), 1)[0],
         ).squeeze(dim=-1)
         expected_Q = rewards + (1 - dones) * self._gamma * next_Q
 
@@ -456,9 +505,9 @@ class DDQNAgent2018(Agent):
 
     def update(self):
         states, actions, next_states, rewards, dones = self.unpack(
-            self._buffer.sample())
-        loss1, loss2 = self.compute_loss(
-            states, actions, next_states, rewards, dones)
+            self._buffer.sample()
+        )
+        loss1, loss2 = self.compute_loss(states, actions, next_states, rewards, dones)
 
         self._optimizer1.zero_grad()
         loss1.backward()
@@ -479,35 +528,37 @@ class DDQNAgent2018(Agent):
         self._nb_update += 1
 
     def log_loss(self, loss1, loss2):
-        wandb.log({
-            'Update Step': self._nb_update,
-            'Loss 1': float(loss1),
-            'Loss 2': float(loss2),
-            'Epsilon': float(self.epsilon()),
-        })
+        wandb.log(
+            {
+                "Update Step": self._nb_update,
+                "Loss 1": float(loss1),
+                "Loss 2": float(loss2),
+                "Epsilon": float(self.epsilon()),
+            }
+        )
 
-    def save_param(self, epoch):
+    def save_param(self, epoch, path="param/ppo_net_param.pkl"):
         tosave = {
-            'epoch': epoch,
-            'model1_state_disct': self._model1.state_dict(),
-            'model2_state_disct': self._model2.state_dict(),
-            'optimizer1_state_dict': self._optimizer1.state_dict(),
-            'optimizer2_state_dict': self._optimizer2.state_dict()
+            "epoch": epoch,
+            "model1_state_disct": self._model1.state_dict(),
+            "model2_state_disct": self._model2.state_dict(),
+            "optimizer1_state_dict": self._optimizer1.state_dict(),
+            "optimizer2_state_dict": self._optimizer2.state_dict(),
         }
-        torch.save(tosave, 'param/ppo_net_param.pkl')
+        torch.save(tosave, path)
 
     def load_param(self, path, eval_mode=False):
         checkpoint = torch.load(path)
-        self._model1.load_state_dict(checkpoint['model1_state_disct'])
-        self._model2.load_state_dict(checkpoint['model2_state_disct'])
-        self._optimizer1.load_state_dict(checkpoint['optimizer1_state_dict'])
-        self._optimizer2.load_state_dict(checkpoint['optimizer2_state_dict'])
+        self._model1.load_state_dict(checkpoint["model1_state_disct"])
+        self._model2.load_state_dict(checkpoint["model2_state_disct"])
+        self._optimizer1.load_state_dict(checkpoint["optimizer1_state_dict"])
+        self._optimizer2.load_state_dict(checkpoint["optimizer2_state_dict"])
 
         if eval_mode:
             self._model.eval()
         else:
             self._model.train()
-        return checkpoint['epoch']
+        return checkpoint["epoch"]
 
     def eval_mode(self):
         self._model1._eval()
@@ -519,77 +570,84 @@ class DDQNAgent2018(Agent):
 
 
 def make_agent(
-        model,
-        image_stack,
-        actions,
-        learning_rate,
-        gamma,
-        buffer_capacity,
-        batch_size,
-        device='cpu',
-        clip_grad=False,
-        epsilon_method='linear',
-        epsilon_max=1,
-        epsilon_min=0.1,
-        epsilon_factor=3,
-        epsilon_max_steps=1000,
-        tau=0.1,
-        nb_target_replace=1):
+    model,
+    image_stack,
+    actions,
+    learning_rate,
+    gamma,
+    buffer_capacity,
+    batch_size,
+    device="cpu",
+    clip_grad=False,
+    epsilon_method="linear",
+    epsilon_max=1,
+    epsilon_min=0.1,
+    epsilon_factor=3,
+    epsilon_max_steps=1000,
+    tau=0.1,
+    nb_target_replace=1,
+):
     model = model.lower()
-    if model == 'dqn':
-        return DQNAgent(image_stack,
-                        actions,
-                        learning_rate,
-                        gamma,
-                        buffer_capacity,
-                        batch_size,
-                        device=device,
-                        clip_grad=clip_grad,
-                        epsilon_method=epsilon_method,
-                        epsilon_max=epsilon_max,
-                        epsilon_min=epsilon_min,
-                        epsilon_factor=epsilon_factor,
-                        epsilon_max_steps=epsilon_max_steps,
-                        nb_target_replace=nb_target_replace)
-    elif model == 'ddqn2015':
-        return DDQNAgent2015(image_stack,
-                             actions,
-                             learning_rate,
-                             gamma,
-                             buffer_capacity,
-                             batch_size,
-                             device=device,
-                             clip_grad=clip_grad,
-                             epsilon_method=epsilon_method,
-                             epsilon_max=epsilon_max,
-                             epsilon_min=epsilon_min,
-                             epsilon_factor=epsilon_factor,
-                             epsilon_max_steps=epsilon_max_steps,
-                             tau=tau)
+    if model == "dqn":
+        return DQNAgent(
+            image_stack,
+            actions,
+            learning_rate,
+            gamma,
+            buffer_capacity,
+            batch_size,
+            device=device,
+            clip_grad=clip_grad,
+            epsilon_method=epsilon_method,
+            epsilon_max=epsilon_max,
+            epsilon_min=epsilon_min,
+            epsilon_factor=epsilon_factor,
+            epsilon_max_steps=epsilon_max_steps,
+            nb_target_replace=nb_target_replace,
+        )
+    elif model == "ddqn2015":
+        return DDQNAgent2015(
+            image_stack,
+            actions,
+            learning_rate,
+            gamma,
+            buffer_capacity,
+            batch_size,
+            device=device,
+            clip_grad=clip_grad,
+            epsilon_method=epsilon_method,
+            epsilon_max=epsilon_max,
+            epsilon_min=epsilon_min,
+            epsilon_factor=epsilon_factor,
+            epsilon_max_steps=epsilon_max_steps,
+            tau=tau,
+        )
 
-    elif model == 'ddqn2018':
-        return DDQNAgent2018(image_stack,
-                             actions,
-                             learning_rate,
-                             gamma,
-                             buffer_capacity,
-                             batch_size,
-                             device=device,
-                             clip_grad=clip_grad,
-                             epsilon_method=epsilon_method,
-                             epsilon_max=epsilon_max,
-                             epsilon_min=epsilon_min,
-                             epsilon_factor=epsilon_factor,
-                             epsilon_max_steps=epsilon_max_steps)
+    elif model == "ddqn2018":
+        return DDQNAgent2018(
+            image_stack,
+            actions,
+            learning_rate,
+            gamma,
+            buffer_capacity,
+            batch_size,
+            device=device,
+            clip_grad=clip_grad,
+            epsilon_method=epsilon_method,
+            epsilon_max=epsilon_max,
+            epsilon_min=epsilon_min,
+            epsilon_factor=epsilon_factor,
+            epsilon_max_steps=epsilon_max_steps,
+        )
     else:
-        return NotImplementedError('Model {} not implemented yet'.format(model))
+        return NotImplementedError("Model {} not implemented yet".format(model))
 
 
 if __name__ == "__main__":
     import gym
     from utilities import imgstackRGB2graystack
 
-    env = gym.make('CarRacing-v0')
+    env = gym.make("CarRacing-v0")
     img_stack = 4
     env = gym.wrappers.FrameStack(env, img_stack)
 
@@ -597,11 +655,11 @@ if __name__ == "__main__":
     high_state = env.action_space.high
 
     posible_actions = (
-        [-1, 0, 0],              # Turn Left
-        [1, 0, 0],               # Turn Right
-        [0, 0, 1],              # Full Break
-        [0, 1, 0],              # Accelerate
-        [0, 0, 0],              # Do nothing
+        [-1, 0, 0],  # Turn Left
+        [1, 0, 0],  # Turn Right
+        [0, 0, 1],  # Full Break
+        [0, 1, 0],  # Accelerate
+        [0, 0, 0],  # Do nothing
     )
 
     agent = Agent(img_stack, posible_actions, 0.001, 0.1, 0.5, 1000, 200, 32)

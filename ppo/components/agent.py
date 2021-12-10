@@ -6,16 +6,25 @@ from .uncert_model import make_model
 from utilities import Buffer
 
 
-class Agent():
+class Agent:
     """
     Agent for training
     """
 
     def __init__(
-            self, nb_nets, img_stack, gamma,
-            model="base", max_grad_norm=0.5,
-            clip_param=0.1, ppo_epoch=10, buffer_capacity=2000,
-            batch_size=128, lr=1e-3, device='cpu'):
+        self,
+        nb_nets,
+        img_stack,
+        gamma,
+        model="base",
+        max_grad_norm=0.5,
+        clip_param=0.1,
+        ppo_epoch=10,
+        buffer_capacity=2000,
+        batch_size=128,
+        lr=1e-3,
+        device="cpu",
+    ):
         self.max_grad_norm = max_grad_norm
         self.clip_param = clip_param  # epsilon in clipped loss
         self.ppo_epoch = ppo_epoch
@@ -25,8 +34,16 @@ class Agent():
         self.device = device
 
         self.training_step = 0
-        self._model = make_model(nb_nets, lr, img_stack, gamma,
-                                 batch_size, buffer_capacity, device=device, model=model)
+        self._model = make_model(
+            nb_nets,
+            lr,
+            img_stack,
+            gamma,
+            batch_size,
+            buffer_capacity,
+            device=device,
+            model=model,
+        )
         self.model_name = "base"
 
         self._buffer = Buffer(img_stack, buffer_capacity, device=device)
@@ -49,7 +66,7 @@ class Agent():
             a_logp = a_logp.item()
         return action, a_logp, (epistemic, aleatoric)
 
-    def save(self, epoch, path='param/ppo_net_params.pkl'):
+    def save(self, epoch, path="param/ppo_net_params.pkl"):
         self._model.save(epoch=epoch, path=path)
 
     def load(self, path, eval_mode=False):
@@ -64,5 +81,4 @@ class Agent():
     def update(self):
         self.training_step += 1
 
-        self._model.train(self.ppo_epoch, self.clip_param,
-                          self._buffer.sample())
+        self._model.train(self.ppo_epoch, self.clip_param, self._buffer.sample())
