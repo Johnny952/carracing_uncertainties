@@ -136,10 +136,8 @@ if __name__ == "__main__":
     # Noise parser
     if args.noise:
         add_noise = [float(bound) for bound in args.noise.split(",")]
-        print_arg = f"noisy observation with {args.noise} std bounds"
     else:
         add_noise = None
-        print_arg = ""
 
     # Init Agent and Environment
     print(colored("Initializing agent and environments", "blue"))
@@ -173,9 +171,16 @@ if __name__ == "__main__":
     else:
         wandb.watch(agent._model._model)
 
+    noise_print = "not using noise"
+    if env.use_noise:
+        if env.generate_noise:
+            noise_print = f"using noise with [{env.noise_lower}, {env.noise_upper}] std bounds"
+        else:
+            noise_print = f"using noise with [{env.random_noise}] std"
+
     print(
         colored(
-            f"Evaluate {args.model} during {args.validations} epochs and {print_arg}",
+            f"Testing {args.model} during {args.noise_steps} noise steps and {noise_print}",
             "magenta",
         )
     )
