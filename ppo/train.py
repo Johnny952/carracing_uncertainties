@@ -1,162 +1,15 @@
 import argparse
-import numpy as np
 import torch
 import os
 import wandb
 import json
 import glob
-from tqdm import tqdm
 from termcolor import colored
 
-from utilities import save_uncert, init_uncert_file
-from components import Agent, Env
+from utilities import init_uncert_file
+from components import Agent, Env, Trainer
 
 from pyvirtualdisplay import Display
-
-
-class Trainer:
-    def __init__(
-        self,
-        agent: Agent,
-        env: Env,
-        eval_env: Env,
-        episodes: int,
-        init_ep: int = 0,
-        nb_evaluations: int = 1,
-        eval_interval: int = 10,
-        skip_zoom=None,
-        model_name="base",
-        checkpoint_every=10,
-    ) -> None:
-        self._agent = agent
-        self._env = env
-        self._eval_env = eval_env
-        self._init_ep = init_ep
-        self._nb_episodes = episodes
-        self._nb_evaluations = nb_evaluations
-        self._eval_interval = eval_interval
-        self._skip_zoom = skip_zoom
-        self._model_name = model_name
-        self._checkpoint_every = checkpoint_every
-
-        self._best_score = -100
-        self._eval_nb = 0
-
-    def run(self):
-        running_score = 0
-
-        for i_ep in tqdm(range(self._init_ep, self._nb_episodes)):
-            score = 0
-            steps = 0
-            state = self._env.reset()
-
-            if self._skip_zoom is not None:
-                for _ in range(self._skip_zoom):
-                    state, _, _, _ = self._env.step([0, 0, 0])
-
-            for _ in range(1000):
-                action, a_logp = self._agent.select_action(state)[:2]
-                state_, reward, done, die = self._env.step(
-                    action * np.array([2.0, 1.0, 1.0]) + np.array([-1.0, 0.0, 0.0])
-                )
-                if self._agent.store_transition(
-                    (state, action, a_logp, reward, state_)
-                ):
-                    print("updating")
-                    self._agent.update()
-                score += reward
-                state = state_
-                steps += 1
-
-                if done or die:
-                    break
-            running_score = running_score * 0.99 + score * 0.01
-            wandb.log(
-                {
-                    "Train Episode": i_ep,
-                    "Episode Running Score": float(running_score),
-                    "Episode Score": float(score),
-                    "Episode Steps": float(steps),
-                }
-            )
-
-            if (i_ep + 1) % self._eval_interval == 0:
-                eval_score = self.eval(i_ep)
-
-                if eval_score > self._best_score:
-                    self._agent.save(i_ep, path=f"param/best_{self._model_name}.pkl")
-                    self._best_score = eval_score
-
-            if (i_ep + 1) % self._checkpoint_every == 0:
-                self._agent.save(i_ep, path=f"param/checkpoint_{self._model_name}.pkl")
-
-            if running_score > self._env.reward_threshold:
-                print(
-                    "Solved! Running reward is now {} and the last episode runs to {}!".format(
-                        running_score, score
-                    )
-                )
-                self._agent.save(i_ep, path=f"param/best_{self._model_name}.pkl")
-                break
-
-    def eval(self, episode_nb):
-        # agent.eval_mode()
-        mean_score = 0
-        mean_uncert = np.array([0, 0], dtype=np.float64)
-        mean_steps = 0
-
-        for i_val in range(self._nb_evaluations):
-
-            score = 0
-            steps = 0
-            state = self._env.reset()
-            die = False
-
-            uncert = []
-            while not die:
-                action, _, (epis, aleat) = agent.select_action(state, eval=True)
-                uncert.append(
-                    [epis.view(-1).cpu().numpy()[0], aleat.view(-1).cpu().numpy()[0]]
-                )
-                state_, reward, _, die = env.step(
-                    action * np.array([2.0, 1.0, 1.0]) + np.array([-1.0, 0.0, 0.0])
-                )
-                score += reward
-                state = state_
-                steps += 1
-
-            uncert = np.array(uncert)
-            save_uncert(
-                episode_nb,
-                i_val,
-                score,
-                uncert,
-                file=f"uncertainties/train/train_{self._model_name}.txt",
-            )
-
-            mean_uncert += np.mean(uncert, axis=0) / self._nb_evaluations
-            mean_score += score / self._nb_evaluations
-            mean_steps += steps / self._nb_evaluations
-
-        wandb.log(
-            {
-                "Eval Episode": self._eval_nb,
-                "Eval Mean Score": float(mean_score),
-                "Eval Mean Epist Uncert": float(mean_uncert[0]),
-                "Eval Mean Aleat Uncert": float(mean_uncert[1]),
-                "Eval Mean Steps": float(mean_steps),
-            }
-        )
-
-        self._eval_nb += 1
-        print(
-            "Eval score: {}\tSteps: {}\tUncertainties: {}".format(
-                mean_score, mean_steps, mean_uncert
-            )
-        )
-        # agent.train_mode()
-
-        return mean_score
 
 
 if __name__ == "__main__":
@@ -215,11 +68,11 @@ if __name__ == "__main__":
         "-IS", "--img-stack", type=int, default=4, help="stack N images in a state"
     )
     agent_config.add_argument(
-        "-FC",
-        "--from-checkpoint",
-        action="store_true",
-        help="Whether to use checkpoint file",
-    )
+        '-FC',
+        '--from-checkpoint', 
+        type=str, 
+        default=None, 
+        help='Path to trained model')
 
     # Training Config
     train_config = parser.add_argument_group("Train config")
@@ -335,7 +188,7 @@ if __name__ == "__main__":
     )
     init_epoch = 0
     if args.from_checkpoint:
-        init_epoch = agent.load()
+        init_epoch = agent.load(args.from_checkpoint)
     print(colored("Agent and environments created successfully", "green"))
 
     # Wandb config specification

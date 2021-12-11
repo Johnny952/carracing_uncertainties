@@ -32,15 +32,23 @@ class Env():
         self.use_noise = False
         if noise:
             if noise is list:
-                assert len(noise) > 2
-                self.use_noise = True
-                self.generate_noise = True
-                self.noise_lower, self.noise_upper = noise[0], noise[1]
-                self.random_noise = 0
-            elif noise is float and noise != 0:
-                self.use_noise = True
-                self.generate_noise = False
-                self.random_noise = abs(noise)
+                self.set_noise_range(noise)
+            elif noise is float and noise >= 0:
+                self.set_noise_value(noise)
+    
+    def set_noise_range(self, noise):
+        assert noise is list
+        assert len(noise) > 2
+        self.use_noise = True
+        self.generate_noise = True
+        self.noise_lower, self.noise_upper = noise[0], noise[1]
+        self.random_noise = 0
+    
+    def set_noise_value(self, noise):
+        assert noise >= 0
+        self.use_noise = True
+        self.generate_noise = False
+        self.random_noise = noise
 
     def plot_uncert(self, index, uncertainties, width=56, out_video='render/test.mp4'):
         index = self.validations-1 if index == 0 else index-1
