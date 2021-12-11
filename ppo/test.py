@@ -13,8 +13,6 @@ from utilities import init_uncert_file
 from components import Agent, Env, Trainer
 
 
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Train a PPO agent for the CarRacing-v0",
@@ -41,11 +39,7 @@ if __name__ == "__main__":
         help='Whether to use noise or not, and standard deviation bounds separated by comma (ex. "0,0.5")',
     )
     env_config.add_argument(
-        "-NS",
-        "--noise-steps",
-        type=int,
-        default=25,
-        help="Number of noise steps",
+        "-NS", "--noise-steps", type=int, default=25, help="Number of noise steps",
     )
 
     # Agent Config
@@ -68,12 +62,13 @@ if __name__ == "__main__":
         "-IS", "--img-stack", type=int, default=4, help="stack N images in a state"
     )
     agent_config.add_argument(
-        '-FC',
-        '--from-checkpoint', 
-        type=str, 
+        "-FC",
+        "--from-checkpoint",
+        type=str,
         required=True,
-        # default='param/ppo_net_params_base.pkl', 
-        help='Path to trained model')
+        # default='param/ppo_net_params_base.pkl',
+        help="Path to trained model",
+    )
 
     # Eval Config
     eval_config = parser.add_argument_group("Evaluation config")
@@ -148,9 +143,7 @@ if __name__ == "__main__":
 
     # Init Agent and Environment
     print(colored("Initializing agent and environments", "blue"))
-    agent = Agent(
-        args.nb_nets, args.img_stack, 0, model=args.model, device=device
-    )
+    agent = Agent(args.nb_nets, args.img_stack, 0, model=args.model, device=device)
     env = None
     eval_env = Env(
         img_stack=args.img_stack,
@@ -197,4 +190,5 @@ if __name__ == "__main__":
             nb_evaluations=args.validations,
             model_name=args.model,
         )
-        trainer.eval(0, mode='test')
+        trainer.eval(0, mode="test")
+
