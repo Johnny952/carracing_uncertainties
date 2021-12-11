@@ -30,19 +30,22 @@ class Env():
 
         # Noise in initial observations
         self.use_noise = False
+        self.random_noise = 0
         if noise:
-            if noise is list:
-                self.set_noise_range(noise)
-            elif noise is float and noise >= 0:
+            if type(noise) is list:
+                if len(noise) == 1:
+                    self.set_noise_value(noise[0])
+                elif len(noise) >= 2:
+                    self.set_noise_range(noise)
+            elif type(noise) is float and noise >= 0:
                 self.set_noise_value(noise)
     
     def set_noise_range(self, noise):
-        assert noise is list
-        assert len(noise) > 2
+        assert type(noise) is list
+        assert len(noise) >= 2
         self.use_noise = True
         self.generate_noise = True
         self.noise_lower, self.noise_upper = noise[0], noise[1]
-        self.random_noise = 0
     
     def set_noise_value(self, noise):
         assert noise >= 0
