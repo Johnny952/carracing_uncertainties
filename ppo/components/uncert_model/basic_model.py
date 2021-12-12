@@ -6,11 +6,14 @@ import torch
 from models import Net
 import sys
 import wandb
-sys.path.append('../..')
+
+sys.path.append("../..")
 
 
 class BaseTrainerModel:
-    def __init__(self, nb_nets, lr, img_stack, gamma, batch_size, buffer_capacity, device='cpu'):
+    def __init__(
+        self, nb_nets, lr, img_stack, gamma, batch_size, buffer_capacity, device="cpu"
+    ):
         self.nb_nets = nb_nets
         self.device = device
         self.gamma = gamma
@@ -35,23 +38,34 @@ class BaseTrainerModel:
         for _ in range(epochs):
             sampler = SubsetRandomSampler(range(self.buffer_capacity))
             loss, action_loss, value_loss = self.train_once(
-                self._model, self._optimizer, target_v, adv, old_a_logp, s, a, clip_param, sampler)
+                self._model,
+                self._optimizer,
+                target_v,
+                adv,
+                old_a_logp,
+                s,
+                a,
+                clip_param,
+                sampler,
+            )
 
             self.log_loss(loss, action_loss, value_loss)
             self._nb_update += 1
 
     def log_loss(self, loss, action_loss, value_loss, other_loss=None):
         to_log = {
-            'Update Step': self._nb_update,
-            'Loss': float(loss),
-            'Action Loss': float(action_loss),
-            'Value Loss': float(value_loss),
+            "Update Step": self._nb_update,
+            "Loss": float(loss),
+            "Action Loss": float(action_loss),
+            "Value Loss": float(value_loss),
         }
         if other_loss:
-            to_log['Other Loss'] = float(other_loss)
+            to_log["Other Loss"] = float(other_loss)
         wandb.log(to_log)
 
-    def train_once(self, net, optimizer, target_v, adv, old_a_logp, s, a, clip_param, rand_sampler):
+    def train_once(
+        self, net, optimizer, target_v, adv, old_a_logp, s, a, clip_param, rand_sampler
+    ):
         sampler = BatchSampler(rand_sampler, self.batch_size, False)
         acc_action_loss = 0
         acc_value_loss = 0
@@ -66,11 +80,10 @@ class BaseTrainerModel:
             ratio = torch.exp(a_logp - old_a_logp[index])
 
             surr1 = ratio * adv[index]
-            surr2 = torch.clamp(ratio, 1.0 - clip_param,
-                                1.0 + clip_param) * adv[index]
+            surr2 = torch.clamp(ratio, 1.0 - clip_param, 1.0 + clip_param) * adv[index]
             action_loss = -torch.min(surr1, surr2).mean()
             value_loss = self.get_value_loss(prediction, target_v[index])
-            loss = action_loss + 2. * value_loss
+            loss = action_loss + 2.0 * value_loss
 
             optimizer.zero_grad()
             loss.backward()
@@ -85,26 +98,26 @@ class BaseTrainerModel:
     def get_value_loss(self, prediction, target_v):
         return self._criterion(prediction[1], target_v)
 
-    def save(self, epoch, path='param/ppo_net_params.pkl'):
+    def save(self, epoch, path="param/ppo_net_params.pkl"):
         tosave = {
-            'epoch': epoch,
-            'model_state_dict': self._model.state_dict(),
-            'optimizer_state_dict': self._optimizer.state_dict(),
+            "epoch": epoch,
+            "model_state_dict": self._model.state_dict(),
+            "optimizer_state_dict": self._optimizer.state_dict(),
         }
         torch.save(tosave, path)
 
     def load(self, path, eval_mode=False):
         checkpoint = torch.load(path)
-        self._model.load_state_dict(checkpoint['model_state_dict'])
-        self._optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        self._model.load_state_dict(checkpoint["model_state_dict"])
+        self._optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         if eval_mode:
             self._model.eval()
         else:
             self._model.train()
-        return checkpoint['epoch']
+        return checkpoint["epoch"]
 
     def get_uncert(self, state):
         (alpha, beta), v = self.forward_nograd(state)
         epistemic = torch.Tensor([0])
-        aleatoric = torch.Tensor([0])
+        aleatoric = alpha * beta / ((alpha + beta) ** 2 * (alpha + beta + 1))
         return (alpha, beta), v, (epistemic, aleatoric)

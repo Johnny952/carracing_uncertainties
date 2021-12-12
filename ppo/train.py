@@ -40,7 +40,7 @@ if __name__ == "__main__":
         "-N",
         "--noise",
         type=str,
-        default="0,0.3",
+        default="0,0.1",
         # default=None,
         help='Whether to use noise or not, and standard deviation bounds separated by comma (ex. "0,0.5")',
     )
