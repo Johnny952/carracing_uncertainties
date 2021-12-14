@@ -314,7 +314,7 @@ if __name__ == "__main__":
 
     print(
         colored(
-            f"Training {args.model} during {args.epochs} epochs and {noise_print}",
+            f"Training {args.model} during {args.training_ep} epochs and {noise_print}",
             "magenta",
         )
     )
