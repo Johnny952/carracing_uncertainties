@@ -95,8 +95,8 @@ class Trainer:
                 )
                 break
 
-    def eval(self, episode_nb: int, mode: str='train'):
-        assert mode in ['train', 'test']
+    def eval(self, episode_nb: int, mode: str = "train"):
+        assert mode in ["train", "test"]
         mean_score = 0
         mean_uncert = np.array([0, 0], dtype=np.float64)
         mean_steps = 0

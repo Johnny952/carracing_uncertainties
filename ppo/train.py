@@ -132,7 +132,7 @@ if __name__ == "__main__":
             os.remove(f)
     if not os.path.exists("uncertainties/train"):
         os.makedirs("uncertainties/train")
-    init_uncert_file(file=f"uncertainties/train/train_{args.model}.txt")
+    init_uncert_file(file=f"uncertainties/train/{args.model}.txt")
     print(colored("Data folders created successfully", "green"))
 
     # Virtual display
