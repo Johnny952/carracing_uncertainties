@@ -13,6 +13,11 @@ from components import make_agent, Env, Trainer
 from utilities import init_uncert_file
 
 
+def make_soft_actions(actions: list, factor: float):
+    soft_actions = np.array(actions) * factor
+    return tuple(soft_actions.tolist())
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Train a DQN agent for the CarRacing-v0",
@@ -93,11 +98,8 @@ if __name__ == "__main__":
         "-BS", "--batch-size", type=int, default=16, help="Batch size"
     )
     agent_config.add_argument(
-        '-FC',
-        '--from-checkpoint', 
-        type=str, 
-        default=None, 
-        help='Path to trained model')
+        "-FC", "--from-checkpoint", type=str, default=None, help="Path to trained model"
+    )
 
     # Epsilon Config
     epsilon_config = parser.add_argument_group("Epsilon config")
@@ -162,7 +164,7 @@ if __name__ == "__main__":
     train_config.add_argument(
         "-ER",
         "--eval-render",
-        action='store_true',
+        action="store_true",
         help="Whether to render evaluation or not",
     )
     train_config.add_argument(
@@ -176,39 +178,44 @@ if __name__ == "__main__":
 
     old_settings = np.seterr(all="raise")
 
-    actions = (
+    do_nothing_action = tuple([[0, 0, 0]])
+    full_actions = (
         [-1, 0, 0],  # Turn Left
         [1, 0, 0],  # Turn Right
         [0, 0, 1],  # Full Break
         [0, 1, 0],  # Accelerate
-        [0, 0, 0],  # Do nothing
         [-1, 1, 0],  # Left accelerate
         [1, 1, 0],  # Right accelerate
         [-1, 0, 1],  # Left break
         [1, 0, 1],  # Right break
-        [-0.5, 0, 0],  # Soft left
-        [0.5, 0, 0],  # Soft right
-        [0, 0, 0.5],  # Soft break
-        [0, 0.5, 0],  # Soft accelerate
-        [-0.5, 0.5, 0],  # Soft Left accelerate
-        [0.5, 0.5, 0],  # Soft Right accelerate
-        [-0.5, 0, 0.5],  # Soft Left break
-        [0.5, 0, 0.5],  # Soft Right break
     )
+    actions = (
+        do_nothing_action
+        + full_actions
+        + make_soft_actions(full_actions, 0.25)
+        + make_soft_actions(full_actions, 0.5)
+        + make_soft_actions(full_actions, 0.75)
+    )
+
     # actions = (
-    #         [-1, 1, 0.2],
-    #         [0, 1, 0.2],
-    #         [1, 1, 0.2],
-    #         [-1, 1,   0],
-    #         [0, 1,   0],
-    #         [1, 1,   0],
-    #         [-1, 0, 0.2],
-    #         [0, 0, 0.2],
-    #         [1, 0, 0.2],
-    #         [-1, 0,   0],
-    #         [0, 0,   0],
-    #         [1, 0,   0]
-    #     )
+    #     [-1, 0, 0],  # Turn Left
+    #     [1, 0, 0],  # Turn Right
+    #     [0, 0, 1],  # Full Break
+    #     [0, 1, 0],  # Accelerate
+    #     [0, 0, 0],  # Do nothing
+    #     [-1, 1, 0],  # Left accelerate
+    #     [1, 1, 0],  # Right accelerate
+    #     [-1, 0, 1],  # Left break
+    #     [1, 0, 1],  # Right break
+    #     [-0.5, 0, 0],  # Soft left
+    #     [0.5, 0, 0],  # Soft right
+    #     [0, 0, 0.5],  # Soft break
+    #     [0, 0.5, 0],  # Soft accelerate
+    #     [-0.5, 0.5, 0],  # Soft Left accelerate
+    #     [0.5, 0.5, 0],  # Soft Right accelerate
+    #     [-0.5, 0, 0.5],  # Soft Left break
+    #     [0.5, 0, 0.5],  # Soft Right break
+    # )
 
     print(colored("Initializing data folders", "blue"))
     # Init model checkpoint folder and uncertainties folder
@@ -308,7 +315,9 @@ if __name__ == "__main__":
     noise_print = "not using noise"
     if env.use_noise:
         if env.generate_noise:
-            noise_print = f"using noise with [{env.noise_lower}, {env.noise_upper}] std bounds"
+            noise_print = (
+                f"using noise with [{env.noise_lower}, {env.noise_upper}] std bounds"
+            )
         else:
             noise_print = f"using noise with [{env.random_noise}] std"
 
