@@ -21,7 +21,7 @@ class Agent:
         clip_param=0.1,
         ppo_epoch=10,
         buffer_capacity=2000,
-        batch_size=4,   # 128
+        batch_size=128,   # 128
         lr=1e-3,
         device="cpu",
     ):
