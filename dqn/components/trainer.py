@@ -71,6 +71,8 @@ class Trainer:
                 }
             )
 
+            self._agent.epsilon_step()
+
             if (episode_nb + 1) % self._eval_every == 0:
                 eval_score = self.eval(episode_nb)
                 if eval_score >= self._best_score:

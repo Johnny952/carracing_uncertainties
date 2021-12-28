@@ -128,14 +128,14 @@ if __name__ == "__main__":
         "-EF",
         "--epsilon-factor",
         type=float,
-        default=6,
+        default=7,
         help="Factor parameter of epsilon decay, only used when method is exp or inverse_sigmoid",
     )
     epsilon_config.add_argument(
         "-EMS",
         "--epsilon-max-steps",
         type=int,
-        default=90000,
+        default=3000,
         help="Max Epsilon Steps parameter, when epsilon is close to the minimum",
     )
 
@@ -149,7 +149,7 @@ if __name__ == "__main__":
         help="Number of steps to skip at episode start",
     )
     train_config.add_argument(
-        "-NTS", "--training-ep", type=int, default=2000, help="Number traning episodes"
+        "-NTS", "--training-ep", type=int, default=3000, help="Number traning episodes"
     )
     train_config.add_argument(
         "-EEv", "--eval-every", type=int, default=20, help="Eval every n episodes"
