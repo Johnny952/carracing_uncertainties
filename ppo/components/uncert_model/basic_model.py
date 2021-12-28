@@ -118,6 +118,6 @@ class BaseTrainerModel:
 
     def get_uncert(self, state):
         (alpha, beta), v = self.forward_nograd(state)
-        epistemic = torch.Tensor([0])
-        aleatoric = alpha * beta / ((alpha + beta) ** 2 * (alpha + beta + 1))
+        epistemic = torch.mean(alpha * beta / ((alpha + beta) ** 2 * (alpha + beta + 1)))
+        aleatoric = torch.Tensor([0])
         return (alpha, beta), v, (epistemic, aleatoric)
