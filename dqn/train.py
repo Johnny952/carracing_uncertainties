@@ -79,7 +79,7 @@ if __name__ == "__main__":
         help="Number episodes target network replace, only used when model is dqn",
     )
     agent_config.add_argument(
-        "-LR", "--learning-rate", type=float, default=0.001, help="Learning Rate"
+        "-LR", "--learning-rate", type=float, default=0.0001, help="Learning Rate"
     )
     agent_config.add_argument(
         "-G", "--gamma", type=float, default=0.95, help="Discount factor"
@@ -91,11 +91,11 @@ if __name__ == "__main__":
         "-BC",
         "--buffer-capacity",
         type=int,
-        default=8000,
+        default=5000,
         help="Replay buffer capacity",
     )
     agent_config.add_argument(
-        "-BS", "--batch-size", type=int, default=16, help="Batch size"
+        "-BS", "--batch-size", type=int, default=32, help="Batch size"
     )
     agent_config.add_argument(
         "-FC", "--from-checkpoint", type=str, default=None, help="Path to trained model"
@@ -107,7 +107,7 @@ if __name__ == "__main__":
         "-EM",
         "--epsilon-method",
         type=str,
-        default="exp",
+        default="linear",
         help="Epsilon decay method: constant, linear, exp or inverse_sigmoid",
     )
     epsilon_config.add_argument(
@@ -182,7 +182,7 @@ if __name__ == "__main__":
     full_actions = (
         [-1, 0, 0],  # Turn Left
         [1, 0, 0],  # Turn Right
-        [0, 0, 1],  # Full Break
+        [0, 0, 0.8],  # Full Break
         [0, 1, 0],  # Accelerate
         [-1, 1, 0],  # Left accelerate
         [1, 1, 0],  # Right accelerate
