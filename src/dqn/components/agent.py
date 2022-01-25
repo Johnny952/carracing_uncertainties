@@ -1,14 +1,15 @@
+import imp
 import torch
 import torch.nn as nn
-
-# from torch.utils.data import TensorDataset, DataLoader
-from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 import numpy as np
 from collections import namedtuple
 import wandb
 
-from utilities import ReplayMemory, Epsilon
-from models import Net
+from models.base import Net
+import sys
+sys.path.append('..')
+from utilities.eps_scheduler import Epsilon
+from utilities.replay_buffer import ReplayMemory
 
 
 class Agent:
@@ -194,7 +195,7 @@ class DQNAgent(Agent):
             int: The corresponding action index
         """
         if np.random.rand() > self._epsilon.epsilon() or greedy:
-            # Select action greedily
+            # Select action greefrom models.base import Netdily
             with torch.no_grad():
                 values = self._model(
                     (torch.from_numpy(observation).unsqueeze(dim=0).float()).to(

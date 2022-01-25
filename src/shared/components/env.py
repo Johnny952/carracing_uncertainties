@@ -2,9 +2,8 @@ import imageio
 import numpy as np
 from gym.wrappers import Monitor
 import gym
-import sys
-sys.path.append('..')
-from utils.noise import generate_noise_variance, add_noise
+
+from shared.utils.noise import generate_noise_variance, add_noise
 
 
 class Env():

@@ -6,11 +6,14 @@ import json
 import os
 import glob
 from termcolor import colored
-
 from pyvirtualdisplay import Display
 
-from components import make_agent, Env, Trainer
-from utilities import init_uncert_file
+from components.agent import make_agent
+from components.trainer import Trainer
+import sys
+sys.path.append('..')
+from shared.components.env import Env
+from shared.utils.utils import init_uncert_file
 
 
 def make_soft_actions(actions: list, factor: float):

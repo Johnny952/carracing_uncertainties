@@ -9,8 +9,12 @@ from termcolor import colored
 from tqdm import tqdm
 from pyvirtualdisplay import Display
 
-from components import make_agent, Env, Trainer
-from utilities import init_uncert_file
+from components.agent import make_agent
+from components.trainer import Trainer
+import sys
+sys.path.append('..')
+from shared.components.env import Env
+from shared.utils.utils import init_uncert_file
 
 
 if __name__ == "__main__":
