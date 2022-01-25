@@ -1,14 +1,9 @@
-.ipynb_checkpoints
-.empty
-.vscode
-wandb/
-config.json
 # Render folder
-render/
+*/*/render/
+*/*/wandb/
 # Pretrained networks
-param/
+*/*/param/
 # Uncertainties files
-uncertainties/
+*/*/uncertainties/
 #
-sync/
-images/
+*/*/images/
