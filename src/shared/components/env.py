@@ -1,10 +1,10 @@
 import imageio
-from utilities.noise import generate_noise_variance, add_noise
 import numpy as np
 from gym.wrappers import Monitor
 import gym
 import sys
 sys.path.append('..')
+from utils.noise import generate_noise_variance, add_noise
 
 
 class Env():
@@ -13,9 +13,9 @@ class Env():
     """
 
     def __init__(self, img_stack, action_repeat, seed=0, path_render=None, validations=1, evaluation=False, noise=None):
-        self.render = path_render is not None
+        self.render_path = path_render is not None
         self.evaluation = evaluation
-        if not self.render:
+        if not self.render_path:
             self.env = gym.make('CarRacing-v0', verbose=0)
         else:
             self.validations = validations
@@ -55,7 +55,7 @@ class Env():
 
     def plot_uncert(self, index, uncertainties, width=56, out_video='render/test.mp4'):
         index = self.validations-1 if index == 0 else index-1
-        if self.render and self.idx_val == index:
+        if self.render_path and self.idx_val == index:
             max_unc = np.max(uncertainties, axis=0) + 1e-10
 
             # Append uncertainties to video
@@ -120,7 +120,7 @@ class Env():
         return np.array(self.stack), total_reward, done, die
 
     def render(self, *arg):
-        self.env.render(*arg)
+        return self.env.render(*arg)
 
     @staticmethod
     def rgb2gray(rgb, norm=True):

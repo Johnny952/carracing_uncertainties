@@ -34,7 +34,7 @@ if __name__ == "__main__":
         "-N",
         "--noise",
         type=str,
-        default="0,0.3",
+        default="0,0.1",
         # default=None,
         help='Whether to use noise or not, and standard deviation bounds separated by comma (ex. "0,0.5")',
     )
@@ -172,11 +172,11 @@ if __name__ == "__main__":
         wandb.watch(agent._model._model)
 
     noise_print = "not using noise"
-    if env.use_noise:
-        if env.generate_noise:
-            noise_print = f"using noise with [{env.noise_lower}, {env.noise_upper}] std bounds"
+    if eval_env.use_noise:
+        if eval_env.generate_noise:
+            noise_print = f"using noise with [{eval_env.noise_lower}, {eval_env.noise_upper}] std bounds"
         else:
-            noise_print = f"using noise with [{env.random_noise}] std"
+            noise_print = f"using noise with [{eval_env.random_noise}] std"
 
     print(
         colored(
