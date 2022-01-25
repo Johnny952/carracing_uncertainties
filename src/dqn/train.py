@@ -104,6 +104,9 @@ if __name__ == "__main__":
     agent_config.add_argument(
         "-FC", "--from-checkpoint", type=str, default=None, help="Path to trained model"
     )
+    agent_config.add_argument(
+        "-A", "--actions", type=str, default="0.5", help="Basic actions multipliers as list, for example '0.25,0.5'"
+    )
 
     # Epsilon Config
     epsilon_config = parser.add_argument_group("Epsilon config")
@@ -183,7 +186,7 @@ if __name__ == "__main__":
     run_name = f"{args.model}_{uuid.uuid4()}"
     
     old_settings = np.seterr(all="raise")
-
+    
     do_nothing_action = tuple([[0, 0, 0]])
     full_actions = (
         [-1, 0, 0],  # Turn Left
@@ -195,12 +198,14 @@ if __name__ == "__main__":
         [-1, 0, 1],  # Left break
         [1, 0, 1],  # Right break
     )
+    alter_actions = ()
+    args_actions = [float(i.strip()) for i in args.actions.split(',')]
+    for mult in args_actions:
+        alter_actions += make_soft_actions(full_actions, mult)
     actions = (
         do_nothing_action
         + full_actions
-        # + make_soft_actions(full_actions, 0.25)
-        + make_soft_actions(full_actions, 0.5)
-        # + make_soft_actions(full_actions, 0.75)
+        + alter_actions
     )
 
     print(colored("Initializing data folders", "blue"))
