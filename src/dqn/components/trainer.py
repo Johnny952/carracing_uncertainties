@@ -36,7 +36,7 @@ class Trainer:
     def run(self):
         running_score = 0
 
-        for episode_nb in tqdm(range(self._nb_training_ep)):
+        for episode_nb in tqdm(range(self._nb_training_ep), "Training"):
             ob_t = self._env.reset()
             score = 0
             steps = 0
@@ -103,7 +103,7 @@ class Trainer:
         mean_uncert = np.array([0, 0], dtype=np.float64)
         mean_steps = 0
 
-        for episode in range(self._eval_episodes):
+        for episode in tqdm(range(self._eval_episodes), 'Evaluating'):
             ob_t = self._eval_env.reset()
             score = 0
             steps = 0
@@ -129,9 +129,9 @@ class Trainer:
             mean_score += score / self._eval_episodes
             mean_steps += steps / self._eval_episodes
 
-        print(
-            "Evaluation Mean Steps: %4d | Mean Reward: %4d" % (mean_steps, mean_score)
-        )
+        # print(
+        #     "Evaluation Mean Steps: %4d | Mean Reward: %4d" % (mean_steps, mean_score)
+        # )
         wandb.log(
             {
                 "Eval Episode": self._eval_nb,

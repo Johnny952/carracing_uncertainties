@@ -7,6 +7,7 @@ import os
 import glob
 from termcolor import colored
 from pyvirtualdisplay import Display
+import uuid
 
 import sys
 sys.path.append('..')
@@ -179,6 +180,8 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    run_name = f"{args.model}_{uuid.uuid4()}"
+    
     old_settings = np.seterr(all="raise")
 
     do_nothing_action = tuple([[0, 0, 0]])
@@ -195,30 +198,10 @@ if __name__ == "__main__":
     actions = (
         do_nothing_action
         + full_actions
-        + make_soft_actions(full_actions, 0.25)
+        # + make_soft_actions(full_actions, 0.25)
         + make_soft_actions(full_actions, 0.5)
-        + make_soft_actions(full_actions, 0.75)
+        # + make_soft_actions(full_actions, 0.75)
     )
-
-    # actions = (
-    #     [-1, 0, 0],  # Turn Left
-    #     [1, 0, 0],  # Turn Right
-    #     [0, 0, 1],  # Full Break
-    #     [0, 1, 0],  # Accelerate
-    #     [0, 0, 0],  # Do nothing
-    #     [-1, 1, 0],  # Left accelerate
-    #     [1, 1, 0],  # Right accelerate
-    #     [-1, 0, 1],  # Left break
-    #     [1, 0, 1],  # Right break
-    #     [-0.5, 0, 0],  # Soft left
-    #     [0.5, 0, 0],  # Soft right
-    #     [0, 0, 0.5],  # Soft break
-    #     [0, 0.5, 0],  # Soft accelerate
-    #     [-0.5, 0.5, 0],  # Soft Left accelerate
-    #     [0.5, 0.5, 0],  # Soft Right accelerate
-    #     [-0.5, 0, 0.5],  # Soft Left break
-    #     [0.5, 0, 0.5],  # Soft Right break
-    # )
 
     print(colored("Initializing data folders", "blue"))
     # Init model checkpoint folder and uncertainties folder
@@ -228,15 +211,15 @@ if __name__ == "__main__":
         os.makedirs("uncertainties")
     if not os.path.exists("render"):
         os.makedirs("render")
-    if not os.path.exists(f"render/{args.model}"):
-        os.makedirs(f"render/{args.model}")
+    if not os.path.exists(f"render/{run_name}"):
+        os.makedirs(f"render/{run_name}")
     else:
-        files = glob.glob(f"render/{args.model}/*")
+        files = glob.glob(f"render/{run_name}/*")
         for f in files:
             os.remove(f)
     if not os.path.exists("uncertainties/train"):
         os.makedirs("uncertainties/train")
-    init_uncert_file(file=f"uncertainties/train/{args.model}.txt")
+    init_uncert_file(file=f"uncertainties/train/{run_name}.txt")
     print(colored("Data folders created successfully", "green"))
 
     # Virtual display
@@ -295,7 +278,7 @@ if __name__ == "__main__":
     eval_env = Env(
         img_stack=args.image_stack,
         seed=args.eval_seed,
-        path_render=f"{args.model}" if args.eval_render else None,
+        path_render=f"{run_name}" if args.eval_render else None,
         validations=args.eval_episodes,
         evaluation=True,
         action_repeat=args.action_repeat,
@@ -339,7 +322,7 @@ if __name__ == "__main__":
         eval_episodes=args.eval_episodes,
         eval_every=args.eval_every,
         skip_zoom=args.skip_zoom,
-        model_name=args.model,
+        model_name=run_name,
     )
 
     trainer.run()

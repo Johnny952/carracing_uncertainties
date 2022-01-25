@@ -37,7 +37,7 @@ class Trainer:
     def run(self):
         running_score = 0
 
-        for i_ep in tqdm(range(self._init_ep, self._nb_episodes)):
+        for i_ep in tqdm(range(self._init_ep, self._nb_episodes), 'Training'):
             score = 0
             steps = 0
             state = self._env.reset()
@@ -98,7 +98,7 @@ class Trainer:
         mean_uncert = np.array([0, 0], dtype=np.float64)
         mean_steps = 0
 
-        for i_val in range(self._nb_evaluations):
+        for i_val in tqdm(range(self._nb_evaluations), 'Evaluating'):
 
             score = 0
             steps = 0
@@ -143,11 +143,11 @@ class Trainer:
         )
 
         self._eval_nb += 1
-        print(
-            "Eval score: {}\tSteps: {}\tUncertainties: {}".format(
-                mean_score, mean_steps, mean_uncert
-            )
-        )
+        # print(
+        #     "Eval score: {}\tSteps: {}\tUncertainties: {}".format(
+        #         mean_score, mean_steps, mean_uncert
+        #     )
+        # )
         # self._agent.train_mode()
 
         return mean_score
