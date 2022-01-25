@@ -9,8 +9,12 @@ from pyvirtualdisplay import Display
 import numpy as np
 from tqdm import tqdm
 
-from utilities import init_uncert_file
-from components import Agent, Env, Trainer
+import sys
+sys.path.append('..')
+from shared.utils.utils import init_uncert_file
+from shared.components.env import Env
+from components.agent import Agent
+from components.trainer import Trainer
 
 
 if __name__ == "__main__":

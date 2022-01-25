@@ -6,8 +6,6 @@ from collections import namedtuple
 import wandb
 
 from models.base import Net
-import sys
-sys.path.append('..')
 from utilities.eps_scheduler import Epsilon
 from utilities.replay_buffer import ReplayMemory
 

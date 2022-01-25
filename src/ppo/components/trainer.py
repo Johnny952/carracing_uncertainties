@@ -2,8 +2,9 @@ import numpy as np
 import wandb
 from tqdm import tqdm
 
-from utilities import save_uncert
-from components import Agent, Env
+from shared.utils.utils import save_uncert
+from shared.components.env import Env
+from components.agent import Agent
 
 class Trainer:
     def __init__(

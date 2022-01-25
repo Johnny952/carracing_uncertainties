@@ -1,6 +1,4 @@
-import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 class DropoutModel(nn.Module):
     def __init__(self, img_stack, prob=0.25):

@@ -1,10 +1,8 @@
 import torch
 from torch.distributions import Beta
-import numpy as np
 
-from .uncert_model import make_model
-from utilities import Buffer
-
+from components.uncert_model import make_model
+from utilities.replay_buffer import Buffer
 
 class Agent:
     """

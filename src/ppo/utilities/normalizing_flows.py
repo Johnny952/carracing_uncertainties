@@ -1,5 +1,4 @@
 import torch.nn as nn
-import torch.functional as F
 import torch
 
 ACTIVATION_DERIVATIVES = {

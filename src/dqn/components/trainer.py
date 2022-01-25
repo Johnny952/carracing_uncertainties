@@ -3,8 +3,6 @@ import wandb
 from tqdm import tqdm
 
 from components.agent import Agent
-import sys
-sys.path.append('../..')
 from shared.utils.utils import save_uncert
 from shared.components.env import Env
 

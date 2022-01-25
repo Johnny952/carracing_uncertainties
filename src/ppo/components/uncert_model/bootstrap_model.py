@@ -1,10 +1,9 @@
 import torch.optim as optim
 import torch
-from .basic_model import BaseTrainerModel
-from utilities import gaussian_loss, smooth_l1_loss, GaussianMixture
-from models import BootstrapModel
-import sys
-sys.path.append('..')
+from components.uncert_model.basic_model import BaseTrainerModel
+from utilities.customLoss import gaussian_loss
+from utilities.mixtureDist import GaussianMixture
+from models.bootstrap import BootstrapModel
 
 
 class BootstrapTrainerModel(BaseTrainerModel):

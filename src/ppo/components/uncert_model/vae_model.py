@@ -1,11 +1,9 @@
 from torch import optim
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 import torch
-from .basic_model import BaseTrainerModel
+from components.uncert_model.basic_model import BaseTrainerModel
 from models.vae import VanillaVAE
 import wandb
-import sys
-sys.path.append('..')
 
 
 class VAETrainerModel(BaseTrainerModel):

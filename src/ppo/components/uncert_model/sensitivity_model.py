@@ -1,9 +1,7 @@
 import torch.optim as optim
 import torch
-from .basic_model import BaseTrainerModel
-from models import Sensitivity
-import sys
-sys.path.append('..')
+from components.uncert_model.basic_model import BaseTrainerModel
+from models.sensitivity import Sensitivity
 
 
 class SensitivityTrainerModel(BaseTrainerModel):

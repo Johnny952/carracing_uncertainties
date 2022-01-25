@@ -1,8 +1,5 @@
 import torch
-
-#import matplotlib.pyplot as plt
 import torch.distributions as D
-
 from torch.distributions.mixture_same_family import MixtureSameFamily
 
 class Mixture:

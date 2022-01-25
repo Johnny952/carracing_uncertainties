@@ -2,7 +2,6 @@ import torch.nn as nn
 from torch import Tensor
 import torch
 
-
 # https://github.com/AntixK/PyTorch-VAE
 class VanillaVAE(nn.Module):
 

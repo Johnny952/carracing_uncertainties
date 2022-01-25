@@ -5,12 +5,14 @@ import wandb
 import json
 import glob
 from termcolor import colored
-
-from utilities import init_uncert_file
-from components import Agent, Env, Trainer
-
 from pyvirtualdisplay import Display
 
+import sys
+sys.path.append('..')
+from shared.utils.utils import init_uncert_file
+from shared.components.env import Env
+from components.agent import Agent
+from components.trainer import Trainer
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

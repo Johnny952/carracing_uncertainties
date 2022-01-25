@@ -3,11 +3,8 @@ from torch.distributions import Beta
 import torch.nn.functional as F
 import torch.optim as optim
 import torch
-from models import Net
-import sys
 import wandb
-
-sys.path.append("../..")
+from models.model import Net
 
 
 class BaseTrainerModel:
