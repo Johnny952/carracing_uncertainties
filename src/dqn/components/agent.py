@@ -472,6 +472,7 @@ class DDQNAgent2018(Agent):
         """
         if greedy or np.random.rand() > self._epsilon.epsilon():
             # Select action greedily
+            self._model1.batchnorm_state(activate=False)
             with torch.no_grad():
                 values = self._model1(
                     (torch.from_numpy(observation).unsqueeze(dim=0).float()).to(
@@ -479,6 +480,7 @@ class DDQNAgent2018(Agent):
                     )
                 )
                 _, index = torch.max(values, dim=-1)
+            self._model1.batchnorm_state(activate=True)
         else:
             # Select random action
             index = torch.randint(0, len(self._actions), size=(1,))

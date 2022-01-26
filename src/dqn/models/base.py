@@ -43,6 +43,22 @@ class Net(nn.Module):
             nn.init.xavier_uniform_(m.weight, gain=nn.init.calculate_gain('relu'))
             nn.init.constant_(m.bias, 0.1)
     
+    @staticmethod
+    def deactivate_batchnorm(m):
+        if isinstance(m, nn.BatchNorm2d):
+            m.eval()
+    
+    @staticmethod
+    def activate_batchnorm(m):
+        if isinstance(m, nn.BatchNorm2d):
+            m.train()
+
+    def batchnorm_state(self, activate=True):
+        if activate:
+            self.apply(self.activate_batchnorm)
+        else:
+            self.apply(self.deactivate_batchnorm)
+    
     def forward(self, x):
         x = self.cnn_base(x)
         x = x.view(-1, 256)
