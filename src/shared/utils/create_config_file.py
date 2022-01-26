@@ -21,7 +21,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--path', 
         type=str, 
-        default='../config.json',
+        default='./config.json',
         help='Path to config file')
     args = parser.parse_args()
 

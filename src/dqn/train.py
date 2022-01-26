@@ -102,10 +102,10 @@ if __name__ == "__main__":
         "-BS", "--batch-size", type=int, default=32, help="Batch size"
     )
     agent_config.add_argument(
-        "-FC", "--from-checkpoint", type=str, default=None, help="Path to trained model"
+        "-A", "--actions", type=str, default="0.5", help="Basic actions multipliers as list, for example '0.25,0.5'"
     )
     agent_config.add_argument(
-        "-A", "--actions", type=str, default="0.5", help="Basic actions multipliers as list, for example '0.25,0.5'"
+        "-FC", "--from-checkpoint", type=str, default=None, help="Path to trained model"
     )
 
     # Epsilon Config
@@ -114,7 +114,7 @@ if __name__ == "__main__":
         "-EM",
         "--epsilon-method",
         type=str,
-        default="linear",
+        default="exp",
         help="Epsilon decay method: constant, linear, exp or inverse_sigmoid",
     )
     epsilon_config.add_argument(
@@ -149,14 +149,20 @@ if __name__ == "__main__":
     # Training Config
     train_config = parser.add_argument_group("Train config")
     train_config.add_argument(
+        "-ER",
+        "--eval-render",
+        action="store_true",
+        help="Whether to render evaluation or not",
+    )
+    train_config.add_argument(
+        "-NTS", "--training-ep", type=int, default=3000, help="Number traning episodes"
+    )
+    train_config.add_argument(
         "-SZ",
         "--skip-zoom",
         type=int,
         default=0,
         help="Number of steps to skip at episode start",
-    )
-    train_config.add_argument(
-        "-NTS", "--training-ep", type=int, default=3000, help="Number traning episodes"
     )
     train_config.add_argument(
         "-EEv", "--eval-every", type=int, default=20, help="Eval every n episodes"
@@ -167,12 +173,6 @@ if __name__ == "__main__":
         type=int,
         default=3,
         help="Number of evaluation episodes",
-    )
-    train_config.add_argument(
-        "-ER",
-        "--eval-render",
-        action="store_true",
-        help="Whether to render evaluation or not",
     )
     train_config.add_argument(
         "-D",
