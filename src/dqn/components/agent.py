@@ -1,4 +1,3 @@
-import imp
 import torch
 import torch.nn as nn
 import numpy as np
@@ -330,7 +329,7 @@ class DDQNAgent2015(Agent):
         ):
             target_param.data.copy_(param)
 
-        self._optimizer = torch.optim.Adam(self._model.parameters())
+        self._optimizer = torch.optim.Adam(self._model.parameters(), lr=self._lr)
 
     def select_action(self, observation, greedy=False):
         """Selects a epislon greedy action
@@ -457,8 +456,8 @@ class DDQNAgent2018(Agent):
         self._model1 = Net(img_stack, len(actions)).to(self._device)
         self._model2 = Net(img_stack, len(actions)).to(self._device)
 
-        self._optimizer1 = torch.optim.Adam(self._model1.parameters())
-        self._optimizer2 = torch.optim.Adam(self._model2.parameters())
+        self._optimizer1 = torch.optim.Adam(self._model1.parameters(), lr=self._lr)
+        self._optimizer2 = torch.optim.Adam(self._model2.parameters(), lr=self._lr)
 
     def select_action(self, observation, greedy=False):
         """Selects a epislon greedy action
