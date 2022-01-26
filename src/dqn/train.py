@@ -95,11 +95,11 @@ if __name__ == "__main__":
         "-BC",
         "--buffer-capacity",
         type=int,
-        default=5000,
+        default=10000,
         help="Replay buffer capacity",
     )
     agent_config.add_argument(
-        "-BS", "--batch-size", type=int, default=32, help="Batch size"
+        "-BS", "--batch-size", type=int, default=64, help="Batch size"
     )
     agent_config.add_argument(
         "-A", "--actions", type=str, default="0.5", help="Basic actions multipliers as list, for example '0.25,0.5'"
