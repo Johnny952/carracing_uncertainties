@@ -98,7 +98,7 @@ class Trainer:
         mean_uncert = np.array([0, 0], dtype=np.float64)
         mean_steps = 0
 
-        for i_val in tqdm(range(self._nb_evaluations), 'Evaluating'):
+        for i_val in tqdm(range(self._nb_evaluations), 'Evaluating ep {episode_nb}'):
 
             score = 0
             steps = 0
