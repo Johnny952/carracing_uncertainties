@@ -37,7 +37,7 @@ class Net(nn.Module):
             # nn.ReLU(),
         )  # output shape (256, 1, 1)
         self.v = nn.Sequential(
-            .Linear(256, 100),
+            nn.Linear(256, 100),
             # nn.ReLU(),
             nn.Linear(100, n_actions)
         )
