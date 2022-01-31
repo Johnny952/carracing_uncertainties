@@ -12,33 +12,33 @@ class Net(nn.Module):
         super(Net, self).__init__()
         self.cnn_base = nn.Sequential(  # input shape (4, 96, 96)
             nn.Conv2d(img_stack, 8, kernel_size=4, stride=2),
-            #nn.BatchNorm2d(8),
+            nn.BatchNorm2d(8),
             nn.LeakyReLU(),  # activation
             # nn.ReLU(),
             nn.Conv2d(8, 16, kernel_size=3, stride=2),  # (8, 47, 47)
-            #nn.BatchNorm2d(16),
+            nn.BatchNorm2d(16),
             nn.LeakyReLU(),  # activation
             # nn.ReLU(),
             nn.Conv2d(16, 32, kernel_size=3, stride=2),  # (16, 23, 23)
-            #nn.BatchNorm2d(32),
+            nn.BatchNorm2d(32),
             nn.LeakyReLU(),  # activation
             # nn.ReLU(),
             nn.Conv2d(32, 64, kernel_size=3, stride=2),  # (32, 11, 11)
-            #nn.BatchNorm2d(64),
+            nn.BatchNorm2d(64),
             nn.LeakyReLU(),  # activation
             # nn.ReLU(),
             nn.Conv2d(64, 128, kernel_size=3, stride=1),  # (64, 5, 5)
-            #nn.BatchNorm2d(128),
+            nn.BatchNorm2d(128),
             nn.LeakyReLU(),  # activation
             # nn.ReLU(),
             nn.Conv2d(128, 256, kernel_size=3, stride=1),  # (128, 3, 3)
-            #nn.BatchNorm2d(256),
+            nn.BatchNorm2d(256),
             nn.LeakyReLU(),  # activation
             # nn.ReLU(),
         )  # output shape (256, 1, 1)
         self.v = nn.Sequential(
             nn.Linear(256, 100),
-            # nn.ReLU(),
+            nn.ReLU(),
             nn.Linear(100, n_actions)
         )
         self.apply(self._weights_init)
