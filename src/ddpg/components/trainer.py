@@ -12,15 +12,19 @@ class Trainer:
         env: Env,
         eval_env: Env,
         agent: Agent,
+        noise,
         nb_training_ep: int,
         eval_episodes: int = 3,
         eval_every: int = 10,
         skip_zoom=None,
         checkpoint_every: int = 10,
+        model_name='ddpg',
     ) -> None:
         self._env = env
         self._eval_env = eval_env
         self._agent = agent
+        self._model_name = model_name
+        self._noise = noise
         self._nb_training_ep = nb_training_ep
         self._eval_episodes = eval_episodes
         self._eval_every = eval_every
@@ -34,6 +38,7 @@ class Trainer:
         running_score = 0
 
         for episode_nb in tqdm(range(self._nb_training_ep), "Training"):
+            self._noise.reset()
             ob_t = self._env.reset()
             score = 0
             steps = 0
@@ -43,10 +48,10 @@ class Trainer:
                     ob_t, _, _, _ = self._env.step([0, 0, 0])
 
             for _ in range(1000):
-                action, action_idx = self._agent.select_action(ob_t)
+                action = self._agent.select_action(ob_t, self._noise)
                 ob_t1, reward, done, die = self._env.step(action)
                 if self._agent.store_transition(
-                    ob_t, action_idx, ob_t1, reward, (done or die)
+                    ob_t, action, ob_t1, reward, (done or die)
                 ):
                     self._agent.update()
 
@@ -64,11 +69,8 @@ class Trainer:
                     "Episode Running Score": float(running_score),
                     "Episode Score": float(score),
                     "Episode Steps": float(steps),
-                    "Epsilon": self._agent.epsilon(),
                 }
             )
-
-            self._agent.epsilon_step()
 
             if (episode_nb + 1) % self._eval_every == 0:
                 eval_score = self.eval(episode_nb)
@@ -93,6 +95,9 @@ class Trainer:
                     episode_nb, path=f"param/best_{self._model_name}.pkl"
                 )
                 break
+        
+        self._env.close()
+        self._eval_env.close()
 
     def eval(self, episode_nb: int, mode: str = "train"):
         assert mode in ["train", "test"]
@@ -100,14 +105,14 @@ class Trainer:
         mean_uncert = np.array([0, 0], dtype=np.float64)
         mean_steps = 0
 
-        for episode in tqdm(range(self._eval_episodes), 'Evaluating ep {episode_nb}'):
+        for episode in tqdm(range(self._eval_episodes), f'Evaluating ep {episode_nb}'):
             ob_t = self._eval_env.reset()
             score = 0
             steps = 0
             die = False
 
             while not die:
-                action, _ = self._agent.select_action(ob_t, greedy=True)
+                action = self._agent.select_action(ob_t)
                 ob_t1, reward, _, die = self._eval_env.step(action)
                 ob_t = ob_t1
                 score += reward

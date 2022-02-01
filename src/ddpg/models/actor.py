@@ -35,5 +35,4 @@ class Actor(nn.Module):
     def forward(self, x):
         x = self.cnn_base(x)
         x = x.view(-1, 256)
-        x = self.fc(x)                      # (B, 3)
-        return 
+        return self.fc(x)

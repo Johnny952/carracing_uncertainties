@@ -39,6 +39,9 @@ class Env():
             elif type(noise) is float and noise >= 0:
                 self.set_noise_value(noise)
     
+    def close(self):
+        self.env.close()
+    
     def set_noise_range(self, noise):
         assert type(noise) is list
         assert len(noise) >= 2

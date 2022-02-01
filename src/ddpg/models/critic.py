@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch
 
 class Critic(nn.Module):
-    def __init__(self, img_stack, target_action_dim=256):
+    def __init__(self, img_stack, action_dim, target_action_dim=256):
         super(Critic, self).__init__()
         self.cnn_base = nn.Sequential(  # input shape (4, 96, 96)
             nn.Conv2d(img_stack, 8, kernel_size=4, stride=2),
@@ -24,7 +24,7 @@ class Critic(nn.Module):
             nn.Linear(100, 1),
             )
         self.action_layer = nn.Sequential(
-            nn.Linear(1, target_action_dim),
+            nn.Linear(action_dim, target_action_dim),
             nn.ReLU(),
         )
         

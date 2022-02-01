@@ -4,7 +4,7 @@ import os
 import torch
 from collections import namedtuple
 import numpy as np
-
+import wandb
 import torch.nn.functional as F
 from torch.optim import Adam
 
@@ -39,7 +39,8 @@ class Agent(object):
         device='cpu',
         actor_lr=1e-4,
         critic_lr=1e-3,
-        critic_weight_decay=1e-2
+        critic_weight_decay=1e-2,
+        action_dim=3,
     ):
         """
         Deep Deterministic Policy Gradient
@@ -65,12 +66,12 @@ class Agent(object):
         self._buffer = ReplayMemory(buffer_capacity, batch_size, self._Transition)
 
         # Define the actor
-        self.actor = Actor(img_stack, output_dim=self.action_space).to(device)
-        self.actor_target = Actor(img_stack, output_dim=self.action_space).to(device)
+        self.actor = Actor(img_stack, output_dim=action_dim).to(device)
+        self.actor_target = Actor(img_stack, output_dim=action_dim).to(device)
 
         # Define the critic
-        self.critic = Critic(img_stack).to(device)
-        self.critic_target = Critic(img_stack).to(device)
+        self.critic = Critic(img_stack, action_dim).to(device)
+        self.critic_target = Critic(img_stack, action_dim).to(device)
 
         # Define the optimizers for both networks
         self.actor_optimizer = Adam(self.actor.parameters(),
@@ -94,11 +95,12 @@ class Agent(object):
                             Used to evaluate the action.
             action_noise:   If not None, the noise to apply on the evaluated action
         """
-        x = state.to(self.device)
+        x = torch.from_numpy(state).unsqueeze(dim=0).float().to(self.device)
 
         # Get the continous action value to perform in the env
         # self.actor.eval()  # Sets the actor in evaluation mode
-        mu = self.actor(x)
+        with torch.no_grad():
+            mu = self.actor(x)
         # self.actor.train()  # Sets the actor in training mode
         mu = mu.data
 
@@ -108,11 +110,11 @@ class Agent(object):
             mu += noise
 
         # Clip the output according to the action space of the env
-        mu = mu.clamp(self.action_space[0], self.action_space[0])
+        mu = mu.clamp(self.action_space[0], self.action_space[1])
 
-        return mu
+        return mu.cpu().squeeze(dim=0).numpy()
 
-    def update(self, batch):
+    def update(self):
         """
         Updates the parameters/networks of the agent according to the given batch.
         This means we ...
@@ -124,7 +126,7 @@ class Agent(object):
             batch:  Batch to perform the training of the parameters
         """
         # Get tensors from the batch
-        state_batch, action_batch, next_state_batch, reward_batch, done_batch = self.unpack(batch)
+        state_batch, action_batch, next_state_batch, reward_batch, done_batch = self.unpack(self._buffer.sample())
 
         # Get the actions and the state values to compute the targets
         next_action_batch = self.actor_target(next_state_batch)
@@ -155,18 +157,28 @@ class Agent(object):
         soft_update(self.actor_target, self.actor, self.tau)
         soft_update(self.critic_target, self.critic, self.tau)
 
+        self.log_loss(value_loss.item(), policy_loss.item())
+        self._nb_update += 1
+
         return value_loss.item(), policy_loss.item()
+    
+    def log_loss(self, value_loss, policy_loss):
+        wandb.log({
+            "Update Step": self._nb_update,
+            "Value Loss": float(value_loss),
+            "Policy Loss": float(policy_loss),
+        })
 
     def unpack(self, batch):
-        states = torch.cat(batch.state).float().to(self._device)
-        actions = torch.cat(batch.action).long().to(self._device)
-        next_states = torch.cat(batch.next_state).float().to(self._device)
-        rewards = torch.cat(batch.reward).to(self._device)
-        dones = torch.cat(batch.done).to(self._device)
+        states = torch.cat(batch.state).float().to(self.device)
+        actions = torch.cat(batch.action).float().to(self.device)
+        next_states = torch.cat(batch.next_state).float().to(self.device)
+        rewards = torch.cat(batch.reward).to(self.device)
+        dones = torch.cat(batch.done).to(self.device)
 
         return states, actions, next_states, rewards, dones
 
-    def save_checkpoint(self, last_timestep, replay_buffer, path="param/ppo_net_param.pkl"):
+    def save_param(self, last_timestep, path="param/ppo_net_param.pkl"):
         """
         Saving the networks and all parameters to a file in 'checkpoint_dir'
         Arguments:
@@ -182,12 +194,12 @@ class Agent(object):
             'critic_target': self.critic_target.state_dict(),
             'actor_optimizer': self.actor_optimizer.state_dict(),
             'critic_optimizer': self.critic_optimizer.state_dict(),
-            'replay_buffer': replay_buffer,
+            # 'replay_buffer': self._buffer,
         }
         logger.info('Saving model at timestep {}...'.format(last_timestep))
         torch.save(checkpoint, path)
         gc.collect()
-        logger.info('Saved model at timestep {} to {}'.format(last_timestep, self.checkpoint_dir))
+        logger.info('Saved model at timestep {} to {}'.format(last_timestep, path))
 
     def load_checkpoint(self, checkpoint_path):
         """
@@ -208,11 +220,11 @@ class Agent(object):
             self.critic_target.load_state_dict(checkpoint['critic_target'])
             self.actor_optimizer.load_state_dict(checkpoint['actor_optimizer'])
             self.critic_optimizer.load_state_dict(checkpoint['critic_optimizer'])
-            replay_buffer = checkpoint['replay_buffer']
+            # self._buffer = checkpoint['replay_buffer']
 
             gc.collect()
             logger.info('Loaded model at timestep {} from {}'.format(start_timestep, checkpoint_path))
-            return start_timestep, replay_buffer
+            return start_timestep
         else:
             raise OSError('Checkpoint not found')
 
@@ -246,7 +258,7 @@ class Agent(object):
         """
         self._buffer.push(
             torch.from_numpy(np.array(state, dtype=np.float32)).unsqueeze(dim=0),
-            action.unsqueeze(dim=0),
+            torch.from_numpy(np.array(action, dtype=np.float32)).unsqueeze(dim=0),
             torch.from_numpy(np.array(next_state, dtype=np.float32)).unsqueeze(dim=0),
             torch.Tensor([reward]),
             torch.Tensor([done]),
