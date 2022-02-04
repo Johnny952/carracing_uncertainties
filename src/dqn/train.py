@@ -83,7 +83,7 @@ if __name__ == "__main__":
         help="Number episodes target network replace, only used when model is dqn",
     )
     agent_config.add_argument(
-        "-LR", "--learning-rate", type=float, default=0.0001, help="Learning Rate"
+        "-LR", "--learning-rate", type=float, default=0.001, help="Learning Rate"
     )
     agent_config.add_argument(
         "-G", "--gamma", type=float, default=0.95, help="Discount factor"
@@ -95,7 +95,7 @@ if __name__ == "__main__":
         "-BC",
         "--buffer-capacity",
         type=int,
-        default=10000,
+        default=1000000,
         help="Replay buffer capacity",
     )
     agent_config.add_argument(
@@ -114,7 +114,7 @@ if __name__ == "__main__":
         "-EM",
         "--epsilon-method",
         type=str,
-        default="exp",
+        default="linear",
         help="Epsilon decay method: constant, linear, exp or inverse_sigmoid",
     )
     epsilon_config.add_argument(
@@ -142,7 +142,7 @@ if __name__ == "__main__":
         "-EMS",
         "--epsilon-max-steps",
         type=int,
-        default=3000,
+        default=1500,
         help="Max Epsilon Steps parameter, when epsilon is close to the minimum",
     )
 
