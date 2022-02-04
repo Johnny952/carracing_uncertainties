@@ -10,7 +10,6 @@ import uuid
 
 import sys
 sys.path.append('..')
-from shared.components.env import Env
 from shared.utils.utils import init_uncert_file
 from components.agent import Agent
 from components.trainer import Trainer

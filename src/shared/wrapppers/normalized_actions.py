@@ -1,17 +1,19 @@
 from shared.components.env import Env
+import copy
 
 class NormalizedActionsEnv(Env):
 
     def action(self, action):
+        clone_action = copy.deepcopy(action)
         # Steer, throttle, break in range [-1, 1]
-        action[1:] = 0.5 * action[1:] + 0.5
+        clone_action[1:] = 0.5 * clone_action[1:] + 0.5
         # Steer [-1, 1], throttle [0, 1], break [0, 1]
-        return action
+        return clone_action
 
     def reverse_action(self, action):
-        action[1:] = 2 * (action[1:] - 0.5)
-        return action
+        clone_action = copy.deepcopy(action)
+        clone_action[1:] = 2 * (clone_action[1:] - 0.5)
+        return clone_action
 
     def step(self, action):
-        action = self.action(action)
-        return super().step(action)
+        return super().step(self.action(action))
