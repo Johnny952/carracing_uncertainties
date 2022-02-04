@@ -13,7 +13,7 @@ import sys
 sys.path.append('..')
 from shared.components.env import Env
 from shared.utils.utils import init_uncert_file
-from components.agent import make_agent
+from components.agent import Agent
 from components.trainer import Trainer
 
 
@@ -61,27 +61,6 @@ if __name__ == "__main__":
 
     # Agent Config
     agent_config = parser.add_argument_group("Agent config")
-    agent_config.add_argument(
-        "-M",
-        "--model",
-        type=str,
-        default="ddqn2018",
-        help="Which RL model use: dqn, ddqn2015 or ddqn2018",
-    )
-    agent_config.add_argument(
-        "-T",
-        "--tau",
-        type=float,
-        default=0.1,
-        help="DDQN Tau parameter, only used when model is ddqn2015",
-    )
-    agent_config.add_argument(
-        "-NTR",
-        "--nb-target-replace",
-        type=int,
-        default=5,
-        help="Number episodes target network replace, only used when model is dqn",
-    )
     agent_config.add_argument(
         "-LR", "--learning-rate", type=float, default=0.001, help="Learning Rate"
     )
@@ -182,8 +161,8 @@ if __name__ == "__main__":
         help='Which device use: "cpu" or "cuda", "auto" for autodetect',
     )
     args = parser.parse_args()
-
-    run_name = f"{args.model}_{uuid.uuid4()}"
+    
+    run_name = f"ddqn_{uuid.uuid4()}"
     
     old_settings = np.seterr(all="raise")
     
@@ -256,8 +235,7 @@ if __name__ == "__main__":
 
     # Init Agent and Environment
     print(colored("Initializing agent and environments", "blue"))
-    agent = make_agent(
-        args.model,
+    agent = Agent(
         args.image_stack,
         actions,
         args.learning_rate,
@@ -271,8 +249,6 @@ if __name__ == "__main__":
         epsilon_min=args.epsilon_min,
         epsilon_factor=args.epsilon_factor,
         epsilon_max_steps=args.epsilon_max_steps,
-        tau=args.tau,
-        nb_target_replace=args.nb_target_replace,
     )
     env = Env(
         img_stack=args.image_stack,
@@ -298,10 +274,7 @@ if __name__ == "__main__":
     config = wandb.config
     config.args = args
 
-    if args.model.lower() in ["dqn", "ddqn2015"]:
-        wandb.watch(agent._model)
-    elif args.model.lower() in ["ddqn2018"]:
-        wandb.watch(agent._model1)
+    wandb.watch(agent._model1)
 
     noise_print = "not using noise"
     if env.use_noise:
@@ -314,7 +287,7 @@ if __name__ == "__main__":
 
     print(
         colored(
-            f"Training {args.model} during {args.training_ep} epochs and {noise_print}",
+            f"Training ddqn during {args.training_ep} epochs and {noise_print}",
             "magenta",
         )
     )
