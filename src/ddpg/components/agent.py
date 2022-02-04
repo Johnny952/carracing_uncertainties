@@ -35,7 +35,7 @@ class Agent(object):
         img_stack,
         buffer_capacity,
         batch_size,
-        action_space=[-1, 1],
+        action_space=[[-1, 1], [0, 1]],
         device='cpu',
         actor_lr=1e-4,
         critic_lr=1e-3,
@@ -66,8 +66,8 @@ class Agent(object):
         self._buffer = ReplayMemory(buffer_capacity, batch_size, self._Transition)
 
         # Define the actor
-        self.actor = Actor(img_stack, output_dim=action_dim).to(device)
-        self.actor_target = Actor(img_stack, output_dim=action_dim).to(device)
+        self.actor = Actor(img_stack).to(device)
+        self.actor_target = Actor(img_stack).to(device)
 
         # Define the critic
         self.critic = Critic(img_stack, action_dim).to(device)
@@ -87,7 +87,7 @@ class Agent(object):
 
         self._nb_update = 0
 
-    def select_action(self, state, action_noise=None):
+    def select_action(self, state, steer_noise=None, acc_noise=None):
         """
         Evaluates the action to perform in a given state
         Arguments:
@@ -105,12 +105,17 @@ class Agent(object):
         mu = mu.data
 
         # During training we add noise for exploration
-        if action_noise is not None:
-            noise = torch.Tensor(action_noise.noise()).to(self.device)
-            mu += noise
+        if steer_noise is not None:
+            noise = torch.Tensor(steer_noise.noise()).to(self.device)
+            mu[:, 0] += noise
+            # Clip the output according to the action space of the env
+            mu[:, 0] = mu[:, 0].clamp(self.action_space[0][0], self.action_space[0][1])
 
-        # Clip the output according to the action space of the env
-        mu = mu.clamp(self.action_space[0], self.action_space[1])
+        if acc_noise is not None:
+            noise = torch.Tensor(acc_noise.noise()).to(self.device)
+            mu[:, 1:] += noise
+            # Clip the output according to the action space of the env
+            mu[:, 1:] = mu[:, 1:].clamp(self.action_space[1][0], self.action_space[1][1])
 
         return mu.cpu().squeeze(dim=0).numpy()
 

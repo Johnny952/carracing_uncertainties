@@ -14,7 +14,7 @@ from shared.utils.utils import init_uncert_file
 from components.agent import Agent
 from components.trainer import Trainer
 from utilities.noise import OUNoise
-from shared.wrapppers.normalized_actions import NormalizedActionsEnv
+from shared.components.env import Env
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -191,7 +191,8 @@ if __name__ == "__main__":
     # Init Agent and Environment
     print(colored("Initializing agent and environments", "blue"))
     action_dim = 3
-    noise = OUNoise(action_dim)
+    steer_noise = OUNoise(1, sigma=6)
+    acc_noise = OUNoise(2, sigma=3)
     agent = Agent(
         args.gamma,
         args.tau,
@@ -204,13 +205,13 @@ if __name__ == "__main__":
         critic_weight_decay=args.critic_wd,
         action_dim=action_dim,
     )
-    env = NormalizedActionsEnv(
+    env = Env(
         img_stack=args.image_stack,
         seed=args.train_seed,
         action_repeat=args.action_repeat,
         noise=add_noise,
     )
-    eval_env = NormalizedActionsEnv(
+    eval_env = Env(
         img_stack=args.image_stack,
         seed=args.eval_seed,
         path_render=f"{run_name}" if args.eval_render else None,
@@ -250,7 +251,8 @@ if __name__ == "__main__":
         env,
         eval_env,
         agent,
-        noise,
+        steer_noise,
+        acc_noise,
         args.training_ep,
         eval_episodes=args.eval_episodes,
         eval_every=args.eval_every,

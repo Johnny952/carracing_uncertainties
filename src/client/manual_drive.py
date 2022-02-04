@@ -8,10 +8,10 @@ from shared.components.env import Env
 from shared.wrapppers.normalized_actions import NormalizedActionsEnv
 
 TURN_VALUE = 0.5
-ACCELERATE_VALUES = [-1, 1]
-#ACCELERATE_VALUES = [0, 1]
-BRAKE_VALUES = [-1, -0.6]
-#BRAKE_VALUES = [0, 0.2]
+#ACCELERATE_VALUES = [-1, 1]
+ACCELERATE_VALUES = [0, 1]
+#BRAKE_VALUES = [-1, -0.6]
+BRAKE_VALUES = [0, 0.2]
 def key_press(k, mod):
     global restart
     if k == 0xff0d: restart = True
@@ -48,8 +48,8 @@ if __name__ == "__main__":
         "terminal" : [],
     }
 
-    env = NormalizedActionsEnv(4, 1)
-    #env = Env(4, 1)
+    #env = NormalizedActionsEnv(4, 1)
+    env = Env(4, 1)
 
     env.reset()
     env.env.viewer.window.on_key_press = key_press

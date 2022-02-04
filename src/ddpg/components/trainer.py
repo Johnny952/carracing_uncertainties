@@ -12,7 +12,8 @@ class Trainer:
         env: Env,
         eval_env: Env,
         agent: Agent,
-        noise,
+        steer_noise,
+        acc_noise,
         nb_training_ep: int,
         eval_episodes: int = 3,
         eval_every: int = 10,
@@ -24,7 +25,8 @@ class Trainer:
         self._eval_env = eval_env
         self._agent = agent
         self._model_name = model_name
-        self._noise = noise
+        self._steer_noise = steer_noise
+        self._acc_noise = acc_noise
         self._nb_training_ep = nb_training_ep
         self._eval_episodes = eval_episodes
         self._eval_every = eval_every
@@ -38,7 +40,8 @@ class Trainer:
         running_score = 0
 
         for episode_nb in tqdm(range(self._nb_training_ep), "Training"):
-            self._noise.reset()
+            self._steer_noise.reset()
+            self._acc_noise.reset()
             ob_t = self._env.reset()
             score = 0
             steps = 0
@@ -48,7 +51,7 @@ class Trainer:
                     ob_t, _, _, _ = self._env.step([0, 0, 0])
 
             for _ in range(1000):
-                action = self._agent.select_action(ob_t, self._noise)
+                action = self._agent.select_action(ob_t, self._steer_noise, self._acc_noise)
                 ob_t1, reward, done, die = self._env.step(action)
                 if self._agent.store_transition(
                     ob_t, action, ob_t1, reward, (done or die)

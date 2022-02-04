@@ -1,6 +1,7 @@
 import numpy as np
 from math import sqrt
 
+# TODO: Simple linear or exp standar deviation decay of white noise
 
 # from https://github.com/songrotek/DDPG/blob/master/ou_noise.py
 # and adapted to be synchronous with https://github.com/openai/baselines/blob/master/baselines/ddpg/noise.py
