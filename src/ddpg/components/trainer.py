@@ -5,6 +5,7 @@ from tqdm import tqdm
 from components.agent import Agent
 from shared.utils.utils import save_uncert
 from shared.components.env import Env
+from src.ddpg.utilities.noise import BaseNoise
 
 class Trainer:
     def __init__(
@@ -63,16 +64,19 @@ class Trainer:
                 ):
                     self._agent.update()
 
-                wandb.log(
-                    {
-                        "Instant Step": self._global_step,
-                        "Instant Score": float(reward),
-                        "Instant Green Reward": float(info["green_reward"]),
-                        "Instant Base Reward": float(info["base_reward"]),
-                        "Instant Mean Speed": float(info["speed"]),
-                        "Instant Noise": float(info["noise"]),
-                    }
-                )
+                to_log = {
+                    "Instant Step": self._global_step,
+                    "Instant Score": float(reward),
+                    "Instant Green Reward": float(info["green_reward"]),
+                    "Instant Base Reward": float(info["base_reward"]),
+                    "Instant Mean Speed": float(info["speed"]),
+                    "Instant Noise": float(info["noise"]),
+                }
+                if isinstance(self._steer_noise, BaseNoise):
+                    to_log["Instant Steer Noise std"] = self._steer_noise.std
+                if isinstance(self._acc_noise, BaseNoise):
+                    to_log["Instant Acc Noise std"] = self._acc_noise.std
+                wandb.log(to_log)
 
                 score += reward
                 rewards.append(reward)

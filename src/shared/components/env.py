@@ -11,7 +11,7 @@ class Env():
     Environment wrapper for CarRacing 
     """
 
-    def __init__(self, img_stack, action_repeat, seed=0, path_render=None, validations=1, evaluation=False, noise=None, green_reward=0.05):
+    def __init__(self, img_stack, action_repeat, seed=0, path_render=None, validations=1, evaluation=False, noise=None, green_reward=0.05, done_reward=0):
         self.render_path = path_render is not None
         self.evaluation = evaluation
         if not self.render_path:
@@ -26,6 +26,7 @@ class Env():
         self.img_stack = img_stack
         self.action_repeat = action_repeat
         self.green_reward = green_reward
+        self.done_reward = done_reward
         #self.env._max_episode_steps = your_value
 
         # Noise in initial observations
@@ -121,7 +122,10 @@ class Env():
             total_steps += 1
             green_rewards.append(green_reward)
             # if no reward recently, end the episode
-            done = True if self.av_r(reward) <= -0.1 else False
+            done = False
+            if self.av_r(reward) <= -0.1:
+                reward += self.done_reward
+                done = True
             if done or die:
                 break
         

@@ -13,7 +13,7 @@ sys.path.append('..')
 from shared.utils.utils import init_uncert_file
 from components.agent import Agent
 from components.trainer import Trainer
-from utilities.noise import OUNoise
+from utilities.noise import OUNoise, BaseNoise
 from shared.components.env import Env
 
 if __name__ == "__main__":
@@ -58,6 +58,13 @@ if __name__ == "__main__":
         type=float,
         default=0.05,
         help="Penalization for observation with green color",
+    )
+    env_config.add_argument(
+        "-DR",
+        "--done-reward",
+        type=float,
+        default=0,
+        help="Penalization for ending episode because of low reward",
     )
 
     # Agent Config
@@ -198,8 +205,10 @@ if __name__ == "__main__":
     # Init Agent and Environment
     print(colored("Initializing agent and environments", "blue"))
     action_dim = 3
-    steer_noise = OUNoise(1, sigma=6)
-    acc_noise = OUNoise(2, sigma=3)
+    steer_noise = BaseNoise(1, 40*args.training_ep//2, max_=0.6, min_=0.01)
+    acc_noise = BaseNoise(2, 40*args.training_ep//2, max_=0.3, min_=0.01)
+    # steer_noise = OUNoise(1, sigma=6)
+    # acc_noise = OUNoise(2, sigma=3)
     agent = Agent(
         args.gamma,
         args.tau,
@@ -218,6 +227,7 @@ if __name__ == "__main__":
         action_repeat=args.action_repeat,
         noise=add_noise,
         green_reward=args.green_reward,
+        done_reward=args.done_reward,
     )
     eval_env = Env(
         img_stack=args.image_stack,
@@ -226,7 +236,8 @@ if __name__ == "__main__":
         validations=args.eval_episodes,
         evaluation=True,
         action_repeat=args.action_repeat,
-        green_reward=args.green_reward,
+        # green_reward=args.green_reward,
+        # done_reward=args.done_reward,
     )
     init_epoch = 0
     if args.from_checkpoint:

@@ -2,6 +2,62 @@ import numpy as np
 from math import sqrt
 
 # TODO: Simple linear or exp standar deviation decay of white noise
+class BaseNoise:
+    def __init__(self, action_dimension, max_steps, method='linear', max_=1.0, min_=0.1, factor=3) -> None:
+        method = method.lower()
+        if method == "constant":
+            self._get_noise = self.constant
+        elif method == "linear":
+            self._get_noise = self.linear
+        elif method == "exp":
+            self._get_noise = self.exp
+        elif method == "inverse_sigmoid":
+            self._get_noise = self.inverse_sigmoid
+        else:
+            raise NotImplementedError(
+                "method must be constant, linear, exp, or inverse_sigmoid"
+            )
+
+        self.action_dimension = action_dimension
+        self._max_steps = max_steps
+        self._max = max_
+        self._min = min_
+        self._factor = factor
+
+        self.reset()
+
+    def reset(self):
+        self._step = 0
+
+    @property
+    def std(self):
+        self._step += 1
+        return self._get_noise(self._step)
+    
+    def constant(self, step):
+        if step >= self._max_steps:
+            return self._min
+        return self._max
+
+    def linear(self, step):
+        return max(
+            self._min,
+            self._max
+            - (self._max - self._min) * step / self._max_steps,
+        )
+
+    def exp(self, step):
+        return self._min + (self._max - self._min) * np.exp(
+            -self._factor * step / self._max_steps
+        )
+
+    def inverse_sigmoid(self, step):
+        return self._min + (self._max - self._min) * (1 - 1 / (1 + np.exp(-self._factor / self._max_steps * (step - self._max_steps/2))))
+    
+    def noise(self):
+        self._step += 1
+        random = np.random.normal(loc=0, scale=self._get_noise(self._step))
+        return np.ones(self.action_dimension) * random
 
 # from https://github.com/songrotek/DDPG/blob/master/ou_noise.py
 # and adapted to be synchronous with https://github.com/openai/baselines/blob/master/baselines/ddpg/noise.py
