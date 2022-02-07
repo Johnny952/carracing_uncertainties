@@ -434,15 +434,19 @@ def plotly_test(
 if __name__ == "__main__":
     train_paths = [
         "uncertainties/train/base.txt",
-        "uncertainties/train/sens.txt",
-        "uncertainties/train/drop.txt",
-        "uncertainties/train/custom.txt",
+        "uncertainties/train/bnn.txt",
+        "uncertainties/train/bootstrap.txt",
+        "uncertainties/train/dropout.txt",
+        "uncertainties/train/sensitivity.txt",
+        "uncertainties/train/vae.txt",
     ]
     names = [
         "Base",
-        "Sensitivity",
+        "Bayesian NN",
+        "Bootstrap",
         "Dropout",
-        "Normalizing Flows",
+        "Sensitivity",
+        "VAE",
     ]
     colors = ["k", "r", "y", "g", "b", "c", "m", "tab:cyan"]
     colors_px = px.colors.qualitative.Plotly
@@ -456,12 +460,20 @@ if __name__ == "__main__":
     )
     plotly_train(train_paths, names, colors=colors_px, smooth=2)
 
-    # test_paths = [
-    #     "uncertainties/test/base.txt",
-    #     "uncertainties/test/drop10.txt",
-    #     "uncertainties/test/mix50.txt",
-    # ]
-    # names = ["Base", "Dropout 10", "Mixture 50"]
+    test_paths = [
+        "uncertainties/test/base.txt",
+        "uncertainties/test/dropout.txt",
+        "uncertainties/test/sensitivity.txt",
+        "uncertainties/test/vae.txt",
+        "uncertainties/test/bootstrap.txt",
+    ]
+    names = [
+        "Base",
+        "Dropout",
+        "Sensitivity",
+        "VAE",
+        "Bootstrap",
+    ]
 
     # plot_uncert_test(test_paths, names, colors=colors, linewidths=linewidths, smooth=2)
     # plotly_test(test_paths, names, colors=colors_px, smooth=2)

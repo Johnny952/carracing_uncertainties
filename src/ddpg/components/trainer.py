@@ -44,6 +44,7 @@ class Trainer:
             self._acc_noise.reset()
             ob_t = self._env.reset()
             score = 0
+            rewards = []
             steps = 0
 
             if self._skip_zoom is not None:
@@ -59,6 +60,7 @@ class Trainer:
                     self._agent.update()
 
                 score += reward
+                rewards.append(reward)
                 ob_t = ob_t1
                 steps += 1
 
@@ -72,6 +74,9 @@ class Trainer:
                     "Episode Running Score": float(running_score),
                     "Episode Score": float(score),
                     "Episode Steps": float(steps),
+                    "Episode Min Reward": float(np.min(rewards)),
+                    "Episode Max Reward": float(np.max(rewards)),
+                    "Episode Mean Reward": float(np.mean(rewards)),
                 }
             )
 
