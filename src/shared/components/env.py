@@ -11,7 +11,7 @@ class Env():
     Environment wrapper for CarRacing 
     """
 
-    def __init__(self, img_stack, action_repeat, seed=0, path_render=None, validations=1, evaluation=False, noise=None):
+    def __init__(self, img_stack, action_repeat, seed=0, path_render=None, validations=1, evaluation=False, noise=None, green_reward=0.05):
         self.render_path = path_render is not None
         self.evaluation = evaluation
         if not self.render_path:
@@ -25,6 +25,7 @@ class Env():
         self.reward_threshold = self.env.spec.reward_threshold
         self.img_stack = img_stack
         self.action_repeat = action_repeat
+        self.green_reward = green_reward
         #self.env._max_episode_steps = your_value
 
         # Noise in initial observations
@@ -113,7 +114,7 @@ class Env():
             # green penalty
             green_reward = 0
             if np.mean(img_rgb[:, :, 1]) > 185.0:
-                green_reward -= 0.05
+                green_reward -= self.green_reward
                 # reward -= 0.05
             reward += die_reward + green_reward
             total_reward += reward
@@ -126,7 +127,7 @@ class Env():
         
         info["steps"] = total_steps
         info["green_reward"] = np.sum(green_rewards)
-        wheels_speeds = [w.linearVelocity for w in self.env.car.wheels]
+        wheels_speeds = [np.abs(w.linearVelocity) for w in self.env.car.wheels]
         info["speed"] = np.mean(wheels_speeds)
         info["base_reward"] = np.sum(base_rewards)
         
@@ -136,6 +137,7 @@ class Env():
             img_gray = add_noise(img_gray, self.random_noise)
         self.stack.pop(0)
         self.stack.append(img_gray)
+        info["noise"] = self.random_noise
         assert len(self.stack) == self.img_stack
         return np.array(self.stack), total_reward, done, die, info
 

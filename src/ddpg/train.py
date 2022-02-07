@@ -52,6 +52,13 @@ if __name__ == "__main__":
         default=10,
         help="Evaluation Environment Random seed",
     )
+    env_config.add_argument(
+        "-GR",
+        "--green-reward",
+        type=float,
+        default=0.05,
+        help="Penalization for observation with green color",
+    )
 
     # Agent Config
     agent_config = parser.add_argument_group("Agent config")
@@ -210,6 +217,7 @@ if __name__ == "__main__":
         seed=args.train_seed,
         action_repeat=args.action_repeat,
         noise=add_noise,
+        green_reward=args.green_reward,
     )
     eval_env = Env(
         img_stack=args.image_stack,
@@ -218,7 +226,7 @@ if __name__ == "__main__":
         validations=args.eval_episodes,
         evaluation=True,
         action_repeat=args.action_repeat,
-        noise=add_noise,
+        green_reward=args.green_reward,
     )
     init_epoch = 0
     if args.from_checkpoint:

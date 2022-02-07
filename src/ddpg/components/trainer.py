@@ -70,6 +70,7 @@ class Trainer:
                         "Instant Green Reward": float(info["green_reward"]),
                         "Instant Base Reward": float(info["base_reward"]),
                         "Instant Mean Speed": float(info["speed"]),
+                        "Instant Noise": float(info["noise"]),
                     }
                 )
 
@@ -98,6 +99,7 @@ class Trainer:
                     "Episode Green Reward": float(np.sum(green_rewards)),
                     "Episode Base Reward": float(np.sum(base_rewards)),
                     "Episode Mean Speed": float(np.mean(speeds)),
+                    "Episode Noise": float(info["noise"]),
                 }
             )
 
