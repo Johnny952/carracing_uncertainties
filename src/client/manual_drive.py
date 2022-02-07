@@ -65,7 +65,7 @@ if __name__ == "__main__":
         state = env.reset()
         while not done:
 
-            next_state, r, done, info = env.step(a)
+            next_state, r, done, info = env.step(a)[:4]
             episode_reward += r
 
             state = next_state

@@ -99,19 +99,37 @@ class Env():
 
     def step(self, action):
         total_reward = 0
+        total_steps = 0
+        green_rewards = []
+        base_rewards = []
         for _ in range(self.action_repeat):
-            img_rgb, reward, die, _ = self.env.step(action)
+            img_rgb, reward, die, info = self.env.step(action)
+            base_rewards.append(reward)
             # don't penalize "die state"
+            die_reward = 0
             if die:
-                reward += 100
+                die_reward = 100
+                # reward += 100
             # green penalty
+            green_reward = 0
             if np.mean(img_rgb[:, :, 1]) > 185.0:
-                reward -= 0.05
+                green_reward -= 0.05
+                # reward -= 0.05
+            reward += die_reward + green_reward
             total_reward += reward
+            total_steps += 1
+            green_rewards.append(green_reward)
             # if no reward recently, end the episode
             done = True if self.av_r(reward) <= -0.1 else False
             if done or die:
                 break
+        
+        info["steps"] = total_steps
+        info["green_reward"] = np.sum(green_rewards)
+        wheels_speeds = [w.linearVelocity for w in self.env.car.wheels]
+        info["speed"] = np.mean(wheels_speeds)
+        info["base_reward"] = np.sum(base_rewards)
+        
         img_gray = self.rgb2gray(img_rgb)
         # Add noise in observation
         if self.use_noise:
@@ -119,7 +137,7 @@ class Env():
         self.stack.pop(0)
         self.stack.append(img_gray)
         assert len(self.stack) == self.img_stack
-        return np.array(self.stack), total_reward, done, die
+        return np.array(self.stack), total_reward, done, die, info
 
     def render(self, *arg):
         return self.env.render(*arg)

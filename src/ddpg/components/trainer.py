@@ -35,6 +35,7 @@ class Trainer:
 
         self._best_score = -100
         self._eval_nb = 0
+        self._global_step = 0
 
     def run(self):
         running_score = 0
@@ -46,23 +47,40 @@ class Trainer:
             score = 0
             rewards = []
             steps = 0
+            green_rewards = []
+            base_rewards = []
+            speeds = []
 
             if self._skip_zoom is not None:
                 for _ in range(self._skip_zoom):
-                    ob_t, _, _, _ = self._env.step([0, 0, 0])
+                    ob_t = self._env.step([0, 0, 0])[0]
 
             for _ in range(1000):
                 action = self._agent.select_action(ob_t, self._steer_noise, self._acc_noise)
-                ob_t1, reward, done, die = self._env.step(action)
+                ob_t1, reward, done, die, info = self._env.step(action)
                 if self._agent.store_transition(
                     ob_t, action, ob_t1, reward, (done or die)
                 ):
                     self._agent.update()
 
+                wandb.log(
+                    {
+                        "Instant Step": self._global_step,
+                        "Instant Score": float(reward),
+                        "Instant Green Reward": float(info["green_reward"]),
+                        "Instant Base Reward": float(info["base_reward"]),
+                        "Instant Mean Speed": float(info["speed"]),
+                    }
+                )
+
                 score += reward
                 rewards.append(reward)
                 ob_t = ob_t1
                 steps += 1
+                green_rewards.append(info["green_reward"])
+                speeds.append(info["speed"])
+                base_rewards.append(info["base_reward"])
+                self._global_step += 1
 
                 if done or die:
                     break
@@ -77,6 +95,9 @@ class Trainer:
                     "Episode Min Reward": float(np.min(rewards)),
                     "Episode Max Reward": float(np.max(rewards)),
                     "Episode Mean Reward": float(np.mean(rewards)),
+                    "Episode Green Reward": float(np.sum(green_rewards)),
+                    "Episode Base Reward": float(np.sum(base_rewards)),
+                    "Episode Mean Speed": float(np.mean(speeds)),
                 }
             )
 
@@ -121,7 +142,7 @@ class Trainer:
 
             while not die:
                 action = self._agent.select_action(ob_t)
-                ob_t1, reward, _, die = self._eval_env.step(action)
+                ob_t1, reward, _, die, _ = self._eval_env.step(action)
                 ob_t = ob_t1
                 score += reward
                 steps += 1

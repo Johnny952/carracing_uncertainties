@@ -237,7 +237,7 @@ if __name__ == "__main__":
 
     for _ in range(300):
         action, action_index = agent.select_action(state)
-        next_state, reward, done, _ = env.step(action)
+        next_state, reward, done = env.step(action)[:3]
         next_state = imgstackRGB2graystack(next_state)
         agent.store_transition(state, action_index, next_state, reward, done)
         state = next_state

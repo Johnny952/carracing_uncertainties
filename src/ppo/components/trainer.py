@@ -44,7 +44,7 @@ class Trainer:
 
             if self._skip_zoom is not None:
                 for _ in range(self._skip_zoom):
-                    state, _, _, _ = self._env.step([0, 0, 0])
+                    state = self._env.step([0, 0, 0])[0]
 
             for _ in range(1000):
                 action, a_logp = self._agent.select_action(state)[:2]
@@ -113,7 +113,7 @@ class Trainer:
                 )
                 state_, reward, _, die = self._eval_env.step(
                     action * np.array([2.0, 1.0, 1.0]) + np.array([-1.0, 0.0, 0.0])
-                )
+                )[:4]
                 score += reward
                 state = state_
                 steps += 1

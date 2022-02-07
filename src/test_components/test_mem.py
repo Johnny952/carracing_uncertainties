@@ -38,10 +38,10 @@ if __name__ == "__main__":
 
         score = 0
         for t in range(1000):
-            state_, reward, done, die = env.step(np.array([1., 0., 0.]))
+            state_, reward, done, info = env.step(np.array([1., 0., 0.]))
             score += reward
             state = state_
-            if done or die:
+            if done:
                 break
         #env.close()    # Con esto entrena el doble de iteraciones, pero el memory leak persiste
         running_score = running_score * 0.99 + score * 0.01
