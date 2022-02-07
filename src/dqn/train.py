@@ -167,15 +167,25 @@ if __name__ == "__main__":
     old_settings = np.seterr(all="raise")
     
     do_nothing_action = tuple([[0, 0, 0]])
+    # full_actions = (
+    #     [-1, 0, 0],  # Turn Left
+    #     [1, 0, 0],  # Turn Right
+    #     [0, 0, 0.8],  # Full Break
+    #     [0, 1, 0],  # Accelerate
+    #     [-1, 1, 0],  # Left accelerate
+    #     [1, 1, 0],  # Right accelerate
+    #     [-1, 0, 1],  # Left break
+    #     [1, 0, 1],  # Right break
+    # )
     full_actions = (
-        [-1, 0, 0],  # Turn Left
-        [1, 0, 0],  # Turn Right
-        [0, 0, 0.8],  # Full Break
+        [-0.5, 0, 0],  # Turn Left
+        [0.5, 0, 0],  # Turn Right
+        [0, 0, 0.2],  # Full Break
         [0, 1, 0],  # Accelerate
-        [-1, 1, 0],  # Left accelerate
-        [1, 1, 0],  # Right accelerate
-        [-1, 0, 1],  # Left break
-        [1, 0, 1],  # Right break
+        [-0.5, 1, 0],  # Left accelerate
+        [0.5, 1, 0],  # Right accelerate
+        [-0.5, 0, 0.2],  # Left break
+        [0.5, 0, 0.2],  # Right break
     )
     alter_actions = ()
     args_actions = [float(i.strip()) for i in args.actions.split(',')]
