@@ -78,6 +78,11 @@ class OUNoise:
         dx = self.theta * (self.mu - x) * self.dt + self.sigma * np.random.randn(len(x)) * np.sqrt(self.dt)
         self.state = x + dx
         return self.state
+    
+    def state(self):
+        x = self.state
+        dx = self.theta * (self.mu - x) * self.dt + self.sigma * np.random.randn(len(x)) * np.sqrt(self.dt)
+        return self.state
 
 
 # From OpenAI Baselines:

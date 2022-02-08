@@ -5,7 +5,7 @@ from tqdm import tqdm
 from components.agent import Agent
 from shared.utils.utils import save_uncert
 from shared.components.env import Env
-from utilities.noise import BaseNoise
+from utilities.noise import BaseNoise, OUNoise
 
 class Trainer:
     def __init__(
@@ -74,8 +74,12 @@ class Trainer:
                 }
                 if isinstance(self._steer_noise, BaseNoise):
                     to_log["Instant Steer Noise std"] = self._steer_noise.std
+                elif isinstance(self._steer_noise, OUNoise):
+                    to_log["Instant Steer Noise"] = self._steer_noise.state()
                 if isinstance(self._acc_noise, BaseNoise):
                     to_log["Instant Acc Noise std"] = self._acc_noise.std
+                elif isinstance(self._acc_noise, OUNoise):
+                    to_log["Instant Steer Noise"] = self._acc_noise.state()
                 wandb.log(to_log)
 
                 score += reward
