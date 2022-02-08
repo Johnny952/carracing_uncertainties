@@ -1,8 +1,17 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 import json
 import numpy as np
+from utils.string2image import string2image
+
+import sys
+sys.path.append('..')
+from ppo.components.agent import Agent
 
 app = FastAPI()
+
+# def build_ppo_agent
+
+# def predict
 
 @app.get("/")
 def read_root():
@@ -14,10 +23,13 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_text()
-            d = json.loads(data)
-            dtype = d['dtype']
-            shape = d['shape']
-            img = np.fromstring(d['img'].encode('latin-1'), dtype=dtype).reshape(shape)
+            # agent = build_agent()
+            await websocket.send_json({"success": True})
+
+
+
+
+            o = string2image(json.loads(data))
             #await websocket.send_json({"message": json.loads(data)})
             await websocket.send_json({"message": "Done"})
     except WebSocketDisconnect:
