@@ -207,8 +207,8 @@ if __name__ == "__main__":
     action_dim = 3
     # steer_noise = BaseNoise(1, 40*args.training_ep//2, max_=0.6, min_=0.01)
     # acc_noise = BaseNoise(2, 40*args.training_ep//2, max_=0.3, min_=0.01)
-    steer_noise = OUNoise(1, sigma=6)
-    acc_noise = OUNoise(2, sigma=3)
+    steer_noise = OUNoise(1, sigma=0.5)
+    acc_noise = OUNoise(2, sigma=0.25)
     agent = Agent(
         args.gamma,
         args.tau,

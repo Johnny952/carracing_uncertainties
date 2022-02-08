@@ -79,7 +79,7 @@ class Trainer:
                 if isinstance(self._acc_noise, BaseNoise):
                     to_log["Instant Acc Noise std"] = self._acc_noise.std
                 elif isinstance(self._acc_noise, OUNoise):
-                    to_log["Instant Steer Noise"] = self._acc_noise.get_state()[0]
+                    to_log["Instant Acc Noise"] = self._acc_noise.get_state()[0]
                 wandb.log(to_log)
 
                 score += reward
