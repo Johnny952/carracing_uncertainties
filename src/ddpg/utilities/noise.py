@@ -31,7 +31,6 @@ class BaseNoise:
 
     @property
     def std(self):
-        self._step += 1
         return self._get_noise(self._step)
     
     def constant(self, step):
@@ -79,9 +78,7 @@ class OUNoise:
         self.state = x + dx
         return self.state
     
-    def state(self):
-        x = self.state
-        dx = self.theta * (self.mu - x) * self.dt + self.sigma * np.random.randn(len(x)) * np.sqrt(self.dt)
+    def get_state(self):
         return self.state
 
 
