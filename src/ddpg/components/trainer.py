@@ -5,7 +5,7 @@ from tqdm import tqdm
 from components.agent import Agent
 from shared.utils.utils import save_uncert
 from shared.components.env import Env
-from src.ddpg.utilities.noise import BaseNoise
+from utilities.noise import BaseNoise
 
 class Trainer:
     def __init__(
