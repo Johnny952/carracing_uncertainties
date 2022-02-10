@@ -1,30 +1,22 @@
+from abc import abstractclassmethod
 import torch
-import torch.nn as nn
 import numpy as np
-from collections import namedtuple
 import wandb
 
-from models.base import Net
-from utilities.eps_scheduler import Epsilon
-from utilities.replay_buffer import ReplayMemory
 
-
-class Agent:
+class AbstactAgent:
     def __init__(
         self,
+        nb_nets,
         img_stack,
         actions,
         learning_rate,
         gamma,
-        buffer_capacity,
+        buffer,
+        epsilon,
         batch_size,
         device="cpu",
         clip_grad=False,
-        epsilon_method="linear",
-        epsilon_max=1,
-        epsilon_min=0.1,
-        epsilon_factor=3,
-        epsilon_max_steps=1000,
     ):
 
         self._device = device
@@ -34,26 +26,10 @@ class Agent:
         self._gamma = gamma
         self._img_stack = img_stack
         self._actions = actions
-        self._criterion = nn.MSELoss()
-        self._epsilon = Epsilon(
-            epsilon_max_steps,
-            method=epsilon_method,
-            epsilon_max=epsilon_max,
-            epsilon_min=epsilon_min,
-            factor=epsilon_factor,
-        )
+        self._epsilon = epsilon
 
-        self._Transition = namedtuple(
-            "Transition", ("state", "action", "next_state", "reward", "done")
-        )
-        self._buffer = ReplayMemory(buffer_capacity, batch_size, self._Transition)
-
-        self._model1 = Net(img_stack, len(actions)).to(self._device)
-        self._model2 = Net(img_stack, len(actions)).to(self._device)
-
-        self._optimizer1 = torch.optim.Adam(self._model1.parameters(), lr=self._lr)
-        self._optimizer2 = torch.optim.Adam(self._model2.parameters(), lr=self._lr)
-
+        self._buffer = buffer
+        
         self._nb_update = 0
 
     def empty_buffer(self):
@@ -105,38 +81,28 @@ class Agent:
             int: The action taken
             int: The corresponding action index
         """
+        aleatoric = torch.Tensor([0])
+        epistemic = torch.Tensor([0])
         if greedy or np.random.rand() > self._epsilon.epsilon():
             # Select action greedily
-            self._model1.batchnorm_state(activate=False)
             with torch.no_grad():
-                values = self._model1(
+                index, aleatoric, epistemic = self.get_values(
                     (torch.from_numpy(observation).unsqueeze(dim=0).float()).to(
                         self._device
                     )
                 )
-                _, index = torch.max(values, dim=-1)
-            self._model1.batchnorm_state(activate=True)
         else:
             # Select random action
             index = torch.randint(0, len(self._actions), size=(1,))
-        return self._actions[index], index.cpu()
+        return self._actions[index], index.cpu(), (epistemic, aleatoric)
 
+    @abstractclassmethod
+    def get_values(self, observation):
+        raise NotImplementedError()
+
+    @abstractclassmethod
     def compute_loss(self, states, actions, next_states, rewards, dones):
-        curr_Q1 = self._model1(states).gather(1, actions).squeeze(dim=-1)
-        curr_Q2 = self._model2(states).gather(1, actions).squeeze(dim=-1)
-
-        # next_Q1 = self._model1(next_states)
-        # next_Q2 = self._model2(next_states)
-        next_Q = torch.min(
-            torch.max(self._model1(next_states), 1)[0],
-            torch.max(self._model2(next_states), 1)[0],
-        ).squeeze(dim=-1)
-        expected_Q = rewards + (1 - dones) * self._gamma * next_Q
-
-        loss1 = self._criterion(curr_Q1, expected_Q.detach())
-        loss2 = self._criterion(curr_Q2, expected_Q.detach())
-
-        return loss1, loss2
+        raise NotImplementedError()
 
     def update(self):
         states, actions, next_states, rewards, dones = self.unpack(
@@ -172,36 +138,13 @@ class Agent:
             }
         )
 
+    @abstractclassmethod
     def save_param(self, epoch, path="param/ppo_net_param.pkl"):
-        tosave = {
-            "epoch": epoch,
-            "model1_state_disct": self._model1.state_dict(),
-            "model2_state_disct": self._model2.state_dict(),
-            "optimizer1_state_dict": self._optimizer1.state_dict(),
-            "optimizer2_state_dict": self._optimizer2.state_dict(),
-        }
-        torch.save(tosave, path)
+        raise NotImplementedError()
 
+    @abstractclassmethod
     def load_param(self, path, eval_mode=False):
-        checkpoint = torch.load(path)
-        self._model1.load_state_dict(checkpoint["model1_state_disct"])
-        self._model2.load_state_dict(checkpoint["model2_state_disct"])
-        self._optimizer1.load_state_dict(checkpoint["optimizer1_state_dict"])
-        self._optimizer2.load_state_dict(checkpoint["optimizer2_state_dict"])
-
-        if eval_mode:
-            self._model.eval()
-        else:
-            self._model.train()
-        return checkpoint["epoch"]
-
-    def eval_mode(self):
-        self._model1._eval()
-        self._model2._eval()
-
-    def train_mode(self):
-        self._model1.train()
-        self._model2.train()
+        raise NotImplementedError()
 
     def unpack(self, batch):
         states = torch.cat(batch.state).float().to(self._device)
@@ -211,37 +154,3 @@ class Agent:
         dones = torch.cat(batch.done).to(self._device)
 
         return states, actions, next_states, rewards, dones
-
-if __name__ == "__main__":
-    import gym
-    from utilities import imgstackRGB2graystack
-
-    env = gym.make("CarRacing-v0")
-    img_stack = 4
-    env = gym.wrappers.FrameStack(env, img_stack)
-
-    low_state = env.action_space.low
-    high_state = env.action_space.high
-
-    posible_actions = (
-        [-1, 0, 0],  # Turn Left
-        [1, 0, 0],  # Turn Right
-        [0, 0, 1],  # Full Break
-        [0, 1, 0],  # Accelerate
-        [0, 0, 0],  # Do nothing
-    )
-
-    agent = Agent(img_stack, posible_actions, 0.001, 0.1, 0.5, 1000, 200, 32)
-
-    state = imgstackRGB2graystack(env.reset())
-
-    for _ in range(300):
-        action, action_index = agent.select_action(state)
-        next_state, reward, done = env.step(action)[:3]
-        next_state = imgstackRGB2graystack(next_state)
-        agent.store_transition(state, action_index, next_state, reward, done)
-        state = next_state
-        if done:
-            break
-
-    agent.update()

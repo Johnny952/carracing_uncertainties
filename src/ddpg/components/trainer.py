@@ -7,6 +7,7 @@ from shared.utils.utils import save_uncert
 from shared.components.env import Env
 from utilities.noise import BaseNoise, OUNoise
 
+# TODO: offpolicy training
 class Trainer:
     def __init__(
         self,

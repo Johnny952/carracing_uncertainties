@@ -8,13 +8,21 @@ import glob
 from termcolor import colored
 from pyvirtualdisplay import Display
 import uuid
+from collections import namedtuple
 
 import sys
 sys.path.append('..')
+from utilities.eps_scheduler import Epsilon
+from utilities.replay_buffer import ReplayMemory
+from components.uncert_agents import make_agent
+from components.trainer import Trainer
 from shared.components.env import Env
 from shared.utils.utils import init_uncert_file
-from components.agent import Agent
-from components.trainer import Trainer
+
+
+STEER_RANGE = [-0.5, 0.5]
+THROTTLE_RANGE = [0, 1]
+BRAKE_RANGE = [0, 0.2]
 
 
 def make_soft_actions(actions: list, factor: float):
@@ -76,6 +84,20 @@ if __name__ == "__main__":
     # Agent Config
     agent_config = parser.add_argument_group("Agent config")
     agent_config.add_argument(
+        "-M",
+        "--model",
+        type=str,
+        default="base",
+        help='Type of uncertainty model: "base", "sensitivity", "dropout", "bootstrap", "aleatoric", "bnn" or "custom"',
+    )
+    agent_config.add_argument(
+        "-NN",
+        "--nb-nets",
+        type=int,
+        default=10,
+        help="Number of networks to estimate uncertainties",
+    )
+    agent_config.add_argument(
         "-LR", "--learning-rate", type=float, default=0.001, help="Learning Rate"
     )
     agent_config.add_argument(
@@ -95,7 +117,7 @@ if __name__ == "__main__":
         "-BS", "--batch-size", type=int, default=64, help="Batch size"
     )
     agent_config.add_argument(
-        "-A", "--actions", type=str, default="0.5", help="Basic actions multipliers as list, for example '0.25,0.5'"
+        "-A", "--actions", type=str, default="0.25,0.5", help="Basic actions multipliers as list, for example '0.25,0.5'"
     )
     agent_config.add_argument(
         "-FC", "--from-checkpoint", type=str, default=None, help="Path to trained model"
@@ -121,7 +143,7 @@ if __name__ == "__main__":
         "-EMi",
         "--epsilon-min",
         type=float,
-        default=0.1,
+        default=0.05,
         help="The minimum value of epsilon",
     )
     epsilon_config.add_argument(
@@ -135,7 +157,7 @@ if __name__ == "__main__":
         "-EMS",
         "--epsilon-max-steps",
         type=int,
-        default=1500,
+        default=1700,
         help="Max Epsilon Steps parameter, when epsilon is close to the minimum",
     )
 
@@ -148,7 +170,7 @@ if __name__ == "__main__":
         help="Whether to render evaluation or not",
     )
     train_config.add_argument(
-        "-NTS", "--training-ep", type=int, default=3000, help="Number traning episodes"
+        "-NTE", "--training-ep", type=int, default=3400, help="Number traning episodes"
     )
     train_config.add_argument(
         "-SZ",
@@ -176,30 +198,20 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     
-    run_name = f"ddqn_{uuid.uuid4()}"
+    run_name = f"ddqn_{args.model}_{uuid.uuid4()}"
     
     old_settings = np.seterr(all="raise")
     
-    do_nothing_action = tuple([[0, 0, 0]])
-    # full_actions = (
-    #     [-1, 0, 0],  # Turn Left
-    #     [1, 0, 0],  # Turn Right
-    #     [0, 0, 0.8],  # Full Break
-    #     [0, 1, 0],  # Accelerate
-    #     [-1, 1, 0],  # Left accelerate
-    #     [1, 1, 0],  # Right accelerate
-    #     [-1, 0, 1],  # Left break
-    #     [1, 0, 1],  # Right break
-    # )
+    do_nothing_action = tuple([[0, THROTTLE_RANGE[0], BRAKE_RANGE[0]]])
     full_actions = (
-        [-0.5, 0, 0],  # Turn Left
-        [0.5, 0, 0],  # Turn Right
-        [0, 0, 0.2],  # Full Break
-        [0, 1, 0],  # Accelerate
-        [-0.5, 1, 0],  # Left accelerate
-        [0.5, 1, 0],  # Right accelerate
-        [-0.5, 0, 0.2],  # Left break
-        [0.5, 0, 0.2],  # Right break
+        [STEER_RANGE[0], THROTTLE_RANGE[0], BRAKE_RANGE[0]],  # Turn Left
+        [STEER_RANGE[1], THROTTLE_RANGE[0], BRAKE_RANGE[0]],  # Turn Right
+        [0, THROTTLE_RANGE[0], BRAKE_RANGE[1]],  # Full Break
+        [0, THROTTLE_RANGE[1], BRAKE_RANGE[0]],  # Accelerate
+        [STEER_RANGE[0], THROTTLE_RANGE[1], BRAKE_RANGE[0]],  # Left accelerate
+        [STEER_RANGE[1], THROTTLE_RANGE[1], BRAKE_RANGE[0]],  # Right accelerate
+        [STEER_RANGE[0], THROTTLE_RANGE[0], BRAKE_RANGE[1]],  # Left break
+        [STEER_RANGE[1], THROTTLE_RANGE[0], BRAKE_RANGE[1]],  # Right break
     )
     alter_actions = ()
     args_actions = [float(i.strip()) for i in args.actions.split(',')]
@@ -259,20 +271,33 @@ if __name__ == "__main__":
 
     # Init Agent and Environment
     print(colored("Initializing agent and environments", "blue"))
-    agent = Agent(
+    Transition = namedtuple(
+        "Transition", ("state", "action", "next_state", "reward", "done")
+    )
+    buffer = ReplayMemory(
+        args.buffer_capacity,
+        args.batch_size,
+        Transition,
+    )
+    epsilon = Epsilon(
+        args.epsilon_max_steps,
+        method=args.epsilon_method,
+        epsilon_max=args.epsilon_max,
+        epsilon_min=args.epsilon_min,
+        factor=args.epsilon_factor,
+    )
+    agent = make_agent(
+        'base',
+        10,
         args.image_stack,
         actions,
         args.learning_rate,
         args.gamma,
-        args.buffer_capacity,
+        buffer,
+        epsilon,
         args.batch_size,
         device=device,
         clip_grad=False,
-        epsilon_method=args.epsilon_method,
-        epsilon_max=args.epsilon_max,
-        epsilon_min=args.epsilon_min,
-        epsilon_factor=args.epsilon_factor,
-        epsilon_max_steps=args.epsilon_max_steps,
     )
     env = Env(
         img_stack=args.image_stack,

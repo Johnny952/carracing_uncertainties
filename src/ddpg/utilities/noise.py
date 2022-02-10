@@ -1,7 +1,6 @@
 import numpy as np
 from math import sqrt
 
-# TODO: Simple linear or exp standar deviation decay of white noise
 class BaseNoise:
     def __init__(self, action_dimension, max_steps, method='linear', max_=1.0, min_=0.1, factor=3) -> None:
         method = method.lower()

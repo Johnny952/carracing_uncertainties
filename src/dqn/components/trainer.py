@@ -2,7 +2,7 @@ import numpy as np
 import wandb
 from tqdm import tqdm
 
-from components.agent import Agent
+from components.uncert_agents.abstact import AbstactAgent
 from shared.utils.utils import save_uncert
 from shared.components.env import Env
 
@@ -12,7 +12,7 @@ class Trainer:
         self,
         env: Env,
         eval_env: Env,
-        agent: Agent,
+        agent: AbstactAgent,
         nb_training_ep: int,
         eval_episodes: int = 3,
         eval_every: int = 10,
@@ -51,7 +51,7 @@ class Trainer:
                     ob_t = self._env.step([0, 0, 0])[0]
 
             for _ in range(1000):
-                action, action_idx = self._agent.select_action(ob_t)
+                action, action_idx = self._agent.select_action(ob_t)[:2]
                 ob_t1, reward, done, die, info = self._env.step(action)
                 if self._agent.store_transition(
                     ob_t, action_idx, ob_t1, reward, (done or die)
@@ -137,14 +137,18 @@ class Trainer:
             steps = 0
             die = False
 
+            uncert = []
             while not die:
-                action, _ = self._agent.select_action(ob_t, greedy=True)
+                action, _, (epis, aleat) = self._agent.select_action(ob_t, greedy=True)
                 ob_t1, reward, _, die = self._eval_env.step(action)[:4]
                 ob_t = ob_t1
                 score += reward
                 steps += 1
+                uncert.append(
+                    [epis.view(-1).cpu().numpy()[0], aleat.view(-1).cpu().numpy()[0]]
+                )
 
-            uncert = np.array([0] * (2 * steps))
+            uncert = np.array(uncert)
             save_uncert(
                 episode_nb,
                 episode,
