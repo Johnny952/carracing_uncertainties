@@ -70,14 +70,14 @@ if __name__ == "__main__":
         "-GR",
         "--green-reward",
         type=float,
-        default=0.05,
+        default=-0.1,
         help="Penalization for observation with green color",
     )
     env_config.add_argument(
         "-DR",
         "--done-reward",
         type=float,
-        default=0,
+        default=-100,
         help="Penalization for ending episode because of low reward",
     )
 
