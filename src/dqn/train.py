@@ -287,8 +287,8 @@ if __name__ == "__main__":
         factor=args.epsilon_factor,
     )
     agent = make_agent(
-        'base',
-        10,
+        args.model,
+        args.nb_nets,
         args.image_stack,
         actions,
         args.learning_rate,
@@ -339,7 +339,7 @@ if __name__ == "__main__":
 
     print(
         colored(
-            f"Training ddqn during {args.training_ep} epochs and {noise_print}",
+            f"Training ddqn {type(agent._model1)} during {args.training_ep} epochs and {noise_print}",
             "magenta",
         )
     )

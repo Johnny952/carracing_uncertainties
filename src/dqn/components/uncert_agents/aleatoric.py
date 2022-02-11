@@ -43,8 +43,8 @@ class AleatoricModel(AbstactAgent):
         _, values, log_var = self._model1(observation)
         _, index = torch.max(values, dim=-1)
         epistemic = torch.Tensor([0])
-        aleatoric = torch.exp(log_var)
-        return index, epistemic, torch.sum(aleatoric, dim=-1)
+        aleatoric = torch.exp(log_var[0, index[0].cpu().numpy()])
+        return index, epistemic, aleatoric
     
     def compute_loss(self, states, actions, next_states, rewards, dones):
         reparametrization1, mu1, log_var1 = self._model1(states)
