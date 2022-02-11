@@ -2,6 +2,7 @@ from .base import BaseAgent
 from .aleatoric import AleatoricAgent
 from .sensitivity import SensitivityAgent
 from .vae import VaeAgent
+from .bnn import BnnAgent
 
 def make_agent(
         model,
@@ -21,7 +22,7 @@ def make_agent(
         # 'dropout': DropoutTrainerModel,
         # 'bootstrap': BootstrapTrainerModel,
         'sensitivity': SensitivityAgent,
-        # 'bnn': BNNTrainerModel,
+        'bnn': BnnAgent,
         'aleatoric': AleatoricAgent,
         'vae': VaeAgent,
     }

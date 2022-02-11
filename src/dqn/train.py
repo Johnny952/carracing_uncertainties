@@ -324,7 +324,7 @@ if __name__ == "__main__":
 
     # Wandb config specification
     config = wandb.config
-    config.args = args
+    config.args = vars(args)
 
     wandb.watch(agent._model1)
 
