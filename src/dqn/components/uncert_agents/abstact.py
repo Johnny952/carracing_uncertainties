@@ -124,7 +124,6 @@ class AbstactAgent:
                 param.grad.data.clamp_(-1, 1)
         self._optimizer2.step()
 
-        # self.epsilon_step()
         self.log_loss(loss1.item(), loss2.item())
         self._nb_update += 1
 
