@@ -9,7 +9,7 @@ class SensitivityTrainerModel(BaseTrainerModel):
         super(SensitivityTrainerModel, self).__init__(nb_nets, lr,
                                                       img_stack, gamma, batch_size, buffer_capacity, device=device)
         self._model = Sensitivity(img_stack).double().to(self.device)
-        self.input_range = [0, 255]
+        self.input_range = [-1, 1]
         self._noise_variance = 0.1
         self._optimizer = optim.Adam(self._model.parameters(), lr=lr)
 

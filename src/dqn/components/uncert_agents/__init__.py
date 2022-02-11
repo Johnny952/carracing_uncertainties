@@ -1,5 +1,6 @@
-from .base import BaseModel
-from .aleatoric import AleatoricModel
+from .base import BaseAgent
+from .aleatoric import AleatoricAgent
+from .sensitivity import SensitivityAgent
 # from .dropout_model import DropoutTrainerModel
 # from .bootstrap_model import BootstrapTrainerModel
 # from .sensitivity_model import SensitivityTrainerModel
@@ -21,15 +22,15 @@ def make_agent(
         clip_grad=False
     ):
     switcher = {
-        'base': BaseModel,
+        'base': BaseAgent,
         # 'dropout': DropoutTrainerModel,
         # 'bootstrap': BootstrapTrainerModel,
-        # 'sensitivity': SensitivityTrainerModel,
+        'sensitivity': SensitivityAgent,
         # 'bnn': BNNTrainerModel,
-        'aleatoric': AleatoricModel,
+        'aleatoric': AleatoricAgent,
         # 'vae': VAETrainerModel,
     }
-    return switcher.get(model, BaseModel)(
+    return switcher.get(model, BaseAgent)(
         nb_nets,
         img_stack,
         actions,

@@ -1,10 +1,10 @@
 import torch
+import torch.nn as nn
 
 from components.uncert_agents.abstact import AbstactAgent
-from models.aleatoric import Aleatoric
-from shared.utils.losses import det_loss
+from models.base import Net
 
-class AleatoricAgent(AbstactAgent):
+class SensitivityAgent(AbstactAgent):
     def __init__(
         self,
         nb_nets,
@@ -18,7 +18,7 @@ class AleatoricAgent(AbstactAgent):
         device="cpu",
         clip_grad=False,
     ):
-        super(AleatoricAgent, self).__init__(
+        super(SensitivityAgent, self).__init__(
             nb_nets,
             img_stack,
             actions,
@@ -31,40 +31,47 @@ class AleatoricAgent(AbstactAgent):
             clip_grad=clip_grad,
         )
 
-        self._model1 = Aleatoric(img_stack, len(actions)).to(self._device)
-        self._model2 = Aleatoric(img_stack, len(actions)).to(self._device)
+        self.nb_nets = nb_nets
+        self.input_range = [-1, 1]
+        self._noise_variance = 0.1
+        self._criterion = nn.MSELoss()
+
+        self._model1 = Net(img_stack, len(actions)).to(self._device)
+        self._model2 = Net(img_stack, len(actions)).to(self._device)
 
         self._optimizer1 = torch.optim.Adam(self._model1.parameters(), lr=self._lr)
         self._optimizer2 = torch.optim.Adam(self._model2.parameters(), lr=self._lr)
-
-        self._criterion = det_loss
     
     def get_values(self, observation):
-        _, values, log_var = self._model1(observation)
+        values = self._model1(observation)
         _, index = torch.max(values, dim=-1)
-        epistemic = torch.Tensor([0])
-        aleatoric = torch.exp(log_var[0, index[0].cpu().numpy()])
+
+        # Random matrix
+        size = (self.nb_nets, observation.shape[1], observation.shape[2], observation.shape[3])
+        rand_dir = torch.normal(
+            torch.zeros(size), self._noise_variance*torch.ones(size)
+        ).float().to(self._device)
+        rand_dir += observation
+        rand_dir[rand_dir > self.input_range[1]] = self.input_range[1]
+        rand_dir[rand_dir < self.input_range[0]] = self.input_range[0]
+        rand_values = self._model1(rand_dir)
+
+        epistemic = torch.mean(torch.var(rand_values, dim=0))
+        aleatoric = torch.Tensor([0])
         return index, epistemic, aleatoric
     
     def compute_loss(self, states, actions, next_states, rewards, dones):
-        reparametrization1, mu1, log_var1 = self._model1(states)
-        reparametrization2, mu2, log_var2 = self._model2(states)
-        curr_Q1 = mu1.gather(1, actions).squeeze(dim=-1)
-        curr_Q2 = mu2.gather(1, actions).squeeze(dim=-1)
-
-        curr_reparametrization1 = reparametrization1.gather(1, actions).squeeze(dim=-1)
-        curr_reparametrization2 = reparametrization2.gather(1, actions).squeeze(dim=-1)
-        curr_log_var1 = log_var1.gather(1, actions).squeeze(dim=-1)
-        curr_log_var2 = log_var2.gather(1, actions).squeeze(dim=-1)
+        curr_Q1 = self._model1(states).gather(1, actions).squeeze(dim=-1)
+        curr_Q2 = self._model2(states).gather(1, actions).squeeze(dim=-1)
 
         next_Q = torch.min(
-            torch.max(self._model1(next_states)[1], 1)[0],
-            torch.max(self._model2(next_states)[1], 1)[0],
+            torch.max(self._model1(next_states), 1)[0],
+            torch.max(self._model2(next_states), 1)[0],
         ).squeeze(dim=-1)
         expected_Q = rewards + (1 - dones) * self._gamma * next_Q
 
-        loss1 = self._criterion(curr_reparametrization1, expected_Q.detach(), curr_Q1, curr_log_var1)
-        loss2 = self._criterion(curr_reparametrization2, expected_Q.detach(), curr_Q2, curr_log_var2)
+        loss1 = self._criterion(curr_Q1, expected_Q.detach())
+        loss2 = self._criterion(curr_Q2, expected_Q.detach())
 
         return loss1, loss2
     

@@ -4,7 +4,7 @@ import torch.nn as nn
 from components.uncert_agents.abstact import AbstactAgent
 from models.base import Net
 
-class BaseModel(AbstactAgent):
+class BaseAgent(AbstactAgent):
     def __init__(
         self,
         nb_nets,
@@ -18,7 +18,7 @@ class BaseModel(AbstactAgent):
         device="cpu",
         clip_grad=False,
     ):
-        super(BaseModel, self).__init__(
+        super(BaseAgent, self).__init__(
             nb_nets,
             img_stack,
             actions,

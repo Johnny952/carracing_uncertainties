@@ -339,7 +339,7 @@ if __name__ == "__main__":
 
     print(
         colored(
-            f"Training ddqn {type(agent._model1)} during {args.training_ep} epochs and {noise_print}",
+            f"Training ddqn {type(agent)} during {args.training_ep} epochs and {noise_print}",
             "magenta",
         )
     )
