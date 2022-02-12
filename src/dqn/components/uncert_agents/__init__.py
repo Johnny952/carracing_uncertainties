@@ -4,6 +4,7 @@ from .sensitivity import SensitivityAgent
 from .vae import VaeAgent
 from .bnn import BnnAgent
 from .bootstrap import BootstrapAgent
+from .dropout import DropoutAgent
 
 def make_agent(
         model,
@@ -20,7 +21,7 @@ def make_agent(
     ):
     switcher = {
         'base': BaseAgent,
-        # 'dropout': DropoutTrainerModel,
+        'dropout': DropoutAgent,
         'bootstrap': BootstrapAgent,
         'sensitivity': SensitivityAgent,
         'bnn': BnnAgent,
