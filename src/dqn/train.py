@@ -326,7 +326,7 @@ if __name__ == "__main__":
     config = wandb.config
     config.args = vars(args)
 
-    wandb.watch(agent._model1)
+    # wandb.watch(agent._model1)
 
     noise_print = "not using noise"
     if env.use_noise:

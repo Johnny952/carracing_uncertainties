@@ -142,9 +142,11 @@ class VaeAgent(AbstactAgent):
         self._vae_optimizer.load_state_dict(checkpoint['vae_optimizer_state_dict'])
 
         if eval_mode:
-            self._model.eval()
+            self._model1.eval()
+            self._model2.eval()
             self._vae.eval()
         else:
-            self._model.train()
+            self._model1.train()
+            self._model2.train()
             self._vae.train()
         return checkpoint["epoch"]

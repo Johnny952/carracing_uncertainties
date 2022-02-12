@@ -93,7 +93,9 @@ class SensitivityAgent(AbstactAgent):
         self._optimizer2.load_state_dict(checkpoint["optimizer2_state_dict"])
 
         if eval_mode:
-            self._model.eval()
+            self._model1.eval()
+            self._model2.eval()
         else:
-            self._model.train()
+            self._model1.train()
+            self._model2.train()
         return checkpoint["epoch"]
