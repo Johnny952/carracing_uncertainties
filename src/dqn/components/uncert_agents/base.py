@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from components.uncert_agents.abstact import AbstactAgent
 from models.base import Net
@@ -42,9 +43,16 @@ class BaseAgent(AbstactAgent):
     def get_values(self, observation):
         values = self._model1(observation)
         _, index = torch.max(values, dim=-1)
-        epistemic = torch.Tensor([0])
+        # TODO: Epistemic estimation using argmax distribution variance
+        epistemic = self.get_epistemic(F.softmax(values, dim=1))
         aleatoric = torch.Tensor([0])
         return index, epistemic, aleatoric
+
+    def get_epistemic(self, probs):
+        actions = torch.Tensor(self._actions).to(self._device)
+        expectation = probs @ actions
+        variance = probs @ (actions - expectation) ** 2
+        return torch.sum(variance)
     
     def compute_loss(self, states, actions, next_states, rewards, dones):
         curr_Q1 = self._model1(states).gather(1, actions).squeeze(dim=-1)
