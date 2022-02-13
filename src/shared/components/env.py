@@ -11,7 +11,7 @@ class Env():
     Environment wrapper for CarRacing 
     """
 
-    def __init__(self, img_stack, action_repeat, seed=0, path_render=None, validations=1, evaluation=False, noise=None, green_reward=0.05, done_reward=0):
+    def __init__(self, img_stack, action_repeat, seed=0, path_render=None, validations=1, evaluation=False, noise=None, green_reward=-0.05, done_reward=0):
         self.render_path = path_render is not None
         self.evaluation = evaluation
         if not self.render_path:
@@ -115,7 +115,7 @@ class Env():
             # green penalty
             green_reward = 0
             if np.mean(img_rgb[:, :, 1]) > 185.0:
-                green_reward -= self.green_reward
+                green_reward = self.green_reward
                 # reward -= 0.05
             reward += die_reward + green_reward
             total_reward += reward
@@ -124,7 +124,7 @@ class Env():
             # if no reward recently, end the episode
             done = False
             if self.av_r(reward) <= -0.1:
-                reward -= self.done_reward
+                reward = self.done_reward
                 done = True
             if done or die:
                 break

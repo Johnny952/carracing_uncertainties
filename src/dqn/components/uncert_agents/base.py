@@ -43,7 +43,6 @@ class BaseAgent(AbstactAgent):
     def get_values(self, observation):
         values = self._model1(observation)
         _, index = torch.max(values, dim=-1)
-        # TODO: Epistemic estimation using argmax distribution variance
         epistemic = self.get_epistemic(F.softmax(values, dim=1))
         aleatoric = torch.Tensor([0])
         return index, epistemic, aleatoric
