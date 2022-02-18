@@ -35,12 +35,13 @@ class Agent(object):
         img_stack,
         buffer_capacity,
         batch_size,
-        action_space=[[-1, 1], [0, 1]],
+        action_space=[[-1, 1], [0, 1], [0, 1]],
         device='cpu',
         actor_lr=1e-4,
         critic_lr=1e-3,
         critic_weight_decay=1e-2,
         action_dim=3,
+        nb_updates=10,
     ):
         """
         Deep Deterministic Policy Gradient
@@ -58,6 +59,10 @@ class Agent(object):
         self.gamma = gamma
         self.tau = tau
         self.action_space = action_space
+        self.reward_scale = 1
+        self.max_grad_norm = None
+        # self.actor_frequency = 1
+        self.nb_updates = nb_updates
 
         # Define buffer capacity
         self._Transition = namedtuple(
@@ -87,7 +92,7 @@ class Agent(object):
 
         self._nb_update = 0
 
-    def select_action(self, state, steer_noise=None, acc_noise=None):
+    def select_action(self, state, noises=None):
         """
         Evaluates the action to perform in a given state
         Arguments:
@@ -95,6 +100,7 @@ class Agent(object):
                             Used to evaluate the action.
             action_noise:   If not None, the noise to apply on the evaluated action
         """
+        assert not noises or len(noises) == len(self.action_space)
         x = torch.from_numpy(state).unsqueeze(dim=0).float().to(self.device)
 
         # Get the continous action value to perform in the env
@@ -105,17 +111,12 @@ class Agent(object):
         mu = mu.data
 
         # During training we add noise for exploration
-        if steer_noise is not None:
-            noise = torch.Tensor(steer_noise.noise()).to(self.device)
-            mu[:, 0] += noise
-            # Clip the output according to the action space of the env
-            mu[:, 0] = mu[:, 0].clamp(self.action_space[0][0], self.action_space[0][1])
-
-        if acc_noise is not None:
-            noise = torch.Tensor(acc_noise.noise()).to(self.device)
-            mu[:, 1:] += noise
-            # Clip the output according to the action space of the env
-            mu[:, 1:] = mu[:, 1:].clamp(self.action_space[1][0], self.action_space[1][1])
+        if noises is not None:
+            for idx, action_noise in enumerate(noises):
+                noise = torch.Tensor(action_noise.noise()).to(self.device)
+                mu[:, idx] += noise
+                # Clip the output according to the action space of the env
+                mu[:, idx] = mu[:, idx].clamp(self.action_space[idx][0], self.action_space[idx][1])
 
         return mu.cpu().squeeze(dim=0).numpy()
 
@@ -130,42 +131,55 @@ class Agent(object):
         Arguments:
             batch:  Batch to perform the training of the parameters
         """
-        # Get tensors from the batch
-        state_batch, action_batch, next_state_batch, reward_batch, done_batch = self.unpack(self._buffer.sample())
+        value_loss_acc = 0
+        policy_loss_acc = 0
+        for _ in range(self.nb_updates):
+            # Get tensors from the batch
+            state_batch, action_batch, next_state_batch, reward_batch, done_batch = self.unpack(self._buffer.sample())
 
-        # Get the actions and the state values to compute the targets
-        next_action_batch = self.actor_target(next_state_batch)
-        next_state_action_values = self.critic_target(next_state_batch, next_action_batch.detach())
+            # Get the actions and the state values to compute the targets
+            with torch.no_grad():
+                next_action_batch = self.actor_target(next_state_batch)
+                next_state_action_values = self.critic_target(next_state_batch, next_action_batch)
 
-        # Compute the target
-        reward_batch = reward_batch.unsqueeze(1)
-        done_batch = done_batch.unsqueeze(1)
-        expected_values = reward_batch + (1.0 - done_batch) * self.gamma * next_state_action_values
+                # Compute the target
+                reward_batch = reward_batch.unsqueeze(1)
+                done_batch = done_batch.unsqueeze(1)
+                expected_values = self.reward_scale * reward_batch + (1.0 - done_batch) * self.gamma * next_state_action_values
 
-        # expected_value = torch.clamp(expected_value, min_value, max_value)
+            # expected_value = torch.clamp(expected_value, min_value, max_value)
 
-        # Update the critic network
-        self.critic_optimizer.zero_grad()
-        state_action_batch = self.critic(state_batch, action_batch)
-        value_loss = F.mse_loss(state_action_batch, expected_values.detach())
-        value_loss.backward()
-        self.critic_optimizer.step()
+            # Update the critic network
+            self.critic_optimizer.zero_grad()
+            state_action_batch = self.critic(state_batch, action_batch)
+            value_loss = F.mse_loss(state_action_batch, expected_values)
+            value_loss.backward()
+            if self.max_grad_norm:
+                torch.nn.utils.clip_grad_norm_(list(self.critic.parameters()), self.max_grad_norm)
+            self.critic_optimizer.step()
 
-        # Update the actor network
-        self.actor_optimizer.zero_grad()
-        policy_loss = -self.critic(state_batch, self.actor(state_batch))
-        policy_loss = policy_loss.mean()
-        policy_loss.backward()
-        self.actor_optimizer.step()
+            # Update the actor network
+            # policy_loss = None
+            # if self._nb_update % self.actor_frequency == 0:
+            self.actor_optimizer.zero_grad()
+            policy_loss = -self.critic(state_batch, self.actor(state_batch)).mean()
+            policy_loss.backward()
+            if self.max_grad_norm:
+                torch.nn.utils.clip_grad_norm_(list(self.actor.parameters()), self.max_grad_norm)
+            self.actor_optimizer.step()
 
-        # Update the target networks
-        soft_update(self.actor_target, self.actor, self.tau)
-        soft_update(self.critic_target, self.critic, self.tau)
+            # Update the target networks
+            soft_update(self.actor_target, self.actor, self.tau)
+            
+            soft_update(self.critic_target, self.critic, self.tau)
 
-        self.log_loss(value_loss.item(), policy_loss.item())
-        self._nb_update += 1
+            self.log_loss(value_loss.item(), policy_loss.item())
+            self._nb_update += 1
 
-        return value_loss.item(), policy_loss.item()
+            value_loss_acc += value_loss.item()
+            policy_loss_acc += policy_loss.item()
+
+        return policy_loss_acc, policy_loss_acc
     
     def log_loss(self, value_loss, policy_loss):
         wandb.log({

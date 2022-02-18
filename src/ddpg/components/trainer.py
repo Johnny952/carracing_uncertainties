@@ -14,12 +14,12 @@ class Trainer:
         env: Env,
         eval_env: Env,
         agent: Agent,
-        steer_noise,
-        acc_noise,
+        noises,
         nb_training_ep: int,
         eval_episodes: int = 3,
         eval_every: int = 10,
-        skip_zoom=None,
+        skip_zoom: int=0,
+        update_every: int=2000,
         checkpoint_every: int = 10,
         model_name='ddpg',
     ) -> None:
@@ -27,11 +27,11 @@ class Trainer:
         self._eval_env = eval_env
         self._agent = agent
         self._model_name = model_name
-        self._steer_noise = steer_noise
-        self._acc_noise = acc_noise
+        self._noises = noises
         self._nb_training_ep = nb_training_ep
         self._eval_episodes = eval_episodes
         self._eval_every = eval_every
+        self._update_every = update_every
         self._skip_zoom = skip_zoom
         self._checkpoint_every = checkpoint_every
 
@@ -39,12 +39,15 @@ class Trainer:
         self._eval_nb = 0
         self._global_step = 0
 
+    def reset_noise(self):
+        for noise in self._noises:
+            noise.reset()
+
     def run(self):
         running_score = 0
 
         for episode_nb in tqdm(range(self._nb_training_ep), "Training"):
-            self._steer_noise.reset()
-            self._acc_noise.reset()
+            self.reset_noise()
             ob_t = self._env.reset()
             score = 0
             rewards = []
@@ -53,16 +56,17 @@ class Trainer:
             base_rewards = []
             speeds = []
 
-            if self._skip_zoom is not None:
-                for _ in range(self._skip_zoom):
-                    ob_t = self._env.step([0, 0, 0])[0]
+            for _ in range(self._skip_zoom):
+                ob_t = self._env.step([0, 0, 0])[0]
 
             for _ in range(1000):
-                action = self._agent.select_action(ob_t, self._steer_noise, self._acc_noise)
+                action = self._agent.select_action(ob_t, self._noises)
                 ob_t1, reward, done, die, info = self._env.step(action)
-                if self._agent.store_transition(
+                is_able_sample = self._agent.store_transition(
                     ob_t, action, ob_t1, reward, (done or die)
-                ):
+                )
+                if is_able_sample and self._global_step % self._update_every == self._update_every - 1:
+                    print("\nUpdating...")
                     self._agent.update()
 
                 to_log = {
@@ -73,14 +77,7 @@ class Trainer:
                     "Instant Mean Speed": float(info["speed"]),
                     "Instant Noise": float(info["noise"]),
                 }
-                if isinstance(self._steer_noise, BaseNoise):
-                    to_log["Instant Steer Noise std"] = self._steer_noise.std
-                elif isinstance(self._steer_noise, OUNoise):
-                    to_log["Instant Steer Noise"] = self._steer_noise.get_state()[0]
-                if isinstance(self._acc_noise, BaseNoise):
-                    to_log["Instant Acc Noise std"] = self._acc_noise.std
-                elif isinstance(self._acc_noise, OUNoise):
-                    to_log["Instant Acc Noise"] = self._acc_noise.get_state()[0]
+                to_log["Instant Action Noise std"] = self._noises[0].get_var()
                 wandb.log(to_log)
 
                 score += reward

@@ -111,10 +111,13 @@ if __name__ == "__main__":
         help="Replay buffer capacity",
     )
     agent_config.add_argument(
-        "-BS", "--batch-size", type=int, default=64, help="Batch size"
+        "-BS", "--batch-size", type=int, default=32, help="Batch size"
     )
     agent_config.add_argument(
         "-FC", "--from-checkpoint", type=str, default=None, help="Path to trained model"
+    )
+    agent_config.add_argument(
+        "-NU", "--nb-updates", type=int, default=100, help="Number of agent updates"
     )
 
     # Training Config
@@ -144,6 +147,13 @@ if __name__ == "__main__":
         type=int,
         default=3,
         help="Number of evaluation episodes",
+    )
+    train_config.add_argument(
+        "-UE",
+        "--update-every",
+        type=int,
+        default=2000,
+        help="Update agent every n steps",
     )
     train_config.add_argument(
         "-D",
@@ -205,10 +215,13 @@ if __name__ == "__main__":
     # Init Agent and Environment
     print(colored("Initializing agent and environments", "blue"))
     action_dim = 3
-    # steer_noise = BaseNoise(1, 40*args.training_ep//2, max_=0.6, min_=0.01)
-    # acc_noise = BaseNoise(2, 40*args.training_ep//2, max_=0.3, min_=0.01)
-    steer_noise = OUNoise(1, sigma=0.5)
-    acc_noise = OUNoise(2, sigma=0.25)
+    noises = [
+        BaseNoise(1, 40*args.training_ep//2, max_=0.6, min_=0.01),
+        BaseNoise(1, 40*args.training_ep//2, max_=0.3, min_=0.01),
+        BaseNoise(1, 40*args.training_ep//2, max_=0.3, min_=0.01)
+    ]
+    # steer_noise = OUNoise(1, sigma=0.5)
+    # acc_noise = OUNoise(2, sigma=0.25)
     agent = Agent(
         args.gamma,
         args.tau,
@@ -220,6 +233,7 @@ if __name__ == "__main__":
         critic_lr=args.critic_lr,
         critic_weight_decay=args.critic_wd,
         action_dim=action_dim,
+        nb_updates=args.nb_updates,
     )
     env = Env(
         img_stack=args.image_stack,
@@ -270,11 +284,11 @@ if __name__ == "__main__":
         env,
         eval_env,
         agent,
-        steer_noise,
-        acc_noise,
+        noises,
         args.training_ep,
         eval_episodes=args.eval_episodes,
         eval_every=args.eval_every,
+        update_every=args.update_every,
         skip_zoom=args.skip_zoom,
         model_name=run_name
     )

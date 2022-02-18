@@ -24,6 +24,9 @@ class BaseNoise:
         self._factor = factor
 
         self.reset()
+    
+    def get_var(self):
+        return self.std
 
     def reset(self):
         self._step = 0
@@ -67,6 +70,9 @@ class OUNoise:
         self.theta = theta
         self.sigma = sigma
         self.reset()
+
+    def get_var(self):
+        return self.sigma * np.sqrt(self.dt)
 
     def reset(self):
         self.state = np.ones(self.action_dimension) * self.mu
