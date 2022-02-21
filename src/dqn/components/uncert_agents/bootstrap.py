@@ -1,5 +1,5 @@
 import torch
-import torch.nn as nn
+import numpy as np
 
 from components.uncert_agents.abstact import AbstactAgent
 from models.aleatoric import Aleatoric
@@ -67,8 +67,9 @@ class BootstrapAgent(AbstactAgent):
             self._buffer.sample()
         )
         # Random bagging
-        indices = [torch.utils.data.RandomSampler(range(
-            self._buffer.batch_size), num_samples=self._buffer.batch_size, replacement=True) for _ in range(self.nb_nets)]
+        indices = [np.random.choice(
+            np.array(range(self._buffer.batch_size)),
+            size=self._buffer.batch_size, replace=True) for _ in range(self.nb_nets)]
         # Random permutation
         # indices = [torch.randperm(self._buffer.batch_size)
         #            for _ in range(self.nb_nets)]
