@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import wandb
 
 from components.uncert_agents.abstact import AbstactAgent
 from models.bnn import BayesianModel
@@ -68,13 +69,22 @@ class BnnAgent(AbstactAgent):
             ).squeeze(dim=-1)
             expected_Q = rewards + (1 - dones) * self._gamma * next_Q
 
-            loss1 += self._criterion(curr_Q1, expected_Q.detach())
-            loss2 += self._criterion(curr_Q2, expected_Q.detach())
+            value_loss1 = self._criterion(curr_Q1, expected_Q.detach())
+            value_loss2 = self._criterion(curr_Q2, expected_Q.detach())
 
             kld_loss1 = self._model1.nn_kl_divergence() * self.complexity_cost_weight
             kld_loss2 = self._model2.nn_kl_divergence() * self.complexity_cost_weight
-            loss1 += kld_loss1
-            loss2 += kld_loss2
+            loss1 += kld_loss1 + value_loss1
+            loss2 += kld_loss2 + value_loss2
+
+            wandb.log(
+                {
+                    "Value Loss 1": float(value_loss1),
+                    "Value Loss 2": float(value_loss2),
+                    "KLD Loss 2": float(kld_loss1),
+                    "KLD Loss 2": float(kld_loss2),
+                }
+            )
 
         return loss1, loss2
     

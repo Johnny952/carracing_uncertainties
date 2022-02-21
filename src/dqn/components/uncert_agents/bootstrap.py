@@ -66,8 +66,12 @@ class BootstrapAgent(AbstactAgent):
         states, actions, next_states, rewards, dones = self.unpack(
             self._buffer.sample()
         )
-        indices = [torch.randperm(self._buffer.batch_size)
-                   for _ in range(self.nb_nets)]
+        # Random bagging
+        indices = [torch.utils.data.RandomSampler(range(
+            self._buffer.batch_size), num_samples=self._buffer.batch_size, replacement=True) for _ in range(self.nb_nets)]
+        # Random permutation
+        # indices = [torch.randperm(self._buffer.batch_size)
+        #            for _ in range(self.nb_nets)]
         acc_loss1 = 0
         acc_loss2 = 0
         for model1, model2, optimizer1, optimizer2, index in zip(self._model1, self._model2, self._optimizer1, self._optimizer2, indices):
