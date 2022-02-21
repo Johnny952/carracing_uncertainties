@@ -56,8 +56,8 @@ class BaseNoise:
         return self._min + (self._max - self._min) * (1 - 1 / (1 + np.exp(-self._factor / self._max_steps * (step - self._max_steps/2))))
     
     def noise(self):
-        self._step += 1
         random = np.random.normal(loc=0, scale=self._get_noise(self._step))
+        self._step += 1
         return np.ones(self.action_dimension) * random
 
 # from https://github.com/songrotek/DDPG/blob/master/ou_noise.py

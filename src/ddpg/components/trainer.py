@@ -47,7 +47,7 @@ class Trainer:
         running_score = 0
 
         for episode_nb in tqdm(range(self._nb_training_ep), "Training"):
-            self.reset_noise()
+            # self.reset_noise()
             ob_t = self._env.reset()
             score = 0
             rewards = []
@@ -55,6 +55,7 @@ class Trainer:
             green_rewards = []
             base_rewards = []
             speeds = []
+            action_noises = []
 
             for _ in range(self._skip_zoom):
                 ob_t = self._env.step([0, 0, 0])[0]
@@ -87,6 +88,7 @@ class Trainer:
                 green_rewards.append(info["green_reward"])
                 speeds.append(info["speed"])
                 base_rewards.append(info["base_reward"])
+                action_noises.append(self._noises[0].get_var())
                 self._global_step += 1
 
                 if done or die:
@@ -106,6 +108,7 @@ class Trainer:
                     "Episode Base Reward": float(np.sum(base_rewards)),
                     "Episode Mean Speed": float(np.mean(speeds)),
                     "Episode Noise": float(info["noise"]),
+                    "Episode Action Noise": float(np.mean(action_noises)),
                 }
             )
 
