@@ -1,4 +1,5 @@
 import torch
+import wandb
 import numpy as np
 
 from components.uncert_agents.abstact import AbstactAgent
@@ -34,7 +35,6 @@ class BootstrapAgent(AbstactAgent):
         )
         self.nb_nets = nb_nets
         self._criterion = gaussian_loss
-        self._value_scale = 1 / nb_nets
 
         self._model1 = [Aleatoric(img_stack, len(actions)).to(
             device) for _ in range(nb_nets)]
@@ -50,10 +50,13 @@ class BootstrapAgent(AbstactAgent):
         values_list = []
         log_var_list = []
         for model in self._model1:
-            _, values, log_var = model(observation)
-            values_list.append(values)
+            _, mu, log_var = model(observation)
+            values_list.append(mu)
             log_var_list.append(log_var)
         values_list = torch.stack(values_list).squeeze(dim=1)
+        wandb.log({
+            "Magnitude Value": torch.abs(values_list).sum()
+        })
         sigma_list = torch.exp(torch.stack(log_var_list)).squeeze(dim=1)
         distribution = GaussianMixture(values_list, sigma_list, device=self._device)
         values = distribution.mean.unsqueeze(dim=0)

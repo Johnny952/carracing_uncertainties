@@ -86,7 +86,7 @@ class AbstactAgent:
         if greedy or np.random.rand() > self._epsilon.epsilon():
             # Select action greedily
             with torch.no_grad():
-                index, aleatoric, epistemic = self.get_values(
+                index, epistemic, aleatoric = self.get_values(
                     (torch.from_numpy(observation).unsqueeze(dim=0).float()).to(
                         self._device
                     )
