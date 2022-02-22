@@ -57,7 +57,6 @@ class Trainer:
                     ob_t, action_idx, ob_t1, reward, (done or die)
                 ):
                     self._agent.update()
-
                 wandb.log(
                     {
                         "Instant Step": self._global_step,

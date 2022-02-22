@@ -111,21 +111,20 @@ class Env():
             die_reward = 0
             if die:
                 die_reward = 100
-                # reward += 100
             # green penalty
             green_reward = 0
             if np.mean(img_rgb[:, :, 1]) > 185.0:
                 green_reward = self.green_reward
-                # reward -= 0.05
-            reward += die_reward + green_reward
-            total_reward += reward
-            total_steps += 1
-            green_rewards.append(green_reward)
             # if no reward recently, end the episode
             done = False
+            done_reward = 0
             if self.av_r(reward) <= -0.1:
-                reward += self.done_reward
+                done_reward += self.done_reward
                 done = True
+            reward += die_reward + green_reward + done_reward
+            total_steps += 1
+            green_rewards.append(green_reward)
+            total_reward += reward
             if done or die:
                 break
         
