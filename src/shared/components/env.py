@@ -124,7 +124,7 @@ class Env():
             # if no reward recently, end the episode
             done = False
             if self.av_r(reward) <= -0.1:
-                reward = self.done_reward
+                reward += self.done_reward
                 done = True
             if done or die:
                 break
