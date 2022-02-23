@@ -50,7 +50,7 @@ class Trainer:
                 action, a_logp = self._agent.select_action(state)[:2]
                 state_, reward, done, die = self._env.step(
                     action * np.array([2.0, 1.0, 1.0]) + np.array([-1.0, 0.0, 0.0])
-                )
+                )[:4]
                 if self._agent.store_transition(
                     (state, action, a_logp, reward, state_)
                 ):
