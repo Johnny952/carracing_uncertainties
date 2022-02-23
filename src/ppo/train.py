@@ -2,7 +2,6 @@ import argparse
 import torch
 import os
 import wandb
-import json
 import glob
 from termcolor import colored
 from pyvirtualdisplay import Display
@@ -154,9 +153,7 @@ if __name__ == "__main__":
     print(colored(f"Using: {device}", "green"))
 
     # Init Wandb
-    with open("config.json") as config_file:
-        config = json.load(config_file)
-    wandb.init(project=config["project"], entity=config["entity"])
+    wandb.init(project="carracing-dqn")
 
     # print("Training model: {} with {} networks".format(args.model, args.uncert_q))
 

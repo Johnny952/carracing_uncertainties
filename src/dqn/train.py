@@ -2,7 +2,6 @@ import argparse
 import numpy as np
 import torch
 import wandb
-import json
 import os
 import glob
 from termcolor import colored
@@ -259,9 +258,7 @@ if __name__ == "__main__":
     print(colored(f"Using: {device}", "green"))
 
     # Init Wandb
-    with open("config.json") as config_file:
-        config = json.load(config_file)
-    wandb.init(project=config["project"], entity=config["entity"])
+    wandb.init(project="carracing-dqn")
 
     # Noise parser
     if args.noise:

@@ -2,7 +2,6 @@ import argparse
 import numpy as np
 import torch
 import wandb
-import json
 import os
 import glob
 from termcolor import colored
@@ -13,9 +12,16 @@ import sys
 sys.path.append('..')
 from shared.components.env import Env
 from shared.utils.utils import init_uncert_file
-from components.agent import make_agent
+from components.uncert_agents import make_agent
 from components.trainer import Trainer
 
+STEER_RANGE = [-0.5, 0.5]
+THROTTLE_RANGE = [0, 1]
+BRAKE_RANGE = [0, 0.2]
+
+def make_soft_actions(actions: list, factor: float):
+    soft_actions = np.array(actions) * factor
+    return tuple(soft_actions.tolist())
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -35,7 +41,7 @@ if __name__ == "__main__":
         "-N",
         "--noise",
         type=str,
-        default="0,0.3",
+        default="0,0.1",
         # default=None,
         help='Whether to use noise or not, and standard deviation bounds separated by comma (ex. "0,0.5")',
     )
@@ -61,23 +67,17 @@ if __name__ == "__main__":
         help="Which RL model use: dqn, ddqn2015 or ddqn2018",
     )
     agent_config.add_argument(
-        "-LR", "--learning-rate", type=float, default=0.001, help="Learning Rate"
-    )
-    agent_config.add_argument(
-        "-G", "--gamma", type=float, default=0.95, help="Discount factor"
+        "-NN",
+        "--nb-nets",
+        type=int,
+        default=10,
+        help="Number of networks to estimate uncertainties",
     )
     agent_config.add_argument(
         "-IS", "--image-stack", type=int, default=4, help="Number of images to stack"
     )
     agent_config.add_argument(
-        "-BC",
-        "--buffer-capacity",
-        type=int,
-        default=8000,
-        help="Replay buffer capacity",
-    )
-    agent_config.add_argument(
-        "-BS", "--batch-size", type=int, default=16, help="Batch size"
+        "-A", "--actions", type=str, default="0.25,0.5", help="Basic actions multipliers as list, for example '0.25,0.5'"
     )
     agent_config.add_argument(
         "-FC",
@@ -113,39 +113,26 @@ if __name__ == "__main__":
 
     old_settings = np.seterr(all="raise")
 
-    actions = (
-        [-1, 0, 0],  # Turn Left
-        [1, 0, 0],  # Turn Right
-        [0, 0, 1],  # Full Break
-        [0, 1, 0],  # Accelerate
-        [0, 0, 0],  # Do nothing
-        [-1, 1, 0],  # Left accelerate
-        [1, 1, 0],  # Right accelerate
-        [-1, 0, 1],  # Left break
-        [1, 0, 1],  # Right break
-        [-0.5, 0, 0],  # Soft left
-        [0.5, 0, 0],  # Soft right
-        [0, 0, 0.5],  # Soft break
-        [0, 0.5, 0],  # Soft accelerate
-        [-0.5, 0.5, 0],  # Soft Left accelerate
-        [0.5, 0.5, 0],  # Soft Right accelerate
-        [-0.5, 0, 0.5],  # Soft Left break
-        [0.5, 0, 0.5],  # Soft Right break
+    do_nothing_action = tuple([[0, THROTTLE_RANGE[0], BRAKE_RANGE[0]]])
+    full_actions = (
+        [STEER_RANGE[0], THROTTLE_RANGE[0], BRAKE_RANGE[0]],  # Turn Left
+        [STEER_RANGE[1], THROTTLE_RANGE[0], BRAKE_RANGE[0]],  # Turn Right
+        [0, THROTTLE_RANGE[0], BRAKE_RANGE[1]],  # Full Break
+        [0, THROTTLE_RANGE[1], BRAKE_RANGE[0]],  # Accelerate
+        [STEER_RANGE[0], THROTTLE_RANGE[1], BRAKE_RANGE[0]],  # Left accelerate
+        [STEER_RANGE[1], THROTTLE_RANGE[1], BRAKE_RANGE[0]],  # Right accelerate
+        [STEER_RANGE[0], THROTTLE_RANGE[0], BRAKE_RANGE[1]],  # Left break
+        [STEER_RANGE[1], THROTTLE_RANGE[0], BRAKE_RANGE[1]],  # Right break
     )
-    # actions = (
-    #         [-1, 1, 0.2],
-    #         [0, 1, 0.2],
-    #         [1, 1, 0.2],
-    #         [-1, 1,   0],
-    #         [0, 1,   0],
-    #         [1, 1,   0],
-    #         [-1, 0, 0.2],
-    #         [0, 0, 0.2],
-    #         [1, 0, 0.2],
-    #         [-1, 0,   0],
-    #         [0, 0,   0],
-    #         [1, 0,   0]
-    #     )
+    alter_actions = ()
+    args_actions = [float(i.strip()) for i in args.actions.split(',')]
+    for mult in args_actions:
+        alter_actions += make_soft_actions(full_actions, mult)
+    actions = (
+        do_nothing_action
+        + full_actions
+        + alter_actions
+    )
 
     print(colored("Initializing data folders", "blue"))
     # Init model checkpoint folder and uncertainties folder
@@ -181,9 +168,7 @@ if __name__ == "__main__":
     print(colored(f"Using: {device}", "green"))
 
     # Init Wandb
-    with open("config.json") as config_file:
-        config = json.load(config_file)
-    wandb.init(project=config["project"], entity=config["entity"])
+    wandb.init(project="carracing-dqn")
 
     # Noise parser
     if args.noise:
@@ -195,12 +180,14 @@ if __name__ == "__main__":
     print(colored("Initializing agent and environments", "blue"))
     agent = make_agent(
         args.model,
+        args.nb_nets,
         args.image_stack,
         actions,
-        args.learning_rate,
-        args.gamma,
-        args.buffer_capacity,
-        args.batch_size,
+        0.001,
+        0.95,
+        None,
+        None,
+        64,
         device=device,
         clip_grad=False,
     )
@@ -219,12 +206,7 @@ if __name__ == "__main__":
 
     # Wandb config specification
     config = wandb.config
-    config.args = args
-
-    if args.model.lower() in ["dqn", "ddqn2015"]:
-        wandb.watch(agent._model)
-    elif args.model.lower() in ["ddqn2018"]:
-        wandb.watch(agent._model1)
+    config.args = vars(args)
 
     noise_print = "not using noise"
     if env.use_noise:
