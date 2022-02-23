@@ -222,7 +222,7 @@ if __name__ == "__main__":
         )
     )
 
-    for noise in tqdm(np.linspace(add_noise[0], add_noise[1], args.noise_steps)):
+    for idx, noise in enumerate(tqdm(np.linspace(add_noise[0], add_noise[1], args.noise_steps))):
         eval_env.set_noise_value(noise)
         trainer = Trainer(
             env,
@@ -232,5 +232,5 @@ if __name__ == "__main__":
             eval_episodes=args.eval_episodes,
             model_name=args.model,
         )
-        trainer.eval(0, mode="test")
+        trainer.eval(idx, mode="test")
 

@@ -42,7 +42,7 @@ if __name__ == "__main__":
         help='Whether to use noise or not, and standard deviation bounds separated by comma (ex. "0,0.5")',
     )
     env_config.add_argument(
-        "-NS", "--noise-steps", type=int, default=25, help="Number of noise steps",
+        "-NS", "--noise-steps", type=int, default=50, help="Number of noise steps",
     )
 
     # Agent Config
@@ -86,7 +86,7 @@ if __name__ == "__main__":
         "-V",
         "--validations",
         type=int,
-        default=3,
+        default=5,
         help="Number validations each noise step",
     )
     eval_config.add_argument(
@@ -186,7 +186,7 @@ if __name__ == "__main__":
         )
     )
 
-    for noise in tqdm(np.linspace(add_noise[0], add_noise[1], args.noise_steps)):
+    for idx, noise in enumerate(tqdm(np.linspace(add_noise[0], add_noise[1], args.noise_steps))):
         eval_env.set_noise_value(noise)
         trainer = Trainer(
             agent,
@@ -196,5 +196,5 @@ if __name__ == "__main__":
             nb_evaluations=args.validations,
             model_name=args.model,
         )
-        trainer.eval(0, mode="test")
+        trainer.eval(idx, mode="test")
 

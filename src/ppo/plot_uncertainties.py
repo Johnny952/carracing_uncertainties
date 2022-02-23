@@ -46,7 +46,7 @@ def process(epochs, reward, epist, aleat):
     std_epist = np.zeros(unique_ep.shape, dtype=np.float32)
     std_aleat = np.zeros(unique_ep.shape, dtype=np.float32)
     for idx, ep in enumerate(unique_ep):
-        indexes = np.argwhere(ep == epochs).astype(np.int)
+        indexes = np.argwhere(ep == epochs).astype(int)
         mean_reward[idx] = np.mean(reward[indexes])
         std_reward[idx] = np.std(reward[indexes])
         for i in range(indexes.shape[0]):
@@ -290,7 +290,6 @@ def plot_uncert_test(
 
         # if 'mix' in name.lower():
         #    mean_epist = 1 - np.exp(mean_epist)
-
         mean_epist = scale01(mean_epist)
         mean_aleat = scale01(mean_aleat)
 
@@ -475,5 +474,5 @@ if __name__ == "__main__":
         "Bootstrap",
     ]
 
-    # plot_uncert_test(test_paths, names, colors=colors, linewidths=linewidths, smooth=2)
-    # plotly_test(test_paths, names, colors=colors_px, smooth=2)
+    plot_uncert_test(test_paths, names, colors=colors, linewidths=linewidths, smooth=2)
+    plotly_test(test_paths, names, colors=colors_px, smooth=2)
