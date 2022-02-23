@@ -99,7 +99,7 @@ class VAETrainerModel(BaseTrainerModel):
             [_, log_var] = self._vae.encode(state)
 
         # TODO: Aleatoric estimation
-        epistemic = -torch.sum(log_var)
+        epistemic = torch.sum(torch.exp(log_var))
         aleatoric = torch.Tensor([0])
 
         (alpha, beta), v = self.forward_nograd(state)

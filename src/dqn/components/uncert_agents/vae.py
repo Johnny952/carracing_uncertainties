@@ -51,7 +51,7 @@ class VaeAgent(AbstactAgent):
         values = self._model1(observation)
         _, index = torch.max(values, dim=-1)
         [_, log_var] = self._vae.encode(observation)
-        epistemic = -torch.sum(log_var)
+        epistemic = torch.sum(torch.exp(log_var))
         aleatoric = torch.Tensor([0])
         return index, epistemic, aleatoric
     
