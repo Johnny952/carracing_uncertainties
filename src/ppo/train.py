@@ -153,7 +153,7 @@ if __name__ == "__main__":
     print(colored(f"Using: {device}", "green"))
 
     # Init Wandb
-    wandb.init(project="carracing-dqn")
+    wandb.init(project="carracing-ppo")
 
     # print("Training model: {} with {} networks".format(args.model, args.uncert_q))
 
