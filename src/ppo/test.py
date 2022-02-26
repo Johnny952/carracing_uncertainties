@@ -165,7 +165,7 @@ if __name__ == "__main__":
     config.ppo_epoch = agent.ppo_epoch
     config.buffer_capacity = agent.buffer_capacity
     config.device = agent.device
-    config.args = args
+    config.args = vars(args)
 
     if isinstance(agent._model._model, list):
         wandb.watch(agent._model._model[0])

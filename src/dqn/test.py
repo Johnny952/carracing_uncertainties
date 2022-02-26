@@ -46,7 +46,7 @@ if __name__ == "__main__":
         help='Whether to use noise or not, and standard deviation bounds separated by comma (ex. "0,0.5")',
     )
     env_config.add_argument(
-        "-NS", "--noise-steps", type=int, default=25, help="Number of noise steps",
+        "-NS", "--noise-steps", type=int, default=50, help="Number of noise steps",
     )
 
     env_config.add_argument(
@@ -63,8 +63,8 @@ if __name__ == "__main__":
         "-M",
         "--model",
         type=str,
-        default="ddqn2018",
-        help="Which RL model use: dqn, ddqn2015 or ddqn2018",
+        default="base",
+        help='Type of uncertainty model: "base", "sensitivity", "dropout", "bootstrap", "aleatoric", "bnn"',
     )
     agent_config.add_argument(
         "-NN",
@@ -201,7 +201,7 @@ if __name__ == "__main__":
         action_repeat=args.action_repeat,
         noise=add_noise,
     )
-    agent.load(args.from_checkpoint)
+    agent.load_param(args.from_checkpoint, eval_mode=True)
     print(colored("Agent and environments created successfully", "green"))
 
     # Wandb config specification
@@ -209,11 +209,11 @@ if __name__ == "__main__":
     config.args = vars(args)
 
     noise_print = "not using noise"
-    if env.use_noise:
-        if env.generate_noise:
-            noise_print = f"using noise with [{env.noise_lower}, {env.noise_upper}] std bounds"
+    if eval_env.use_noise:
+        if eval_env.generate_noise:
+            noise_print = f"using noise with [{eval_env.noise_lower}, {eval_env.noise_upper}] std bounds"
         else:
-            noise_print = f"using noise with [{env.random_noise}] std"
+            noise_print = f"using noise with [{eval_env.random_noise}] std"
 
     print(
         colored(

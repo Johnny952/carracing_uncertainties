@@ -127,10 +127,10 @@ class BootstrapAgent(AbstactAgent):
             "epoch": epoch,
         }
         for idx, (model1, model2, optimizer1, optimizer2) in enumerate(zip(self._model1, self._model2, self._optimizer1, self._optimizer2)):
-            tosave[f"model1_state_dict_{idx}"] = model1
-            tosave[f"model2_state_dict_{idx}"] = model2
-            tosave[f"optimizer1_state_dict_{idx}"] = optimizer1
-            tosave[f"optimizer2_state_dict_{idx}"] = optimizer2
+            tosave[f"model1_state_dict_{idx}"] = model1.state_dict(),
+            tosave[f"model2_state_dict_{idx}"] = model2.state_dict(),
+            tosave[f"optimizer1_state_dict_{idx}"] = optimizer1.state_dict(),
+            tosave[f"optimizer2_state_dict_{idx}"] = optimizer2.state_dict(),
         torch.save(tosave, path)
 
     def load_param(self, path, eval_mode=False):

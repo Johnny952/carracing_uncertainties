@@ -87,7 +87,7 @@ if __name__ == "__main__":
         "--model",
         type=str,
         default="base",
-        help='Type of uncertainty model: "base", "sensitivity", "dropout", "bootstrap", "aleatoric", "bnn" or "custom"',
+        help='Type of uncertainty model: "base", "sensitivity", "dropout", "bootstrap", "aleatoric", "bnn"',
     )
     agent_config.add_argument(
         "-NN",
@@ -316,7 +316,7 @@ if __name__ == "__main__":
     )
     init_epoch = 0
     if args.from_checkpoint:
-        init_epoch = agent.load(args.from_checkpoint)
+        init_epoch = agent.load_param(args.from_checkpoint)
     print(colored("Agent and environments created successfully", "green"))
 
     # Wandb config specification
