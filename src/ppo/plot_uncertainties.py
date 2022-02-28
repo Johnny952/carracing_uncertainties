@@ -70,6 +70,7 @@ def plot_uncert_train(
     unc_path="images/uncertainties_train.png",
     rwd_path="images/rewards_train.png",
     smooth=None,
+    plot_variance=False,
 ):
     assert len(paths) == len(names)
     if colors is not None:
@@ -123,14 +124,15 @@ def plot_uncert_train(
         ax_rwd.plot(
             unique_ep, mean_reward, color, label="Mean " + name, linewidth=linewidth
         )
-        ax_rwd.fill_between(
-            unique_ep,
-            (mean_reward - std_reward),
-            (mean_reward + std_reward),
-            color=color,
-            alpha=0.2,
-            label="Std " + name,
-        )
+        if plot_variance:
+            ax_rwd.fill_between(
+                unique_ep,
+                (mean_reward - std_reward),
+                (mean_reward + std_reward),
+                color=color,
+                alpha=0.2,
+                label="Std " + name,
+            )
 
     ax_unc[0].legend()
     ax_unc[1].legend()
@@ -141,7 +143,7 @@ def plot_uncert_train(
 
 
 def plotly_train(
-    paths, names, colors=None, save_fig="images/uncertainties_train.html", smooth=None
+    paths, names, colors=None, save_fig="images/uncertainties_train.html", smooth=None, plot_variance=False
 ):
     fig = make_subplots(
         rows=2,
@@ -173,20 +175,21 @@ def plotly_train(
         rgb_color = [str(int(aux[i : i + 2], 16)) for i in (0, 2, 4)] + ["0.2"]
         str_color = "rgba({})".format(",".join(rgb_color))
 
-        fig.add_trace(
-            go.Scatter(
-                x=np.concatenate([unique_ep, unique_ep[::-1]]),
-                y=np.concatenate([rwd_upper, rwd_lower[::-1]]),
-                fill="toself",
-                line_color="rgba(255,255,255,0)",
-                fillcolor=str_color,
-                showlegend=False,
-                legendgroup=name,
-                name=name,
-            ),
-            row=2,
-            col=1,
-        )
+        if plot_variance:
+            fig.add_trace(
+                go.Scatter(
+                    x=np.concatenate([unique_ep, unique_ep[::-1]]),
+                    y=np.concatenate([rwd_upper, rwd_lower[::-1]]),
+                    fill="toself",
+                    line_color="rgba(255,255,255,0)",
+                    fillcolor=str_color,
+                    showlegend=False,
+                    legendgroup=name,
+                    name=name,
+                ),
+                row=2,
+                col=1,
+            )
 
         fig.add_trace(
             go.Scatter(
@@ -249,6 +252,7 @@ def plot_uncert_test(
     unc_path="images/uncertainties_test.png",
     rwd_path="images/rewards_test.png",
     smooth=None,
+    plot_variance=False
 ):
     assert len(paths) == len(names)
     if colors is not None:
@@ -307,14 +311,15 @@ def plot_uncert_test(
         ax_rwd.plot(
             sigma, mean_reward, color, label="Mean " + name, linewidth=linewidth
         )
-        ax_rwd.fill_between(
-            sigma,
-            (mean_reward - std_reward),
-            (mean_reward + std_reward),
-            color=color,
-            alpha=0.2,
-            label="Std " + name,
-        )
+        if plot_variance:
+            ax_rwd.fill_between(
+                sigma,
+                (mean_reward - std_reward),
+                (mean_reward + std_reward),
+                color=color,
+                alpha=0.2,
+                label="Std " + name,
+            )
 
     ax_unc[0].legend()
     ax_unc[1].legend()
@@ -325,7 +330,7 @@ def plot_uncert_test(
 
 
 def plotly_test(
-    paths, names, colors=None, save_fig="images/uncertainties_test.html", smooth=None
+    paths, names, colors=None, save_fig="images/uncertainties_test.html", smooth=None, plot_variance=False
 ):
     fig = make_subplots(
         rows=2,
@@ -360,20 +365,21 @@ def plotly_test(
         rgb_color = [str(int(aux[i : i + 2], 16)) for i in (0, 2, 4)] + ["0.2"]
         str_color = "rgba({})".format(",".join(rgb_color))
 
-        fig.add_trace(
-            go.Scatter(
-                x=np.concatenate([sigma, sigma[::-1]]),
-                y=np.concatenate([rwd_upper, rwd_lower[::-1]]),
-                fill="toself",
-                line_color="rgba(255,255,255,0)",
-                fillcolor=str_color,
-                showlegend=False,
-                legendgroup=name,
-                name=name,
-            ),
-            row=2,
-            col=1,
-        )
+        if plot_variance:
+            fig.add_trace(
+                go.Scatter(
+                    x=np.concatenate([sigma, sigma[::-1]]),
+                    y=np.concatenate([rwd_upper, rwd_lower[::-1]]),
+                    fill="toself",
+                    line_color="rgba(255,255,255,0)",
+                    fillcolor=str_color,
+                    showlegend=False,
+                    legendgroup=name,
+                    name=name,
+                ),
+                row=2,
+                col=1,
+            )
 
         fig.add_trace(
             go.Scatter(
@@ -431,6 +437,7 @@ def plotly_test(
 
 
 if __name__ == "__main__":
+    plot_variance = False
     train_paths = [
         "uncertainties/train/base.txt",
         "uncertainties/train/bnn.txt",
@@ -438,6 +445,7 @@ if __name__ == "__main__":
         "uncertainties/train/dropout.txt",
         "uncertainties/train/sensitivity.txt",
         "uncertainties/train/vae.txt",
+        "uncertainties/train/aleatoric.txt",
     ]
     names = [
         "Base",
@@ -446,6 +454,7 @@ if __name__ == "__main__":
         "Dropout",
         "Sensitivity",
         "VAE",
+        "Aleatoric",
     ]
     colors = ["k", "r", "y", "g", "b", "c", "m", "tab:cyan"]
     colors_px = px.colors.qualitative.Plotly
@@ -455,9 +464,9 @@ if __name__ == "__main__":
         os.makedirs("images")
 
     plot_uncert_train(
-        train_paths, names, colors=colors, linewidths=linewidths, smooth=2
+        train_paths, names, colors=colors, linewidths=linewidths, smooth=2, plot_variance=plot_variance,
     )
-    plotly_train(train_paths, names, colors=colors_px, smooth=2)
+    plotly_train(train_paths, names, colors=colors_px, smooth=2, plot_variance=plot_variance)
 
     test_paths = [
         "uncertainties/test/base.txt",
@@ -474,5 +483,5 @@ if __name__ == "__main__":
         "Bootstrap",
     ]
 
-    plot_uncert_test(test_paths, names, colors=colors, linewidths=linewidths, smooth=2)
-    plotly_test(test_paths, names, colors=colors_px, smooth=2)
+    plot_uncert_test(test_paths, names, colors=colors, linewidths=linewidths, smooth=2, plot_variance=plot_variance)
+    plotly_test(test_paths, names, colors=colors_px, smooth=2, plot_variance=plot_variance)
