@@ -135,16 +135,15 @@ class BootstrapAgent(AbstactAgent):
 
     def load_param(self, path, eval_mode=False):
         checkpoint = torch.load(path)
-        for idx, (model1, model2, optimizer1, optimizer2) in enumerate(zip(self._model1, self._model2, self._optimizer1, self._optimizer2)):
-            model1.load_state_dict(checkpoint[f"model1_state_dict_{idx}"])
-            model2.load_state_dict(checkpoint[f"model2_state_dict_{idx}"])
-            optimizer1.load_state_dict(checkpoint[f"optimizer1_state_dict_{idx}"])
-            optimizer2.load_state_dict(checkpoint[f"optimizer2_state_dict_{idx}"])
-
+        for idx in range(self.nb_nets):
+            self._model1[idx].load_state_dict(checkpoint[f"model1_state_dict_{idx}"][0])
+            self._model2[idx].load_state_dict(checkpoint[f"model2_state_dict_{idx}"][0])
+            self._optimizer1[idx].load_state_dict(checkpoint[f"optimizer1_state_dict_{idx}"][0])
+            self._optimizer2[idx].load_state_dict(checkpoint[f"optimizer2_state_dict_{idx}"][0])
             if eval_mode:
-                model1.eval()
-                model2.eval()
+                self._model1[idx].eval()
+                self._model2[idx].eval()
             else:
-                model1.train()
-                model2.train()
+                self._model1[idx].train()
+                self._model2[idx].train()
         return checkpoint["epoch"]

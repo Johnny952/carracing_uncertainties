@@ -441,11 +441,11 @@ def plotly_test(
 if __name__ == "__main__":
     plot_variance = False
     train_paths = [
-        "uncertainties/train/ddqn_base_c077a8fa-b895-4aeb-85f6-0396baaf46c7.txt",
-        "uncertainties/train/ddqn_bnn_a0653354-b837-4782-8b3b-81f4de95be1e.txt",
-        "uncertainties/train/ddqn_bootstrap_fe0d9c0d-16fd-41b4-a306-549ed8c65fc3.txt",
-        "uncertainties/train/ddqn_dropout_481dd29d-3ecc-48aa-9249-31896c98036f.txt",
-        "uncertainties/train/ddqn_sensitivity_03ec9544-d59e-4a64-9dc3-7997dbd74d4d.txt",
+        "uncertainties/train/fix_ddqn_base_c077a8fa-b895-4aeb-85f6-0396baaf46c7.txt",
+        "uncertainties/train/fix_ddqn_bnn_a0653354-b837-4782-8b3b-81f4de95be1e.txt",
+        "uncertainties/train/ddqn_bootstrap_8b9714f5-5aee-4427-9e62-383c0b2d0ccc.txt",
+        "uncertainties/train/fix_ddqn_dropout_481dd29d-3ecc-48aa-9249-31896c98036f.txt",
+        "uncertainties/train/fix_ddqn_sensitivity_03ec9544-d59e-4a64-9dc3-7997dbd74d4d.txt",
         "uncertainties/train/ddqn_vae_c3e688f6-e9d6-4dc9-94ad-27b66938ea3c.txt",
         "uncertainties/train/ddqn_aleatoric_9d9459b1-999d-49b3-87d4-06b4dcb86f6c.txt",
     ]
@@ -475,7 +475,7 @@ if __name__ == "__main__":
         "uncertainties/test/dropout.txt",
         "uncertainties/test/sensitivity.txt",
         "uncertainties/test/vae.txt",
-        # "uncertainties/test/bootstrap.txt",
+        "uncertainties/test/bootstrap.txt",
         # "uncertainties/test/aleatoric.txt",
     ]
     names = [
@@ -483,7 +483,7 @@ if __name__ == "__main__":
         "Dropout",
         "Sensitivity",
         "VAE",
-        # "Bootstrap",
+        "Bootstrap",
         # "Aleatoric",
     ]
 

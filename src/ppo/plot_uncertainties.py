@@ -439,7 +439,7 @@ def plotly_test(
 if __name__ == "__main__":
     plot_variance = False
     train_paths = [
-        "uncertainties/train/base.txt",
+        "uncertainties/train/fix_base.txt",
         "uncertainties/train/bnn.txt",
         "uncertainties/train/bootstrap.txt",
         "uncertainties/train/dropout.txt",
