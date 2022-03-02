@@ -470,6 +470,7 @@ if __name__ == "__main__":
 
     test_paths = [
         "uncertainties/test/base.txt",
+        "uncertainties/test/bnn.txt",
         "uncertainties/test/dropout.txt",
         "uncertainties/test/sensitivity.txt",
         "uncertainties/test/vae.txt",
@@ -477,6 +478,7 @@ if __name__ == "__main__":
     ]
     names = [
         "Base",
+        "Bayesian NN",
         "Dropout",
         "Sensitivity",
         "VAE",
