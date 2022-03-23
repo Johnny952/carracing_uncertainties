@@ -11,10 +11,10 @@ def scale01(array):
     min_ = np.min(array)
     if max_ == min_:
         if max_ == 0:
-            return array
+            return array, 0
         else:
-            return array / max_
-    return (array - min_) / (max_ - min_)
+            return array / max_, 0
+    return (array - min_) / (max_ - min_), (max_ - min_)
 
 
 def read_uncert(path):
@@ -71,12 +71,15 @@ def plot_uncert_train(
     rwd_path="images/rewards_train.png",
     smooth=None,
     plot_variance=False,
+    multipliers=None,
 ):
     assert len(paths) == len(names)
     if colors is not None:
         assert len(colors) > len(paths)
     if linewidths is not None:
         assert len(linewidths) > len(paths)
+    if multipliers is None:
+        multipliers = [1 for _ in range(len(paths))]
 
     fig_rwd, ax_rwd = plt.subplots(nrows=1, ncols=1)
     fig_rwd.set_figheight(7)
@@ -93,7 +96,7 @@ def plot_uncert_train(
     ax_unc[1].set_title("Aleatoric Uncertainty", fontsize=16)
     ax_unc[1].set_xlabel("Episode")
 
-    for idx, (path, name) in enumerate(zip(paths, names)):
+    for idx, (path, name, multiplier) in enumerate(zip(paths, names, multipliers)):
         color = colors[idx] if colors is not None else None
         linewidth = linewidths[idx] if linewidths is not None else None
         (
@@ -107,16 +110,16 @@ def plot_uncert_train(
             mean_epist = gaussian_filter1d(mean_epist, smooth)
             mean_aleat = gaussian_filter1d(mean_aleat, smooth)
 
-        mean_epist = scale01(mean_epist)
-        mean_aleat = scale01(mean_aleat)
+        mean_epist, magnitude_epist = scale01(mean_epist*multiplier)
+        mean_aleat, magnitude_aleat = scale01(mean_aleat*multiplier)
 
         # Plot uncertainties
         ax_unc[0].plot(
-            unique_ep, mean_epist, color, label="Mean " + name, linewidth=linewidth
+            unique_ep, mean_epist, color, label=f"Mean {name} ({magnitude_epist:.3f})", linewidth=linewidth
         )
         # ax_unc[0].fill_between(unique_ep, (mean_epist/np.max(mean_epist) - std_epist/np.max(std_epist)), (mean_epist/np.max(mean_epist) + std_epist/np.max(std_epist)), color=color, alpha=0.2, label="Std " + name)
         ax_unc[1].plot(
-            unique_ep, mean_aleat, color, label="Mean " + name, linewidth=linewidth
+            unique_ep, mean_aleat, color, label=f"Mean {name} ({magnitude_aleat:.3f})", linewidth=linewidth
         )
         # ax_unc[1].fill_between(unique_ep, (mean_aleat/np.max(mean_aleat) - std_aleat/np.max(std_aleat)), (mean_aleat/np.max(mean_aleat) + std_aleat/np.max(std_aleat)), color=color, alpha=0.2, label="Std " + name)
 
@@ -166,8 +169,8 @@ def plotly_train(
             mean_epist = gaussian_filter1d(mean_epist, smooth)
             mean_aleat = gaussian_filter1d(mean_aleat, smooth)
 
-        mean_epist = scale01(mean_epist)
-        mean_aleat = scale01(mean_aleat)
+        mean_epist, magnitude_epist = scale01(mean_epist)
+        mean_aleat, magnitude_aleat = scale01(mean_aleat)
 
         rwd_upper, rwd_lower = mean_reward + std_reward, (mean_reward - std_reward)
 
@@ -252,13 +255,16 @@ def plot_uncert_test(
     unc_path="images/uncertainties_test.png",
     rwd_path="images/rewards_test.png",
     smooth=None,
-    plot_variance=False
+    plot_variance=False,
+    multipliers=None
 ):
     assert len(paths) == len(names)
     if colors is not None:
         assert len(colors) > len(paths)
     if linewidths is not None:
         assert len(linewidths) > len(paths)
+    if multipliers is None:
+        multipliers = [1 for _ in range(len(paths))]
 
     fig_rwd, ax_rwd = plt.subplots(nrows=1, ncols=1)
     fig_rwd.set_figheight(7)
@@ -275,7 +281,7 @@ def plot_uncert_test(
     ax_unc[1].set_title("Aleatoric Uncertainty", fontsize=16)
     ax_unc[1].set_xlabel("Noise Variance")
 
-    for idx, (path, name) in enumerate(zip(paths, names)):
+    for idx, (path, name, multiplier) in enumerate(zip(paths, names, multipliers)):
         color = colors[idx] if colors is not None else None
         linewidth = linewidths[idx] if linewidths is not None else None
         (
@@ -294,16 +300,16 @@ def plot_uncert_test(
 
         # if 'mix' in name.lower():
         #    mean_epist = 1 - np.exp(mean_epist)
-        mean_epist = scale01(mean_epist)
-        mean_aleat = scale01(mean_aleat)
+        mean_epist, magnitude_epist = scale01(mean_epist*multiplier)
+        mean_aleat, magnitude_aleat = scale01(mean_aleat*multiplier)
 
         # Plot uncertainties
         ax_unc[0].plot(
-            sigma, mean_epist, color, label="Mean " + name, linewidth=linewidth
+            sigma, mean_epist, color, label=f"Mean {name} ({magnitude_epist:.3f})", linewidth=linewidth
         )
         # ax_unc[0].fill_between(sigma, (mean_epist/np.max(mean_epist) - std_epist/np.max(std_epist)), (mean_epist/np.max(mean_epist) + std_epist/np.max(std_epist)), color=color, alpha=0.2, label="Std " + name)
         ax_unc[1].plot(
-            sigma, mean_aleat, color, label="Mean " + name, linewidth=linewidth
+            sigma, mean_aleat, color, label=f"Mean {name} ({magnitude_aleat:.3f})", linewidth=linewidth
         )
         # ax_unc[1].fill_between(sigma, (mean_aleat/np.max(mean_aleat) - std_aleat/np.max(std_aleat)), (mean_aleat/np.max(mean_aleat) + std_aleat/np.max(std_aleat)), color=color, alpha=0.2, label="Std " + name)
 
@@ -356,8 +362,8 @@ def plotly_test(
             mean_epist = gaussian_filter1d(mean_epist, smooth)
             mean_aleat = gaussian_filter1d(mean_aleat, smooth)
 
-        mean_epist = scale01(mean_epist)
-        mean_aleat = scale01(mean_aleat)
+        mean_epist, magnitude_epist = scale01(mean_epist)
+        mean_aleat, magnitude_aleat = scale01(mean_aleat)
 
         rwd_upper, rwd_lower = mean_reward + std_reward, (mean_reward - std_reward)
 
@@ -456,6 +462,15 @@ if __name__ == "__main__":
         "VAE",
         "Aleatoric",
     ]
+    multipliers = [
+        100,
+        100000,
+        1,
+        1/10,
+        100,
+        1/100,
+        1,
+    ]
     colors = ["k", "r", "y", "g", "b", "c", "m", "tab:cyan"]
     colors_px = px.colors.qualitative.Plotly
     linewidths = [2, 2, 2, 2, 2, 2, 2, 2]
@@ -464,26 +479,28 @@ if __name__ == "__main__":
         os.makedirs("images")
 
     plot_uncert_train(
-        train_paths, names, colors=colors, linewidths=linewidths, smooth=2, plot_variance=plot_variance,
+        train_paths, names, colors=colors, linewidths=linewidths, smooth=2, plot_variance=plot_variance, multipliers=multipliers
     )
     plotly_train(train_paths, names, colors=colors_px, smooth=2, plot_variance=plot_variance)
 
     test_paths = [
         "uncertainties/test/base.txt",
         "uncertainties/test/bnn.txt",
+        "uncertainties/test/bootstrap.txt",
         "uncertainties/test/dropout.txt",
         "uncertainties/test/sensitivity.txt",
         "uncertainties/test/vae.txt",
-        "uncertainties/test/bootstrap.txt",
+        
     ]
     names = [
         "Base",
         "Bayesian NN",
+        "Bootstrap",
         "Dropout",
         "Sensitivity",
         "VAE",
-        "Bootstrap",
+        
     ]
 
-    plot_uncert_test(test_paths, names, colors=colors, linewidths=linewidths, smooth=2, plot_variance=plot_variance)
+    plot_uncert_test(test_paths, names, colors=colors, linewidths=linewidths, smooth=2, plot_variance=plot_variance, multipliers=multipliers)
     plotly_test(test_paths, names, colors=colors_px, smooth=2, plot_variance=plot_variance)

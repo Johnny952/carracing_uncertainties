@@ -32,7 +32,6 @@ class Aleatoric(nn.Module):
             nn.Linear(128, 16),
             nn.ReLU(), 
             nn.Linear(16, 1),
-            #nn.Softplus()
         )
         self.apply(self._weights_init)
 

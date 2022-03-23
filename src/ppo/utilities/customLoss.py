@@ -14,12 +14,12 @@ def ll_gaussian(y, mu, log_var):  # log-likelihood of gaussian
     return -0.5 * torch.log(2 * np.pi * sigma**2) - (1 / (2 * sigma**2)) * (y-mu)**2
 
 
-def elbo(y_pred, y, mu, log_var):
+def elbo(y_pred, y, mu, log_var, weight_decay=1e-4):
     # likelihood of observing y given Variational mu and sigma
     likelihood = ll_gaussian(y, mu, log_var)
 
     # prior probability of y_pred
-    log_prior = ll_gaussian(y_pred, 0, torch.log(torch.tensor(1.)))
+    log_prior = ll_gaussian(y_pred, 0, torch.log(torch.tensor(1./weight_decay)))
 
     # variational probability of y_pred
     log_p_q = ll_gaussian(y_pred, mu, log_var)
@@ -28,8 +28,8 @@ def elbo(y_pred, y, mu, log_var):
     return (likelihood + log_prior - log_p_q).mean()
 
 
-def det_loss(y_pred, y, mu, log_var):
-    return -elbo(y_pred, y, mu, log_var)
+def det_loss(y_pred, y, mu, log_var, weight_decay=1e-4):
+    return -elbo(y_pred, y, mu, log_var, weight_decay=weight_decay)
 
 
 def flow_loss(log_prob_z0, log_prob_zk, log_det, x_hat, X_batch, loss_fn, scale=1):
