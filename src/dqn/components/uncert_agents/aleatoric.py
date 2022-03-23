@@ -31,6 +31,7 @@ class AleatoricAgent(AbstactAgent):
             clip_grad=clip_grad,
         )
 
+        self._weight_decay = 1e-4
         self._model1 = Aleatoric(img_stack, len(actions)).to(self._device)
         self._model2 = Aleatoric(img_stack, len(actions)).to(self._device)
 
@@ -43,7 +44,7 @@ class AleatoricAgent(AbstactAgent):
         _, values, log_var = self._model1(observation)
         _, index = torch.max(values, dim=-1)
         epistemic = torch.Tensor([0])
-        aleatoric = torch.exp(log_var[0, index[0].cpu().numpy()])
+        aleatoric = log_var[0, index[0].cpu().numpy()]
         return index, epistemic, aleatoric
     
     def compute_loss(self, states, actions, next_states, rewards, dones):
@@ -63,8 +64,8 @@ class AleatoricAgent(AbstactAgent):
         ).squeeze(dim=-1)
         expected_Q = rewards + (1 - dones) * self._gamma * next_Q
 
-        loss1 = self._criterion(curr_reparametrization1, expected_Q.detach(), curr_Q1, curr_log_var1)
-        loss2 = self._criterion(curr_reparametrization2, expected_Q.detach(), curr_Q2, curr_log_var2)
+        loss1 = self._criterion(curr_reparametrization1, expected_Q.detach(), curr_Q1, curr_log_var1, weight_decay=self._weight_decay)
+        loss2 = self._criterion(curr_reparametrization2, expected_Q.detach(), curr_Q2, curr_log_var2, weight_decay=self._weight_decay)
 
         return loss1, loss2
     
