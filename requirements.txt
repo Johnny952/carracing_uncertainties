@@ -13,3 +13,4 @@ termcolor
 ipywidgets
 tqdm
 nvidia-ml-py3
+torchbnn
