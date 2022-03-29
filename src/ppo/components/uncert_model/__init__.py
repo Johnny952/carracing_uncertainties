@@ -5,6 +5,7 @@ from .sensitivity_model import SensitivityTrainerModel
 from .bnn_model import BNNTrainerModel
 from .aleatoric_model import AleatoricTrainerModel
 from .vae_model import VAETrainerModel
+from .bnn_model2 import BNNTrainerModel2
 
 def make_model(nb_nets, lr, img_stack, gamma, batch_size, buffer_capacity, device='cpu', model='base'):
     switcher = {
@@ -13,6 +14,7 @@ def make_model(nb_nets, lr, img_stack, gamma, batch_size, buffer_capacity, devic
         'bootstrap': BootstrapTrainerModel,
         'sensitivity': SensitivityTrainerModel,
         'bnn': BNNTrainerModel,
+        'bnn2': BNNTrainerModel2,
         'aleatoric': AleatoricTrainerModel,
         'vae': VAETrainerModel,
     }
