@@ -67,8 +67,7 @@ def plot_uncert_train(
     names,
     colors=None,
     linewidths=None,
-    unc_path="images/uncertainties_train.png",
-    rwd_path="images/rewards_train.png",
+    unc_path="images/train.png",
     smooth=None,
     plot_variance=False,
     multipliers=None,
@@ -81,21 +80,17 @@ def plot_uncert_train(
     if multipliers is None:
         multipliers = [1 for _ in range(len(paths))]
 
-    fig_rwd, ax_rwd = plt.subplots(nrows=1, ncols=1)
-    fig_rwd.set_figheight(7)
-    fig_rwd.set_figwidth(20)
-    ax_rwd.set_xlabel("Episode", fontsize=16)
-    ax_rwd.set_ylabel("Reward", fontsize=16)
-
-    fig_unc, ax_unc = plt.subplots(nrows=1, ncols=2)
-    fig_unc.set_figheight(7)
-    fig_unc.set_figwidth(20)
-    fig_unc.suptitle("Uncertainties during training", fontsize=18)
-    ax_unc[0].set_title("Epistemic Uncertainty", fontsize=16)
-    ax_unc[0].set_xlabel("Episode")
-    ax_unc[1].set_title("Aleatoric Uncertainty", fontsize=16)
-    ax_unc[1].set_xlabel("Episode")
-
+    fig, ax = plt.subplots(nrows=3, ncols=1)
+    fig.set_figheight(10)
+    fig.set_figwidth(20)
+    fig.suptitle("Rewards and Uncertainties during training", fontsize=18)
+    # ax[0].set_xlabel("Episode", fontsize=16)
+    ax[0].set_ylabel("Reward", fontsize=16)
+    ax[1].set_ylabel("Epistemic Uncertainty", fontsize=16)
+    # ax[1].set_xlabel("Episode", fontsize=16)
+    ax[2].set_ylabel("Aleatoric Uncertainty", fontsize=16)
+    ax[2].set_xlabel("Episode", fontsize=16)
+    
     for idx, (path, name, multiplier) in enumerate(zip(paths, names, multipliers)):
         color = colors[idx] if colors is not None else None
         linewidth = linewidths[idx] if linewidths is not None else None
@@ -114,21 +109,21 @@ def plot_uncert_train(
         mean_aleat, magnitude_aleat = scale01(mean_aleat*multiplier)
 
         # Plot uncertainties
-        ax_unc[0].plot(
+        ax[1].plot(
             unique_ep, mean_epist, color, label=f"Mean {name} ({magnitude_epist:.3f})", linewidth=linewidth
         )
         # ax_unc[0].fill_between(unique_ep, (mean_epist/np.max(mean_epist) - std_epist/np.max(std_epist)), (mean_epist/np.max(mean_epist) + std_epist/np.max(std_epist)), color=color, alpha=0.2, label="Std " + name)
-        ax_unc[1].plot(
+        ax[2].plot(
             unique_ep, mean_aleat, color, label=f"Mean {name} ({magnitude_aleat:.3f})", linewidth=linewidth
         )
         # ax_unc[1].fill_between(unique_ep, (mean_aleat/np.max(mean_aleat) - std_aleat/np.max(std_aleat)), (mean_aleat/np.max(mean_aleat) + std_aleat/np.max(std_aleat)), color=color, alpha=0.2, label="Std " + name)
 
         # Plot rewards
-        ax_rwd.plot(
+        ax[0].plot(
             unique_ep, mean_reward, color, label="Mean " + name, linewidth=linewidth
         )
         if plot_variance:
-            ax_rwd.fill_between(
+            ax[0].fill_between(
                 unique_ep,
                 (mean_reward - std_reward),
                 (mean_reward + std_reward),
@@ -137,12 +132,10 @@ def plot_uncert_train(
                 label="Std " + name,
             )
 
-    ax_unc[0].legend()
-    ax_unc[1].legend()
-    fig_unc.savefig(unc_path)
-
-    ax_rwd.legend()
-    fig_rwd.savefig(rwd_path)
+    ax[0].legend()
+    # ax[1].legend()
+    # ax[2].legend()
+    fig.savefig(unc_path)
 
 
 def plotly_train(
@@ -252,8 +245,7 @@ def plot_uncert_test(
     names,
     colors=None,
     linewidths=None,
-    unc_path="images/uncertainties_test.png",
-    rwd_path="images/rewards_test.png",
+    unc_path="images/test.png",
     smooth=None,
     plot_variance=False,
     multipliers=None
@@ -266,20 +258,17 @@ def plot_uncert_test(
     if multipliers is None:
         multipliers = [1 for _ in range(len(paths))]
 
-    fig_rwd, ax_rwd = plt.subplots(nrows=1, ncols=1)
-    fig_rwd.set_figheight(7)
-    fig_rwd.set_figwidth(20)
-    ax_rwd.set_xlabel("Noise Variance", fontsize=16)
-    ax_rwd.set_ylabel("Reward", fontsize=16)
-
-    fig_unc, ax_unc = plt.subplots(nrows=1, ncols=2)
-    fig_unc.set_figheight(7)
-    fig_unc.set_figwidth(20)
-    fig_unc.suptitle("Uncertainties during test", fontsize=18)
-    ax_unc[0].set_title("Epistemic Uncertainty", fontsize=16)
-    ax_unc[0].set_xlabel("Noise Variance")
-    ax_unc[1].set_title("Aleatoric Uncertainty", fontsize=16)
-    ax_unc[1].set_xlabel("Noise Variance")
+    fig, ax = plt.subplots(nrows=3, ncols=1)
+    fig.set_figheight(10)
+    fig.set_figwidth(20)
+    fig.suptitle("Rewards and Uncertainties during test", fontsize=18)
+    # ax[0].set_xlabel("Noise Variance", fontsize=16)
+    ax[0].set_ylabel("Reward", fontsize=16)
+    ax[1].set_ylabel("Epistemic Uncertainty", fontsize=16)
+    # ax[1].set_xlabel("Noise Variance")
+    ax[2].set_ylabel("Aleatoric Uncertainty", fontsize=16)
+    ax[2].set_xlabel("Noise Variance", fontsize=16)
+    
 
     for idx, (path, name, multiplier) in enumerate(zip(paths, names, multipliers)):
         color = colors[idx] if colors is not None else None
@@ -304,21 +293,21 @@ def plot_uncert_test(
         mean_aleat, magnitude_aleat = scale01(mean_aleat*multiplier)
 
         # Plot uncertainties
-        ax_unc[0].plot(
+        ax[1].plot(
             sigma, mean_epist, color, label=f"Mean {name} ({magnitude_epist:.3f})", linewidth=linewidth
         )
         # ax_unc[0].fill_between(sigma, (mean_epist/np.max(mean_epist) - std_epist/np.max(std_epist)), (mean_epist/np.max(mean_epist) + std_epist/np.max(std_epist)), color=color, alpha=0.2, label="Std " + name)
-        ax_unc[1].plot(
+        ax[2].plot(
             sigma, mean_aleat, color, label=f"Mean {name} ({magnitude_aleat:.3f})", linewidth=linewidth
         )
         # ax_unc[1].fill_between(sigma, (mean_aleat/np.max(mean_aleat) - std_aleat/np.max(std_aleat)), (mean_aleat/np.max(mean_aleat) + std_aleat/np.max(std_aleat)), color=color, alpha=0.2, label="Std " + name)
 
         # Plot rewards
-        ax_rwd.plot(
+        ax[0].plot(
             sigma, mean_reward, color, label="Mean " + name, linewidth=linewidth
         )
         if plot_variance:
-            ax_rwd.fill_between(
+            ax[0].fill_between(
                 sigma,
                 (mean_reward - std_reward),
                 (mean_reward + std_reward),
@@ -327,12 +316,10 @@ def plot_uncert_test(
                 label="Std " + name,
             )
 
-    ax_unc[0].legend()
-    ax_unc[1].legend()
-    fig_unc.savefig(unc_path)
-
-    ax_rwd.legend()
-    fig_rwd.savefig(rwd_path)
+    ax[0].legend()
+    # ax[1].legend()
+    # ax[2].legend()
+    fig.savefig(unc_path)
 
 
 def plotly_test(
@@ -441,6 +428,72 @@ def plotly_test(
     fig.update_layout({"title": {"text": "Test", "font": {"size": 26}}})
     fig.write_html(save_fig)
 
+def plot_uncert_comparative(train_paths, test_paths, names, linewidths=None, smooth=None, imgs_path='images/'):
+    assert len(train_paths) == len(names)
+    assert len(test_paths) == len(names)
+    if linewidths is not None:
+        assert len(linewidths) > len(train_paths)
+
+    for idx, (train_path, test_path, name) in enumerate(zip(train_paths, test_paths, names)):
+        linewidth = linewidths[idx] if linewidths is not None else None
+        file_name = f"comparative_{name}"
+        
+        fig, ax = plt.subplots(nrows=1, ncols=2)
+        fig.set_figheight(7)
+        fig.set_figwidth(20)
+        fig.suptitle(f"Uncertainties comparative during train and test model: {name}", fontsize=18)
+        ax[0].set_ylabel("Epistemic", fontsize=16)
+        ax[0].set_xlabel("Episode", fontsize=16)
+        ax2 = ax[0].twiny()
+        ax2.set_xlabel("Noise Variance", fontsize=16, color='r')
+        ax2.tick_params(axis='x', labelcolor='r')
+        ax[1].set_ylabel("Aleatoric", fontsize=16)
+        ax[1].set_xlabel("Episode", fontsize=16)
+        ax3 = ax[1].twiny()
+        ax3.set_xlabel("Noise Variance", fontsize=16, color='r')
+        ax3.tick_params(axis='x', labelcolor='r')
+
+        (
+            _,
+            (unique_ep, _, mean_epist, mean_aleat),
+            (_, std_epist, std_aleat),
+            _,
+        ) = read_uncert(train_path)[0]
+
+        lns1 = ax[0].plot(
+            unique_ep, mean_epist, label="train", linewidth=linewidth
+        )
+        lns2 = ax[1].plot(
+            unique_ep, mean_aleat, label="train", linewidth=linewidth
+        )
+
+        (
+            (
+                _,
+                (_, _, mean_epist, mean_aleat),
+                (_, std_epist, std_aleat),
+                _,
+            ),
+            sigma,
+        ) = read_uncert(test_path)
+
+        lns3 = ax2.plot(
+            sigma, mean_epist, color="r", label="test", linewidth=linewidth
+        )
+        lns4 = ax3.plot(
+            sigma, mean_aleat, color="r", label="test", linewidth=linewidth
+        )
+
+        lns = lns1+lns3
+        labs = [l.get_label() for l in lns]
+        ax[0].legend(lns, labs)
+
+        lns = lns2+lns4
+        labs = [l.get_label() for l in lns]
+        ax[1].legend(lns, labs)
+
+        fig.savefig(f"{imgs_path}{file_name}")
+
 
 if __name__ == "__main__":
     plot_variance = False
@@ -490,7 +543,7 @@ if __name__ == "__main__":
         "uncertainties/test/dropout.txt",
         "uncertainties/test/sensitivity.txt",
         "uncertainties/test/vae.txt",
-        
+        "uncertainties/test/aleatoric.txt",
     ]
     names = [
         "Base",
@@ -499,8 +552,10 @@ if __name__ == "__main__":
         "Dropout",
         "Sensitivity",
         "VAE",
-        
+        "Aleatoric",
     ]
 
     plot_uncert_test(test_paths, names, colors=colors, linewidths=linewidths, smooth=2, plot_variance=plot_variance, multipliers=multipliers)
     plotly_test(test_paths, names, colors=colors_px, smooth=2, plot_variance=plot_variance)
+
+    plot_uncert_comparative(train_paths, test_paths, names, linewidths)

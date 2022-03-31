@@ -40,10 +40,10 @@ class DropoutTrainerModel(BaseTrainerModel):
 
         tau = self.lengthscale * (1. - self.prob) / \
             (2. * state.shape[0] * self.weight_decay)
-        alpha_variance = torch.var(alpha_list, dim=0)
-        beta_variance = torch.var(beta_list, dim=0)
-        #epistemic = torch.mean(torch.var(alpha_list / (alpha_list + beta_list), dim=0))
-        epistemic = alpha_variance + beta_variance + 1. / tau
+        # alpha_variance = torch.sum(torch.var(alpha_list, dim=0))
+        # beta_variance = torch.sum(torch.var(beta_list, dim=0))
+        epistemic = torch.var(v_list) + 1. / tau
+        # epistemic = alpha_variance + beta_variance + 1. / tau
 
         aleatoric = torch.tensor([0])
 

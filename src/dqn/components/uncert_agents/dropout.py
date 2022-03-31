@@ -1,3 +1,4 @@
+from ast import ExceptHandler
 import torch
 import torch.nn as nn
 
@@ -53,7 +54,7 @@ class DropoutAgent(AbstactAgent):
         values_list = torch.stack(values_list)
         values = torch.mean(values_list, dim=0)
         _, index = torch.max(values, dim=-1)
-        epistemic = torch.var(values_list, dim=0) + 1. / tau
+        epistemic = torch.sum(torch.var(values_list, dim=0)) + 1. / tau
         aleatoric = torch.Tensor([0])
         return index, epistemic, aleatoric
     

@@ -2,7 +2,7 @@ import plotly.express as px
 import os
 import sys
 sys.path.append('..')
-from ppo.plot_uncertainties import plot_uncert_train, plot_uncert_test, plotly_train, plotly_test
+from ppo.plot_uncertainties import plot_uncert_train, plot_uncert_test, plotly_train, plotly_test, plot_uncert_comparative
 
 
 if __name__ == "__main__":
@@ -13,7 +13,7 @@ if __name__ == "__main__":
         "uncertainties/train/fix_ddqn_dropout_481dd29d-3ecc-48aa-9249-31896c98036f.txt",
         "uncertainties/train/fix_ddqn_sensitivity_03ec9544-d59e-4a64-9dc3-7997dbd74d4d.txt",
         "uncertainties/train/ddqn_vae_c3e688f6-e9d6-4dc9-94ad-27b66938ea3c.txt",
-        "uncertainties/train/ddqn_aleatoric_9d9459b1-999d-49b3-87d4-06b4dcb86f6c.txt",
+        "uncertainties/train/ddqn_aleatoric_556e588d-b6e2-4040-944d-1dec942e03f5.txt",
         "uncertainties/train/fix_ddqn_bnn_a0653354-b837-4782-8b3b-81f4de95be1e.txt",
     ]
     names = [
@@ -52,7 +52,7 @@ if __name__ == "__main__":
         "uncertainties/test/dropout.txt",
         "uncertainties/test/sensitivity.txt",
         "uncertainties/test/vae.txt",
-        # "uncertainties/test/aleatoric.txt",
+        "uncertainties/test/aleatoric.txt",
     ]
     names = [
         "Base",
@@ -60,9 +60,19 @@ if __name__ == "__main__":
         "Dropout",
         "Sensitivity",
         "VAE",
-        # "Aleatoric",
+        "Aleatoric",
     ]
 
     plot_uncert_test(test_paths, names, colors=colors, linewidths=linewidths, smooth=2, plot_variance=plot_variance, multipliers=multipliers)
     plotly_test(test_paths, names, colors=colors_px, smooth=2, plot_variance=plot_variance)
 
+
+    train_paths = [
+        "uncertainties/train/fix_ddqn_base_c077a8fa-b895-4aeb-85f6-0396baaf46c7.txt",
+        "uncertainties/train/ddqn_bootstrap_8b9714f5-5aee-4427-9e62-383c0b2d0ccc.txt",
+        "uncertainties/train/fix_ddqn_dropout_481dd29d-3ecc-48aa-9249-31896c98036f.txt",
+        "uncertainties/train/fix_ddqn_sensitivity_03ec9544-d59e-4a64-9dc3-7997dbd74d4d.txt",
+        "uncertainties/train/ddqn_vae_c3e688f6-e9d6-4dc9-94ad-27b66938ea3c.txt",
+        "uncertainties/train/ddqn_aleatoric_556e588d-b6e2-4040-944d-1dec942e03f5.txt",
+    ]
+    plot_uncert_comparative(train_paths, test_paths, names, linewidths)

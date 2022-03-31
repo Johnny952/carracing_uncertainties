@@ -24,7 +24,6 @@ class BayesianModel(nn.Module):
             bnn.BayesLinear(prior_mu=0, prior_sigma=0.1, in_features=100, out_features=n_actions),
         )
 
-    
     def forward(self, x):
         x = self.cnn_base(x)
         x = x.view(-1, 256)

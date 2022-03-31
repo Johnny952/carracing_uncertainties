@@ -12,6 +12,7 @@ The main dependencies are:
 - [gym == 0.17.2](https://github.com/openai/gym)
 - [wandb == 0.10.29](https://wandb.ai)
 - [blitz-bayesian-pytorch == 0.2.7](https://github.com/piEsposito/blitz-bayesian-deep-learning)
+- [torchbnn](https://github.com/Harry24k/bayesian-neural-network-pytorch/tree/master/torchbnn/modules)
 
 ## Image and Container creation
 To build the image you can run directly ```sh scripts/build_docker.sh``` or execute the following command, where ```-t``` is the image tag name.
