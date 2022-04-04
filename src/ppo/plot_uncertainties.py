@@ -6,6 +6,7 @@ from plotly.subplots import make_subplots
 import os
 from scipy.ndimage import gaussian_filter1d
 
+_NAN_ = -1
 def scale01(array):
     max_ = np.max(array)
     min_ = np.min(array)
@@ -15,7 +16,6 @@ def scale01(array):
         else:
             return array / max_, 0
     return (array - min_) / (max_ - min_), (max_ - min_)
-
 
 def read_uncert(path):
     epochs = []
@@ -100,13 +100,17 @@ def plot_uncert_train(
             (std_reward, std_epist, std_aleat),
             _,
         ) = read_uncert(path)[0]
+
+        mean_epist = np.nan_to_num(mean_epist, nan=_NAN_)
+        mean_aleat = np.nan_to_num(mean_aleat, nan=_NAN_)
+
         if smooth is not None:
             mean_reward = gaussian_filter1d(mean_reward, smooth)
-            mean_epist = gaussian_filter1d(mean_epist, smooth)
-            mean_aleat = gaussian_filter1d(mean_aleat, smooth)
+            mean_epist[mean_epist != _NAN_] = gaussian_filter1d(mean_epist[mean_epist != _NAN_], smooth)
+            mean_aleat[mean_aleat != _NAN_] = gaussian_filter1d(mean_aleat[mean_aleat != _NAN_], smooth)
 
-        mean_epist, magnitude_epist = scale01(mean_epist*multiplier)
-        mean_aleat, magnitude_aleat = scale01(mean_aleat*multiplier)
+        mean_epist[mean_epist != _NAN_], magnitude_epist = scale01(mean_epist[mean_epist != _NAN_]*multiplier)
+        mean_aleat[mean_aleat != _NAN_], magnitude_aleat = scale01(mean_aleat[mean_aleat != _NAN_]*multiplier)
 
         # Plot uncertainties
         ax[1].plot(
@@ -157,13 +161,17 @@ def plotly_train(
             (std_reward, std_epist, std_aleat),
             _,
         ) = read_uncert(path)[0]
+
+        mean_epist = np.nan_to_num(mean_epist, nan=_NAN_)
+        mean_aleat = np.nan_to_num(mean_aleat, nan=_NAN_)
+
         if smooth is not None:
             mean_reward = gaussian_filter1d(mean_reward, smooth)
-            mean_epist = gaussian_filter1d(mean_epist, smooth)
-            mean_aleat = gaussian_filter1d(mean_aleat, smooth)
+            mean_epist[mean_epist != _NAN_] = gaussian_filter1d(mean_epist[mean_epist != _NAN_], smooth)
+            mean_aleat[mean_aleat != _NAN_] = gaussian_filter1d(mean_aleat[mean_aleat != _NAN_], smooth)
 
-        mean_epist, magnitude_epist = scale01(mean_epist)
-        mean_aleat, magnitude_aleat = scale01(mean_aleat)
+        mean_epist[mean_epist != _NAN_], magnitude_epist = scale01(mean_epist[mean_epist != _NAN_])
+        mean_aleat[mean_aleat != _NAN_], magnitude_aleat = scale01(mean_aleat[mean_aleat != _NAN_])
 
         rwd_upper, rwd_lower = mean_reward + std_reward, (mean_reward - std_reward)
 
@@ -282,15 +290,19 @@ def plot_uncert_test(
             ),
             sigma,
         ) = read_uncert(path)
+
+        mean_epist = np.nan_to_num(mean_epist, nan=_NAN_)
+        mean_aleat = np.nan_to_num(mean_aleat, nan=_NAN_)
+
         if smooth is not None:
             mean_reward = gaussian_filter1d(mean_reward, smooth)
-            mean_epist = gaussian_filter1d(mean_epist, smooth)
-            mean_aleat = gaussian_filter1d(mean_aleat, smooth)
+            mean_epist[mean_epist != _NAN_] = gaussian_filter1d(mean_epist[mean_epist != _NAN_], smooth)
+            mean_aleat[mean_aleat != _NAN_] = gaussian_filter1d(mean_aleat[mean_aleat != _NAN_], smooth)
 
         # if 'mix' in name.lower():
         #    mean_epist = 1 - np.exp(mean_epist)
-        mean_epist, magnitude_epist = scale01(mean_epist*multiplier)
-        mean_aleat, magnitude_aleat = scale01(mean_aleat*multiplier)
+        mean_epist[mean_epist != _NAN_], magnitude_epist = scale01(mean_epist[mean_epist != _NAN_]*multiplier)
+        mean_aleat[mean_aleat != _NAN_], magnitude_aleat = scale01(mean_aleat[mean_aleat != _NAN_]*multiplier)
 
         # Plot uncertainties
         ax[1].plot(
@@ -344,13 +356,17 @@ def plotly_test(
             ),
             sigma,
         ) = read_uncert(path)
+
+        mean_epist = np.nan_to_num(mean_epist, nan=_NAN_)
+        mean_aleat = np.nan_to_num(mean_aleat, nan=_NAN_)
+
         if smooth is not None:
             mean_reward = gaussian_filter1d(mean_reward, smooth)
-            mean_epist = gaussian_filter1d(mean_epist, smooth)
-            mean_aleat = gaussian_filter1d(mean_aleat, smooth)
+            mean_epist[mean_epist != _NAN_] = gaussian_filter1d(mean_epist[mean_epist != _NAN_], smooth)
+            mean_aleat[mean_aleat != _NAN_] = gaussian_filter1d(mean_aleat[mean_aleat != _NAN_], smooth)
 
-        mean_epist, magnitude_epist = scale01(mean_epist)
-        mean_aleat, magnitude_aleat = scale01(mean_aleat)
+        mean_epist[mean_epist != _NAN_], magnitude_epist = scale01(mean_epist[mean_epist != _NAN_])
+        mean_aleat[mean_aleat != _NAN_], magnitude_aleat = scale01(mean_aleat[mean_aleat != _NAN_])
 
         rwd_upper, rwd_lower = mean_reward + std_reward, (mean_reward - std_reward)
 
@@ -460,6 +476,9 @@ def plot_uncert_comparative(train_paths, test_paths, names, linewidths=None, smo
             _,
         ) = read_uncert(train_path)[0]
 
+        mean_epist = np.nan_to_num(mean_epist, nan=_NAN_)
+        mean_aleat = np.nan_to_num(mean_aleat, nan=_NAN_)
+
         lns1 = ax[0].plot(
             unique_ep, mean_epist, label="train", linewidth=linewidth
         )
@@ -496,10 +515,11 @@ def plot_uncert_comparative(train_paths, test_paths, names, linewidths=None, smo
 
 
 if __name__ == "__main__":
+    smooth = 2
     plot_variance = False
     train_paths = [
         "uncertainties/train/fix_base.txt",
-        "uncertainties/train/bnn.txt",
+        "uncertainties/train/bnn2.txt",
         "uncertainties/train/bootstrap.txt",
         "uncertainties/train/dropout.txt",
         "uncertainties/train/sensitivity.txt",
@@ -532,13 +552,13 @@ if __name__ == "__main__":
         os.makedirs("images")
 
     plot_uncert_train(
-        train_paths, names, colors=colors, linewidths=linewidths, smooth=2, plot_variance=plot_variance, multipliers=multipliers
+        train_paths, names, colors=colors, linewidths=linewidths, smooth=smooth, plot_variance=plot_variance, multipliers=multipliers
     )
-    plotly_train(train_paths, names, colors=colors_px, smooth=2, plot_variance=plot_variance)
+    plotly_train(train_paths, names, colors=colors_px, smooth=smooth, plot_variance=plot_variance)
 
     test_paths = [
         "uncertainties/test/base.txt",
-        "uncertainties/test/bnn.txt",
+        "uncertainties/test/bnn2.txt",
         "uncertainties/test/bootstrap.txt",
         "uncertainties/test/dropout.txt",
         "uncertainties/test/sensitivity.txt",
@@ -555,7 +575,7 @@ if __name__ == "__main__":
         "Aleatoric",
     ]
 
-    plot_uncert_test(test_paths, names, colors=colors, linewidths=linewidths, smooth=2, plot_variance=plot_variance, multipliers=multipliers)
-    plotly_test(test_paths, names, colors=colors_px, smooth=2, plot_variance=plot_variance)
+    plot_uncert_test(test_paths, names, colors=colors, linewidths=linewidths, smooth=smooth, plot_variance=plot_variance, multipliers=multipliers)
+    plotly_test(test_paths, names, colors=colors_px, smooth=smooth, plot_variance=plot_variance)
 
     plot_uncert_comparative(train_paths, test_paths, names, linewidths)

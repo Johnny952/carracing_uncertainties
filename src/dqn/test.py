@@ -93,7 +93,7 @@ if __name__ == "__main__":
         "-EEp",
         "--eval-episodes",
         type=int,
-        default=3,
+        default=5,
         help="Number of evaluation episodes",
     )
     test_config.add_argument(
