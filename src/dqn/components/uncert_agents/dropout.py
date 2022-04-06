@@ -1,4 +1,3 @@
-from ast import ExceptHandler
 import torch
 import torch.nn as nn
 
@@ -84,16 +83,4 @@ class DropoutAgent(AbstactAgent):
         torch.save(tosave, path)
 
     def load_param(self, path, eval_mode=False):
-        checkpoint = torch.load(path)
-        self._model1.load_state_dict(checkpoint["model1_state_disct"])
-        self._model2.load_state_dict(checkpoint["model2_state_disct"])
-        self._optimizer1.load_state_dict(checkpoint["optimizer1_state_dict"])
-        self._optimizer2.load_state_dict(checkpoint["optimizer2_state_dict"])
-
-        if eval_mode:
-            self._model1.eval()
-            self._model2.eval()
-        else:
-            self._model1.train()
-            self._model2.train()
-        return checkpoint["epoch"]
+        return super(DropoutAgent, self).load_param(path, eval_mode=False)
