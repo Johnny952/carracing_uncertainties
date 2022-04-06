@@ -6,6 +6,8 @@ from .bnn import BnnAgent
 from .bootstrap import BootstrapAgent
 from .dropout import DropoutAgent
 from .bnn2 import BnnAgent2
+from .dropout2 import DropoutAgent2
+from .bootstrap2 import BootstrapAgent2
 
 def make_agent(
         model,
@@ -29,6 +31,8 @@ def make_agent(
         'aleatoric': AleatoricAgent,
         'vae': VaeAgent,
         'bnn2': BnnAgent2,
+        'dropout2': DropoutAgent2,
+        'bootstrap2': BootstrapAgent2,
     }
     return switcher.get(model, BaseAgent)(
         nb_nets,
