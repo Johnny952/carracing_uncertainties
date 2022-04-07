@@ -37,7 +37,7 @@ class BnnAgent2(AbstactAgent):
         self._kl_loss = bnn.BKLLoss(reduction='mean', last_layer_only=False)
         self._criterion = nn.MSELoss()
         self.sample_nbr = 50
-        self.complexity_cost_weight = 1e7
+        self.complexity_cost_weight = 100
 
         self._model1 = BayesianModel(img_stack, len(actions)).to(self._device)
         self._model2 = BayesianModel(img_stack, len(actions)).to(self._device)
