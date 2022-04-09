@@ -101,8 +101,8 @@ class BootstrapAgent2(AbstactAgent):
         curr_Q2 = model2(states).gather(1, actions).squeeze(dim=-1)
 
         next_Q = torch.min(
-            torch.max(model1(next_states)[1], 1)[0],
-            torch.max(model2(next_states)[1], 1)[0],
+            torch.max(model1(next_states), 1)[0],
+            torch.max(model2(next_states), 1)[0],
         ).squeeze(dim=-1)
         expected_Q = rewards + (1 - dones) * self._gamma * next_Q
 
