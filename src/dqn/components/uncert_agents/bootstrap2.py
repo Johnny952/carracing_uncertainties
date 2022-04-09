@@ -50,10 +50,8 @@ class BootstrapAgent2(AbstactAgent):
         for model in self._model1:
             v = model(observation)
             values_list.append(v)
-        values_list = torch.stack(values_list).squeeze(dim=1)
-        wandb.log({
-            "Magnitude Value": torch.abs(values_list).sum()
-        })
+        values_list = torch.stack(values_list)
+
         values = torch.mean(values_list, dim=0)
         _, index = torch.max(values, dim=-1)
         epistemic = torch.sum(torch.var(values_list, dim=0))
