@@ -19,6 +19,7 @@ class Trainer:
         skip_zoom=None,
         model_name="base",
         checkpoint_every=10,
+        debug=False,
     ) -> None:
         self._agent = agent
         self._env = env
@@ -30,6 +31,7 @@ class Trainer:
         self._skip_zoom = skip_zoom
         self._model_name = model_name
         self._checkpoint_every = checkpoint_every
+        self._debug = debug
 
         self._best_score = -100
         self._eval_nb = 0
@@ -75,11 +77,11 @@ class Trainer:
             if (i_ep + 1) % self._eval_interval == 0:
                 eval_score = self.eval(i_ep)
 
-                if eval_score > self._best_score:
+                if eval_score > self._best_score and not self._debug:
                     self._agent.save(i_ep, path=f"param/best_{self._model_name}.pkl")
                     self._best_score = eval_score
 
-            if (i_ep + 1) % self._checkpoint_every == 0:
+            if (i_ep + 1) % self._checkpoint_every == 0 and not self._debug:
                 self._agent.save(i_ep, path=f"param/checkpoint_{self._model_name}.pkl")
 
             if running_score > self._env.reward_threshold:
@@ -88,7 +90,8 @@ class Trainer:
                         running_score, score
                     )
                 )
-                self._agent.save(i_ep, path=f"param/best_{self._model_name}.pkl")
+                if not self._debug:
+                    self._agent.save(i_ep, path=f"param/best_{self._model_name}.pkl")
                 break
 
     def eval(self, episode_nb, mode='train'):
@@ -119,14 +122,15 @@ class Trainer:
                 steps += 1
 
             uncert = np.array(uncert)
-            save_uncert(
-                episode_nb,
-                i_val,
-                score,
-                uncert,
-                file=f"uncertainties/{mode}/{self._model_name}.txt",
-                sigma=self._eval_env.random_noise,
-            )
+            if not self._debug:
+                save_uncert(
+                    episode_nb,
+                    i_val,
+                    score,
+                    uncert,
+                    file=f"uncertainties/{mode}/{self._model_name}.txt",
+                    sigma=self._eval_env.random_noise,
+                )
 
             mean_uncert += np.mean(uncert, axis=0) / self._nb_evaluations
             mean_score += score / self._nb_evaluations

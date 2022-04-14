@@ -95,24 +95,31 @@ if __name__ == "__main__":
         action="store_true",
         help="render the environment on evaluation",
     )
+    eval_config.add_argument(
+        "-DB",
+        "--debug",
+        action="store_true",
+        help="debug mode",
+    )
 
     args = parser.parse_args()
 
     print(colored("Initializing data folders", "blue"))
     # Init model checkpoint folder and uncertainties folder
-    if not os.path.exists("uncertainties"):
-        os.makedirs("uncertainties")
-    if not os.path.exists("render"):
-        os.makedirs("render")
-    if not os.path.exists(f"render/{args.model}"):
-        os.makedirs(f"render/{args.model}")
-    else:
-        files = glob.glob(f"render/{args.model}/*")
-        for f in files:
-            os.remove(f)
-    if not os.path.exists("uncertainties/test"):
-        os.makedirs("uncertainties/test")
-    init_uncert_file(file=f"uncertainties/test/{args.model}.txt")
+    if not args.debug:
+        if not os.path.exists("uncertainties"):
+            os.makedirs("uncertainties")
+        if not os.path.exists("render"):
+            os.makedirs("render")
+        if not os.path.exists(f"render/{args.model}"):
+            os.makedirs(f"render/{args.model}")
+        else:
+            files = glob.glob(f"render/{args.model}/*")
+            for f in files:
+                os.remove(f)
+        if not os.path.exists("uncertainties/test"):
+            os.makedirs("uncertainties/test")
+        init_uncert_file(file=f"uncertainties/test/{args.model}.txt")
     print(colored("Data folders created successfully", "green"))
 
     # Virtual display
@@ -195,6 +202,7 @@ if __name__ == "__main__":
             0,
             nb_evaluations=args.validations,
             model_name=args.model,
+            debug=args.debug
         )
         trainer.eval(idx, mode="test")
 
