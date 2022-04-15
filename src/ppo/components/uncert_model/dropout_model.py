@@ -14,7 +14,7 @@ class DropoutTrainerModel(BaseTrainerModel):
             img_stack, prob=self.prob).double().to(self.device)
         # self._model.use_dropout(val=True)                          # Dropout turned off during training
         # self._criterion = smooth_l1_loss
-        self.weight_decay = 1e-6
+        self.weight_decay = 1e-8
         self._optimizer = optim.Adam(
             self._model.parameters(), lr=lr, weight_decay=self.weight_decay)
 
