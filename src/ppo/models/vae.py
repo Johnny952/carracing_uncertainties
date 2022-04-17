@@ -18,7 +18,7 @@ class VanillaVAE(nn.Module):
 
         modules = []
         if hidden_dims is None:
-            hidden_dims = [8, 16, 32, 64, 128, 512]
+            hidden_dims = [8, 16, 32, 64, 128, 256]
             # hidden_dims = [32, 64, 128, 256, 512]
         self._in_channels = in_channels
         if in_channels is None:
