@@ -451,7 +451,7 @@ if __name__ == "__main__":
         test_env.set_noise_value(noise)
         trainer = Trainer(
             None,
-            eval_env,
+            test_env,
             agent,
             0,
             eval_episodes=args.test_episodes,
