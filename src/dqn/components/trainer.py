@@ -163,13 +163,14 @@ class Trainer:
         # print(
         #     "Evaluation Mean Steps: %4d | Mean Reward: %4d" % (mean_steps, mean_score)
         # )
+        wandb_mode = 'Eval' if mode == 'train' else 'Test'
         wandb.log(
             {
-                "Eval Episode": self._eval_nb,
-                "Eval Mean Score": float(mean_score),
-                "Eval Mean Epist Uncert": float(mean_uncert[0]),
-                "Eval Mean Aleat Uncert": float(mean_uncert[1]),
-                "Eval Mean Steps": float(mean_steps),
+                f"{wandb_mode} Episode": self._eval_nb,
+                f"{wandb_mode} Mean Score": float(mean_score),
+                f"{wandb_mode} Mean Epist Uncert": float(mean_uncert[0]),
+                f"{wandb_mode} Mean Aleat Uncert": float(mean_uncert[1]),
+                F"{wandb_mode} Mean Steps": float(mean_steps),
             }
         )
         self._eval_nb += 1
