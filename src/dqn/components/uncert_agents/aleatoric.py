@@ -31,7 +31,7 @@ class AleatoricAgent(AbstactAgent):
             clip_grad=clip_grad,
         )
 
-        self._weight_decay = 1e-5
+        self._weight_decay = 1e-8
         self._model1 = Aleatoric(img_stack, len(actions)).to(self._device)
         self._model2 = Aleatoric(img_stack, len(actions)).to(self._device)
 
