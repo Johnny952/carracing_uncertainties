@@ -11,7 +11,7 @@ class AleatoricTrainerModel(BaseTrainerModel):
                                                     img_stack, gamma, batch_size, buffer_capacity, device=device)
         self._model = Aleatoric(img_stack).double().to(self.device)
         self._criterion = det_loss
-        self._weight_decay = 1e-8
+        self._weight_decay = 1e-10
         self._optimizer = optim.Adam(self._model.parameters(), lr=lr)#, weight_decay=self._weight_decay
 
     def forward_nograd(self, state):

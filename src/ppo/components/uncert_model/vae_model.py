@@ -11,12 +11,12 @@ class VAETrainerModel(BaseTrainerModel):
         super(VAETrainerModel, self).__init__(nb_nets, lr,
                                                  img_stack, gamma, batch_size, buffer_capacity, device=device)
 
-        latent_size = 128
+        latent_size = 256
         self._vae = VanillaVAE(latent_size).double().to(self.device)
 
         self._vae_optimizer = optim.Adam(self._vae.parameters(), lr=lr)
 
-        self._nb_vae_epochs = 5
+        self._nb_vae_epochs = 15
         self._nb_vae_update = 0
         self._kld_scale = 0.015
 
