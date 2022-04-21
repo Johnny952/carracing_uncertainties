@@ -11,7 +11,7 @@ class VAETrainerModel(BaseTrainerModel):
         super(VAETrainerModel, self).__init__(nb_nets, lr,
                                                  img_stack, gamma, batch_size, buffer_capacity, device=device)
 
-        latent_size = 256
+        latent_size = 512
         self._vae = VanillaVAE(latent_size).double().to(self.device)
 
         self._vae_optimizer = optim.Adam(self._vae.parameters(), lr=lr)
@@ -25,6 +25,8 @@ class VAETrainerModel(BaseTrainerModel):
         target_v = r + self.gamma * self.forward_nograd(s_)[1]
         adv = target_v - self.forward_nograd(s)[1]
 
+        self._vae.train(mode=False)
+        self._model.train(mode=True)
         for _ in range(epochs):
             sampler = SubsetRandomSampler(range(self.buffer_capacity))
             loss, action_loss, value_loss = self.train_once(
@@ -32,12 +34,18 @@ class VAETrainerModel(BaseTrainerModel):
             self.log_loss(loss, action_loss, value_loss)
             self._nb_update += 1
 
+        self._vae.train(mode=True)
+        self._model.train(mode=False)
+
         for _ in range(self._nb_vae_epochs):
 
             sampler = SubsetRandomSampler(range(self.buffer_capacity))
             vae_loss, encode_loss, loss = self.train_once_vae(s, a, sampler)
             self.log_vae_loss(vae_loss, encode_loss, loss)
             self._nb_vae_update += 1
+        
+        self._vae.train(mode=True)
+        self._model.train(mode=True)
 
     def log_vae_loss(self, vae_loss, encode_loss, loss):
         to_log = {
