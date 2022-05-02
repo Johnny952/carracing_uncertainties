@@ -10,6 +10,7 @@ import uuid
 from collections import namedtuple
 
 import sys
+from src.shared.components.evaluator import Evaluator
 sys.path.append('..')
 from utilities.eps_scheduler import Epsilon
 from utilities.replay_buffer import ReplayMemory
@@ -314,6 +315,14 @@ if __name__ == "__main__":
         # green_reward=args.green_reward,
         # done_reward=args.done_reward,
     )
+    evaluator = None
+    if args.model != 'base':
+        evaluator = Evaluator(
+            args.img_stack,
+            args.action_repeat,
+            args.model,
+            device=device,
+        )
     init_epoch = 0
     if args.from_checkpoint:
         init_epoch = agent.load_param(args.from_checkpoint)
@@ -350,6 +359,7 @@ if __name__ == "__main__":
         eval_every=args.eval_every,
         skip_zoom=args.skip_zoom,
         model_name=run_name,
+        evaluator=evaluator,
     )
 
     trainer.run()

@@ -10,6 +10,7 @@ import sys
 sys.path.append('..')
 from shared.utils.utils import init_uncert_file
 from shared.components.env import Env
+from shared.components.evaluator import Evaluator
 from components.agent import Agent
 from components.trainer import Trainer
 
@@ -188,8 +189,15 @@ if __name__ == "__main__":
         path_render=f"{args.model}" if args.val_render else None,
         validations=args.validations,
         evaluation=True,
-        noise=add_noise,
     )
+    evaluator = None
+    if args.model != 'base':
+        evaluator = Evaluator(
+            args.img_stack,
+            args.action_repeat,
+            args.model,
+            device=device,
+        )
     init_epoch = 0
     if args.from_checkpoint:
         init_epoch = agent.load(args.from_checkpoint)
@@ -235,7 +243,8 @@ if __name__ == "__main__":
         eval_interval=args.val_interval,
         model_name=args.model,
         skip_zoom=args.skip_zoom,
-        debug=args.debug
+        debug=args.debug,
+        evaluator=evaluator,
     )
 
     trainer.run()

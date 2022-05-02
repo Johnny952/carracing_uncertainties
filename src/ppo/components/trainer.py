@@ -5,6 +5,7 @@ from tqdm import tqdm
 from shared.utils.utils import save_uncert
 from shared.components.env import Env
 from components.agent import Agent
+from shared.components.evaluator import Evaluator
 
 class Trainer:
     def __init__(
@@ -16,10 +17,11 @@ class Trainer:
         init_ep: int = 0,
         nb_evaluations: int = 1,
         eval_interval: int = 10,
-        skip_zoom=None,
-        model_name="base",
-        checkpoint_every=10,
+        skip_zoom = None,
+        model_name = "base",
+        checkpoint_every = 10,
         debug=False,
+        evaluator: Evaluator = None,
     ) -> None:
         self._agent = agent
         self._env = env
@@ -32,6 +34,7 @@ class Trainer:
         self._model_name = model_name
         self._checkpoint_every = checkpoint_every
         self._debug = debug
+        self._evaluator = evaluator
 
         self._best_score = -100
         self._eval_nb = 0
@@ -95,6 +98,11 @@ class Trainer:
                 break
 
     def eval(self, episode_nb, mode='train'):
+        if self._evaluator:
+            self._evaluator.eval(episode_nb, self._agent)
+        return self.base_eval(episode_nb, mode=mode)
+
+    def base_eval(self, episode_nb, mode='train'):
         assert mode in ['train', 'test']
         # self._agent.eval_mode()
         mean_score = 0
@@ -148,11 +156,5 @@ class Trainer:
         )
 
         self._eval_nb += 1
-        # print(
-        #     "Eval score: {}\tSteps: {}\tUncertainties: {}".format(
-        #         mean_score, mean_steps, mean_uncert
-        #     )
-        # )
-        # self._agent.train_mode()
 
         return mean_score

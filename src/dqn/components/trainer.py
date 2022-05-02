@@ -5,6 +5,7 @@ from tqdm import tqdm
 from components.uncert_agents.abstact import AbstactAgent
 from shared.utils.utils import save_uncert
 from shared.components.env import Env
+from shared.components.evaluator import Evaluator
 
 
 class Trainer:
@@ -19,6 +20,7 @@ class Trainer:
         skip_zoom=None,
         model_name: str = "base",
         checkpoint_every: int = 10,
+        evaluator: Evaluator = None,
     ) -> None:
         self._env = env
         self._eval_env = eval_env
@@ -29,6 +31,7 @@ class Trainer:
         self._skip_zoom = skip_zoom
         self._model_name = model_name
         self._checkpoint_every = checkpoint_every
+        self._evaluator = evaluator
 
         self._best_score = -100
         self._eval_nb = 0
@@ -102,6 +105,7 @@ class Trainer:
 
             if (episode_nb + 1) % self._eval_every == 0:
                 eval_score = self.eval(episode_nb)
+
                 if eval_score >= self._best_score:
                     self._agent.save_param(
                         episode_nb, path=f"param/best_{self._model_name}.pkl"
@@ -125,6 +129,11 @@ class Trainer:
                 break
 
     def eval(self, episode_nb: int, mode: str = "train"):
+        if self._evaluator:
+            self._evaluator.eval(episode_nb, self._agent)
+        return self.base_eval(episode_nb, mode=mode)
+
+    def base_eval(self, episode_nb: int, mode: str = "train"):
         assert mode in ["train", "test"]
         mean_score = 0
         mean_uncert = np.array([0, 0], dtype=np.float64)
@@ -160,9 +169,6 @@ class Trainer:
             mean_score += score / self._eval_episodes
             mean_steps += steps / self._eval_episodes
 
-        # print(
-        #     "Evaluation Mean Steps: %4d | Mean Reward: %4d" % (mean_steps, mean_score)
-        # )
         wandb_mode = 'Eval' if mode == 'train' else 'Test'
         wandb.log(
             {

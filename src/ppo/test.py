@@ -10,6 +10,7 @@ from tqdm import tqdm
 
 import sys
 sys.path.append('..')
+from shared.components.evaluator import Evaluator
 from shared.utils.utils import init_uncert_file
 from shared.components.env import Env
 from components.agent import Agent
@@ -160,6 +161,15 @@ if __name__ == "__main__":
         evaluation=True,
         noise=add_noise,
     )
+    evaluator = None
+    if args.model != 'base':
+        evaluator = Evaluator(
+            args.img_stack,
+            args.action_repeat,
+            args.model,
+            device=device,
+            base_path='uncertainties/custom_test',
+        )
     agent.load(args.from_checkpoint, eval_mode=True)
     print(colored("Agent and environments created successfully", "green"))
 
@@ -195,6 +205,8 @@ if __name__ == "__main__":
 
     for idx, noise in enumerate(tqdm(np.linspace(add_noise[0], add_noise[1], args.noise_steps))):
         eval_env.set_noise_value(noise)
+        if evaluator:
+            evaluator.set_noise_value(noise)
         trainer = Trainer(
             agent,
             env,
@@ -202,7 +214,8 @@ if __name__ == "__main__":
             0,
             nb_evaluations=args.validations,
             model_name=args.model,
-            debug=args.debug
+            debug=args.debug,
+            evaluator=evaluator,
         )
         trainer.eval(idx, mode="test")
 
