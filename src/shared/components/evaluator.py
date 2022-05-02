@@ -20,17 +20,22 @@ class Evaluator:
         self.action_repeat = action_repeat
         self.seed = seed
         self.validations = validations
-        self.load_env()
         self.model_name = model_name
         self.base_path = base_path
+        self.noise = None
     
     def load_env(self):
+        # TODO: Validar que todos las validaciones son iguales siempre
         self._eval_env = Env(
             img_stack=self.img_stack,
             action_repeat=self.action_repeat,
             seed=self.seed,
             validations=self.validations,
+            noise=self.noise,
         )
+    
+    def set_noise_value(self, noise):
+        self.noise = noise
     
     def eval(self, episode_nb, agent):
         self.load_env()
@@ -67,6 +72,7 @@ class Evaluator:
             )
     
     def ppo_step(self, action, step):
+        # TODO: Change action when step is x
         if step == 125:
             pass
         return action * np.array([2.0, 1.0, 1.0]) + np.array([-1.0, 0.0, 0.0])
