@@ -73,6 +73,12 @@ if __name__ == "__main__":
         "-PE", "--ppo-epoch", type=int, default=10, help="Number of updates in every buffer full"
     )
     agent_config.add_argument(
+        "-BC", "--buffer-capacity", type=int, default=2000, help="Maximum number of transitions in buffer"
+    )
+    agent_config.add_argument(
+        "-BS", "--batch-size", type=int, default=128, help="Training batch size"
+    )
+    agent_config.add_argument(
         '-FC',
         '--from-checkpoint', 
         type=str, 
@@ -177,7 +183,7 @@ if __name__ == "__main__":
     # Init Agent and Environment
     print(colored("Initializing agent and environments", "blue"))
     agent = Agent(
-        args.nb_nets, args.img_stack, args.gamma, model=args.model, device=device, ppo_epoch=args.ppo_epoch
+        args.nb_nets, args.img_stack, args.gamma, model=args.model, device=device, ppo_epoch=args.ppo_epoch, buffer_capacity=args.buffer_capacity, batch_size=args.batch_size
     )
     env = Env(
         img_stack=args.img_stack,
