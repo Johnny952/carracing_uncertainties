@@ -70,6 +70,9 @@ if __name__ == "__main__":
         "-IS", "--img-stack", type=int, default=4, help="stack N images in a state"
     )
     agent_config.add_argument(
+        "-PE", "--ppo-epoch", type=int, default=10, help="Number of updates in every buffer full"
+    )
+    agent_config.add_argument(
         '-FC',
         '--from-checkpoint', 
         type=str, 
@@ -174,7 +177,7 @@ if __name__ == "__main__":
     # Init Agent and Environment
     print(colored("Initializing agent and environments", "blue"))
     agent = Agent(
-        args.nb_nets, args.img_stack, args.gamma, model=args.model, device=device
+        args.nb_nets, args.img_stack, args.gamma, model=args.model, device=device, ppo_epoch=args.ppo_epoch
     )
     env = Env(
         img_stack=args.img_stack,
@@ -205,13 +208,6 @@ if __name__ == "__main__":
 
     # Wandb config specification
     config = wandb.config
-    config.learning_rate = agent.lr
-    config.batch_size = agent.batch_size
-    config.max_grad_norm = agent.max_grad_norm
-    config.clip_param = agent.clip_param
-    config.ppo_epoch = agent.ppo_epoch
-    config.buffer_capacity = agent.buffer_capacity
-    config.device = agent.device
     config.args = args
 
     if isinstance(agent._model._model, list):
