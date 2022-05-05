@@ -1,8 +1,8 @@
 import torch.optim as optim
 import torch
-from utilities.customLoss import det_loss
-from components.uncert_model.basic_model import BaseTrainerModel
-from models.aleatoric import Aleatoric
+from ppo.utilities.customLoss import det_loss
+from ppo.components.uncert_model.basic_model import BaseTrainerModel
+from ppo.models.aleatoric import Aleatoric
 
 
 class AleatoricTrainerModel(BaseTrainerModel):

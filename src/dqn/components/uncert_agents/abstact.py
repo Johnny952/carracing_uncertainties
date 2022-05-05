@@ -70,12 +70,12 @@ class AbstactAgent:
     def epsilon(self):
         return self._epsilon.epsilon()
 
-    def select_action(self, observation, greedy=False):
+    def select_action(self, observation, eval=False):
         """Selects a epislon greedy action
 
         Args:
             observation (np.ndarray): Observation of the environment
-            greedy (bool, optional): Whether to use only greedy actions or not. Defaults to False.
+            eval (bool, optional): Whether to use only greedy actions or not. Defaults to False.
 
         Returns:
             int: The action taken
@@ -83,7 +83,7 @@ class AbstactAgent:
         """
         aleatoric = torch.Tensor([0])
         epistemic = torch.Tensor([0])
-        if greedy or np.random.rand() > self._epsilon.epsilon():
+        if eval or np.random.rand() > self._epsilon.epsilon():
             # Select action greedily
             with torch.no_grad():
                 index, epistemic, aleatoric = self.get_values(

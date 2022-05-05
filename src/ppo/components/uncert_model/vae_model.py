@@ -1,8 +1,8 @@
 from torch import optim
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 import torch
-from components.uncert_model.basic_model import BaseTrainerModel
-from models.vae import VanillaVAE
+from ppo.components.uncert_model.basic_model import BaseTrainerModel
+from ppo.models.vae import VanillaVAE
 import wandb
 
 

@@ -1,8 +1,9 @@
 import numpy as np
+import os
 
 from ppo.components.agent import Agent
 from shared.components.env import Env
-from shared.utils.utils import save_uncert
+from shared.utils.utils import save_uncert, init_uncert_file
 
 class Evaluator:
     def __init__(self, img_stack, action_repeat, model_name, device='cpu', validations=1, seed=123, base_path='uncertainties/custom_eval') -> None:
@@ -14,7 +15,7 @@ class Evaluator:
             model='base',
             device=device
         )
-        self._agent.load('controller_ppo.pkl', eval_mode=True)
+        self._agent.load('../shared/components/controller_ppo.pkl', eval_mode=True)
 
         self.img_stack = img_stack
         self.action_repeat = action_repeat
@@ -23,6 +24,11 @@ class Evaluator:
         self.model_name = model_name
         self.base_path = base_path
         self.noise = None
+        self.evaluation_nb = 0
+
+        if not os.path.exists(base_path):
+            os.makedirs(base_path)
+        init_uncert_file(file=f"{self.base_path}/{self.model_name}.txt")
     
     def load_env(self):
         # TODO: Validar que todos las validaciones son iguales siempre
@@ -32,6 +38,7 @@ class Evaluator:
             seed=self.seed,
             validations=self.validations,
             noise=self.noise,
+            path_render=f"../shared/components/render/{self.evaluation_nb}",
         )
     
     def set_noise_value(self, noise):
@@ -70,9 +77,13 @@ class Evaluator:
                 file=f"{self.base_path}/{self.model_name}.txt",
                 sigma=self._eval_env.random_noise,
             )
+
+            self.evaluation_nb += 1
+        self._eval_env.close()
+        #self._eval_env.reset()
     
     def ppo_step(self, action, step):
         # TODO: Change action when step is x
-        if step == 125:
-            pass
+        if step in [70, 71]:
+            return np.array([-1.0, 0.4, 0])
         return action * np.array([2.0, 1.0, 1.0]) + np.array([-1.0, 0.0, 0.0])

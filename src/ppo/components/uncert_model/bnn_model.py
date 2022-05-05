@@ -2,8 +2,8 @@ from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 from torch.distributions import Beta
 import torch.optim as optim
 import torch
-from components.uncert_model.basic_model import BaseTrainerModel
-from models.bnn import BayesianModel
+from ppo.components.uncert_model.basic_model import BaseTrainerModel
+from ppo.models.bnn import BayesianModel
 
 
 class BNNTrainerModel(BaseTrainerModel):

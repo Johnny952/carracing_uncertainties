@@ -10,7 +10,6 @@ import uuid
 from collections import namedtuple
 
 import sys
-from src.shared.components.evaluator import Evaluator
 sys.path.append('..')
 from utilities.eps_scheduler import Epsilon
 from utilities.replay_buffer import ReplayMemory
@@ -18,7 +17,7 @@ from components.uncert_agents import make_agent
 from components.trainer import Trainer
 from shared.components.env import Env
 from shared.utils.utils import init_uncert_file
-
+from shared.components.evaluator import Evaluator
 
 STEER_RANGE = [-0.5, 0.5]
 THROTTLE_RANGE = [0, 1]
@@ -308,7 +307,7 @@ if __name__ == "__main__":
     eval_env = Env(
         img_stack=args.image_stack,
         seed=args.eval_seed,
-        path_render=f"{run_name}" if args.eval_render else None,
+        path_render=f"./render/{run_name}" if args.eval_render else None,
         validations=args.eval_episodes,
         evaluation=True,
         action_repeat=args.action_repeat,
@@ -318,7 +317,7 @@ if __name__ == "__main__":
     evaluator = None
     if args.model != 'base':
         evaluator = Evaluator(
-            args.img_stack,
+            args.image_stack,
             args.action_repeat,
             args.model,
             device=device,

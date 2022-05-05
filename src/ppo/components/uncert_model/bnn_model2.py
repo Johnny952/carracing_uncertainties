@@ -3,8 +3,8 @@ from torch.distributions import Beta
 import torch.optim as optim
 import torch
 import torchbnn as bnn
-from components.uncert_model.basic_model import BaseTrainerModel
-from models.bnn2 import BayesianModel
+from ppo.components.uncert_model.basic_model import BaseTrainerModel
+from ppo.models.bnn2 import BayesianModel
 
 
 class BNNTrainerModel2(BaseTrainerModel):

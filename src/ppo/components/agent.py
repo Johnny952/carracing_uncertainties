@@ -1,8 +1,8 @@
 import torch
 from torch.distributions import Beta
 
-from components.uncert_model import make_model
-from utilities.replay_buffer import Buffer
+from ppo.components.uncert_model import make_model
+from ppo.utilities.replay_buffer import Buffer
 
 class Agent:
     """

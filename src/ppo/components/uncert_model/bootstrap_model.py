@@ -1,9 +1,9 @@
 import torch.optim as optim
 import torch
-from components.uncert_model.basic_model import BaseTrainerModel
-from utilities.customLoss import gaussian_loss
-from utilities.mixtureDist import GaussianMixture
-from models.bootstrap import BootstrapModel
+from ppo.components.uncert_model.basic_model import BaseTrainerModel
+from ppo.utilities.customLoss import gaussian_loss
+from ppo.utilities.mixtureDist import GaussianMixture
+from ppo.models.bootstrap import BootstrapModel
 
 
 class BootstrapTrainerModel(BaseTrainerModel):

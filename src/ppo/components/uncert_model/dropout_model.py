@@ -1,7 +1,7 @@
 import torch.optim as optim
 import torch
-from components.uncert_model.basic_model import BaseTrainerModel
-from models.dropout import DropoutModel
+from ppo.components.uncert_model.basic_model import BaseTrainerModel
+from ppo.models.dropout import DropoutModel
 
 
 class DropoutTrainerModel(BaseTrainerModel):

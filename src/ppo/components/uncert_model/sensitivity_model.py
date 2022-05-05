@@ -1,7 +1,7 @@
 import torch.optim as optim
 import torch
-from components.uncert_model.basic_model import BaseTrainerModel
-from models.sensitivity import Sensitivity
+from ppo.components.uncert_model.basic_model import BaseTrainerModel
+from ppo.models.sensitivity import Sensitivity
 
 
 class SensitivityTrainerModel(BaseTrainerModel):

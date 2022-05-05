@@ -1,10 +1,8 @@
 import torch.optim as optim
 import torch.nn.functional as F
 import torch
-from components.uncert_model.basic_model import BaseTrainerModel
-from utilities.customLoss import gaussian_loss
-from utilities.mixtureDist import GaussianMixture
-from models.model import Net
+from ppo.components.uncert_model.basic_model import BaseTrainerModel
+from ppo.models.model import Net
 
 class BootstrapTrainerModel2(BaseTrainerModel):
     def __init__(self, nb_nets, lr, img_stack, gamma, batch_size, buffer_capacity, device='cpu'):

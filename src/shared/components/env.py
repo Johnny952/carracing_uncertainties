@@ -19,7 +19,7 @@ class Env():
         else:
             self.validations = validations
             self.idx_val = validations // 2
-            self.env = Monitor(gym.make('CarRacing-v0', verbose=0), './render/{}'.format(path_render),
+            self.env = Monitor(gym.make('CarRacing-v0', verbose=0), path_render,
                                video_callable=lambda episode_id: episode_id % validations == self.idx_val, force=True)
         self.env.seed(seed)
         self.reward_threshold = self.env.spec.reward_threshold

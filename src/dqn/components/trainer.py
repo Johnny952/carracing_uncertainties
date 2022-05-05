@@ -147,7 +147,7 @@ class Trainer:
 
             uncert = []
             while not die:
-                action, _, (epis, aleat) = self._agent.select_action(ob_t, greedy=True)
+                action, _, (epis, aleat) = self._agent.select_action(ob_t, eval=True)
                 ob_t1, reward, _, die = self._eval_env.step(action)[:4]
                 ob_t = ob_t1
                 score += reward

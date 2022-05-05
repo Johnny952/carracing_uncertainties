@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torch
 import wandb
-from models.model import Net
+from ppo.models.model import Net
 
 
 class BaseTrainerModel:
