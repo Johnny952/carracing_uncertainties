@@ -41,7 +41,7 @@ if __name__ == "__main__":
         help="Evaluation Environment Random seed",
     )
     env_config.add_argument(
-        "-TS",
+        "-TSE",
         "--test-seed",
         type=float,
         default=20,
