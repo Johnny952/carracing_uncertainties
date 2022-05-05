@@ -12,6 +12,7 @@ import sys
 sys.path.append('..')
 from shared.utils.utils import init_uncert_file
 from shared.components.env import Env
+from shared.components.evaluator import Evaluator
 from components.agent import Agent
 from components.trainer import Trainer
 
@@ -237,6 +238,14 @@ if __name__ == "__main__":
         evaluation=True,
         # noise=add_noise,
     )
+    evaluator = None
+    if args.model != 'base':
+        evaluator = Evaluator(
+            args.img_stack,
+            args.action_repeat,
+            args.model,
+            device=device,
+        )
     init_epoch = 0
     if args.from_checkpoint:
         init_epoch = agent.load(args.from_checkpoint)
@@ -282,7 +291,8 @@ if __name__ == "__main__":
         eval_interval=args.val_interval,
         model_name=args.model,
         skip_zoom=args.skip_zoom,
-        debug=args.debug
+        debug=args.debug,
+        evaluator=evaluator,
     )
 
     trainer.run()
@@ -332,6 +342,8 @@ if __name__ == "__main__":
 
     for idx, noise in enumerate(tqdm(np.linspace(add_noise[0], add_noise[1], args.noise_steps))):
         test_env.set_noise_value(noise)
+        if evaluator:
+            evaluator.set_noise_value(noise)
         trainer = Trainer(
             agent,
             None,
@@ -339,7 +351,8 @@ if __name__ == "__main__":
             0,
             nb_evaluations=args.test_episodes,
             model_name=args.model,
-            debug=args.debug
+            debug=args.debug,
+            evaluator=evaluator,
         )
         trainer.eval(idx, mode="test")
     

@@ -16,6 +16,7 @@ from utilities.eps_scheduler import Epsilon
 from utilities.replay_buffer import ReplayMemory
 from components.uncert_agents import make_agent
 from components.trainer import Trainer
+from shared.components.evaluator import Evaluator
 from shared.components.env import Env
 from shared.utils.utils import init_uncert_file
 
@@ -359,6 +360,14 @@ if __name__ == "__main__":
         # green_reward=args.green_reward,
         # done_reward=args.done_reward,
     )
+    evaluator = None
+    if args.model != 'base':
+        evaluator = Evaluator(
+            args.image_stack,
+            args.action_repeat,
+            args.model,
+            device=device,
+        )
     init_epoch = 0
     if args.from_checkpoint:
         init_epoch = agent.load_param(args.from_checkpoint)
@@ -395,6 +404,7 @@ if __name__ == "__main__":
         eval_every=args.eval_every,
         skip_zoom=args.skip_zoom,
         model_name=run_name,
+        evaluator=evaluator,
     )
 
     trainer.run()
@@ -449,6 +459,8 @@ if __name__ == "__main__":
 
     for idx, noise in enumerate(tqdm(np.linspace(add_noise[0], add_noise[1], args.noise_steps))):
         test_env.set_noise_value(noise)
+        if evaluator:
+            evaluator.set_noise_value(noise)
         trainer = Trainer(
             None,
             test_env,
@@ -456,6 +468,7 @@ if __name__ == "__main__":
             0,
             eval_episodes=args.test_episodes,
             model_name=args.model,
+            evaluator=evaluator,
         )
         trainer.eval(idx, mode="test")
     
