@@ -353,7 +353,7 @@ if __name__ == "__main__":
     eval_env = Env(
         img_stack=args.image_stack,
         seed=args.eval_seed,
-        path_render=f"{run_name}" if args.eval_render else None,
+        path_render=f"./render/train/{run_name}" if args.eval_render else None,
         validations=args.eval_episodes,
         evaluation=True,
         action_repeat=args.action_repeat,
@@ -434,7 +434,7 @@ if __name__ == "__main__":
     test_env = Env(
         img_stack=args.image_stack,
         seed=args.test_seed,
-        path_render=f"{args.model}" if args.test_render else None,
+        path_render=f"./render/test/{args.model}" if args.test_render else None,
         validations=args.test_episodes,
         evaluation=True,
         action_repeat=args.action_repeat,

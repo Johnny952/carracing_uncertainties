@@ -98,7 +98,7 @@ if __name__ == "__main__":
         help="Number of steps to skip at episode start",
     )
     train_config.add_argument(
-        "-E", "--epochs", type=int, default=2000, help="Number of epochs"
+        "-E", "--epochs", type=int, default=3000, help="Number of epochs"
     )
     train_config.add_argument(
         "-D",
@@ -233,7 +233,7 @@ if __name__ == "__main__":
         img_stack=args.img_stack,
         action_repeat=args.action_repeat,
         seed=args.eval_seed,
-        path_render=f"train/{args.model}" if args.val_render else None,
+        path_render=f"./render/train/{args.model}" if args.val_render else None,
         validations=args.validations,
         evaluation=True,
         # noise=add_noise,
@@ -318,7 +318,7 @@ if __name__ == "__main__":
         img_stack=args.img_stack,
         action_repeat=args.action_repeat,
         seed=args.test_seed,
-        path_render=f"test/{args.model}" if args.test_render else None,
+        path_render=f"./render/test/{args.model}" if args.test_render else None,
         validations=args.test_episodes,
         evaluation=True,
         noise=add_noise,
