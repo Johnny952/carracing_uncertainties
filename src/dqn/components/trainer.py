@@ -134,12 +134,12 @@ class Trainer:
         return self.base_eval(episode_nb, mode=mode)
 
     def base_eval(self, episode_nb: int, mode: str = "train"):
-        assert mode in ["train", "test"]
+        assert mode in ['train', 'customtest', 'test']
         mean_score = 0
         mean_uncert = np.array([0, 0], dtype=np.float64)
         mean_steps = 0
 
-        for episode in tqdm(range(self._eval_episodes), f'Evaluating ep {episode_nb}'):
+        for episode in tqdm(range(self._eval_episodes), f'{mode.title()} ep {episode_nb}'):
             ob_t = self._eval_env.reset()
             score = 0
             steps = 0
@@ -169,7 +169,7 @@ class Trainer:
             mean_score += score / self._eval_episodes
             mean_steps += steps / self._eval_episodes
 
-        wandb_mode = 'Eval' if mode == 'train' else 'Test'
+        wandb_mode = mode.title()
         wandb.log(
             {
                 f"{wandb_mode} Episode": self._eval_nb,

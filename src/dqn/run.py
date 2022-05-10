@@ -472,4 +472,14 @@ if __name__ == "__main__":
         )
         trainer.eval(idx, mode="test")
     
+    test_env.use_noise = False
+    trainer = Trainer(
+        None,
+        test_env,
+        agent,
+        0,
+        eval_episodes=args.noise_steps,
+        model_name=args.model,
+    )
+    trainer.eval(idx, mode="customtest")
     print(colored("\nTest completed", "green"))

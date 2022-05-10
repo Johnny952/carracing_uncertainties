@@ -246,3 +246,13 @@ if __name__ == "__main__":
         )
         trainer.eval(idx, mode="test")
 
+    eval_env.use_noise = False
+    trainer = Trainer(
+        env,
+        eval_env,
+        agent,
+        0,
+        eval_episodes=args.noise_steps,
+        model_name=args.model,
+    )
+    trainer.eval(idx, mode="customtest")
