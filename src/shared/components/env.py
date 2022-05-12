@@ -12,6 +12,8 @@ class Env():
     """
 
     def __init__(self, img_stack, action_repeat, seed=0, path_render=None, validations=1, evaluation=False, noise=None, green_reward=-0.05, done_reward=0):
+        gym.logger.set_level(40)
+        
         self.render_path = path_render is not None
         self.evaluation = evaluation
         if not self.render_path:
