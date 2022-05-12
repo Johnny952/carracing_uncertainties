@@ -97,13 +97,13 @@ class Trainer:
                     self._agent.save(i_ep, path=f"param/best_{self._model_name}.pkl")
                 break
 
-    def eval(self, episode_nb, mode='train'):
+    def eval(self, episode_nb, mode='eval'):
         if self._evaluator:
             self._evaluator.eval(episode_nb, self._agent)
         return self.base_eval(episode_nb, mode=mode)
 
     def base_eval(self, episode_nb, mode='train'):
-        assert mode in ['train', 'customtest', 'test']
+        assert mode in ['train', 'eval', 'customtest', 'test']
         # self._agent.eval_mode()
         mean_score = 0
         mean_uncert = np.array([0, 0], dtype=np.float64)
