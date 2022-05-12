@@ -4,7 +4,7 @@ import numpy as np
 
 from components.uncert_agents.abstact import AbstactAgent
 from models.aleatoric import Aleatoric
-from ppo.utilities.customLoss import gaussian_loss
+from ppo.utilities.customLoss import ll_gaussian
 from ppo.utilities.mixtureDist import GaussianMixture
 
 class BootstrapAgent(AbstactAgent):
@@ -34,7 +34,7 @@ class BootstrapAgent(AbstactAgent):
             clip_grad=clip_grad,
         )
         self.nb_nets = nb_nets
-        self._criterion = gaussian_loss
+        self._criterion = ll_gaussian
 
         self._model1 = [Aleatoric(img_stack, len(actions)).to(
             device) for _ in range(nb_nets)]

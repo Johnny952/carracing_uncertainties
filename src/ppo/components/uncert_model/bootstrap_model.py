@@ -1,7 +1,7 @@
 import torch.optim as optim
 import torch
 from ppo.components.uncert_model.basic_model import BaseTrainerModel
-from ppo.utilities.customLoss import gaussian_loss
+from ppo.utilities.customLoss import ll_gaussian
 from ppo.utilities.mixtureDist import GaussianMixture
 from ppo.models.bootstrap import BootstrapModel
 
@@ -12,7 +12,7 @@ class BootstrapTrainerModel(BaseTrainerModel):
                                                     img_stack, gamma, batch_size, buffer_capacity, device=device)
         self._model = [BootstrapModel(img_stack).double().to(
             self.device) for _ in range(nb_nets)]
-        self._criterion = gaussian_loss
+        self._criterion = ll_gaussian
         self._value_scale = 1 / nb_nets
         self._optimizer = [optim.Adam(net.parameters(), lr=lr)
                            for net in self._model]
