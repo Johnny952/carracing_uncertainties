@@ -258,8 +258,8 @@ if __name__ == "__main__":
     # Create uncertainties directory
     if not os.path.exists("uncertainties"):
         os.makedirs("uncertainties")
-    if not os.path.exists("uncertainties/train"):
-        os.makedirs("uncertainties/train")
+    if not os.path.exists("uncertainties/eval"):
+        os.makedirs("uncertainties/eval")
     if not os.path.exists("uncertainties/test"):
         os.makedirs("uncertainties/test")
     if not os.path.exists("uncertainties/customtest"):
@@ -285,7 +285,7 @@ if __name__ == "__main__":
         for f in files:
             os.remove(f)
     
-    init_uncert_file(file=f"uncertainties/train/{run_name}.txt")
+    init_uncert_file(file=f"uncertainties/eval/{run_name}.txt")
     init_uncert_file(file=f"uncertainties/test/{run_name}.txt")
     init_uncert_file(file=f"uncertainties/custom/{run_name}.txt")
     print(colored("Data folders created successfully", "green"))
