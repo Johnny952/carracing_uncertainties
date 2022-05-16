@@ -264,6 +264,8 @@ if __name__ == "__main__":
         os.makedirs("uncertainties/test")
     if not os.path.exists("uncertainties/customtest"):
         os.makedirs("uncertainties/customtest")
+    if not os.path.exists("uncertainties/customeval"):
+            os.makedirs("uncertainties/customeval")
 
     # Create render folders
     if not os.path.exists("render"):
@@ -417,7 +419,7 @@ if __name__ == "__main__":
     del eval_env
     del trainer
     del agent
-
+    del evaluator
 
     print(colored("\nTraining completed, now testing", "green"))
     # Init Agent and Environment
@@ -443,6 +445,15 @@ if __name__ == "__main__":
         action_repeat=args.action_repeat,
         noise=add_noise,
     )
+    evaluator = None
+    if args.model != 'base':
+        evaluator = Evaluator(
+            args.img_stack,
+            args.action_repeat,
+            args.model,
+            device=device,
+            base_path='uncertainties/custom_test'
+        )
     agent.load_param(f"param/best_{args.model}.pkl", eval_mode=True)
     print(colored("Agent and environments created successfully", "green"))
 
