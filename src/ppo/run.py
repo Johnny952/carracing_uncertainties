@@ -165,10 +165,8 @@ if __name__ == "__main__":
             os.makedirs("uncertainties/eval")
         if not os.path.exists("uncertainties/test"):
             os.makedirs("uncertainties/test")
-        if not os.path.exists("uncertainties/customtest"):
-            os.makedirs("uncertainties/customtest")
-        if not os.path.exists("uncertainties/customeval"):
-            os.makedirs("uncertainties/customeval")
+        if not os.path.exists("uncertainties/test0"):
+            os.makedirs("uncertainties/test0")
             
         # Create render folders
         if not os.path.exists("render"):
@@ -192,7 +190,7 @@ if __name__ == "__main__":
         
         init_uncert_file(file=f"uncertainties/eval/{args.model}.txt")
         init_uncert_file(file=f"uncertainties/test/{args.model}.txt")
-        init_uncert_file(file=f"uncertainties/customtest/{args.model}.txt")
+        init_uncert_file(file=f"uncertainties/test0/{args.model}.txt")
     print(colored("Data folders created successfully", "green"))
 
     # Virtual display
@@ -336,7 +334,7 @@ if __name__ == "__main__":
             args.action_repeat,
             args.model,
             device=device,
-            base_path='uncertainties/custom_test'
+            base_path='uncertainties/customtest'
         )
     agent.load(f"param/best_{args.model}.pkl", eval_mode=True)
     print(colored("Agent and environments created successfully", "green"))
@@ -371,6 +369,16 @@ if __name__ == "__main__":
         )
         trainer.eval(idx, mode="test")
     
+
+    evaluator = None
+    if args.model != 'base':
+        evaluator = Evaluator(
+            args.image_stack,
+            args.action_repeat,
+            args.model,
+            device=device,
+            base_path='uncertainties/customtest0'
+        )
     test_env.use_noise = False
     trainer = Trainer(
         agent,
@@ -380,6 +388,7 @@ if __name__ == "__main__":
         nb_evaluations=args.noise_steps,
         model_name=args.model,
         debug=args.debug,
+        evaluator=evaluator,
     )
-    trainer.eval(idx, mode="customtest")
+    trainer.eval(idx, mode="test0")
     print(colored("\nTest completed", "green"))

@@ -6,7 +6,7 @@ from shared.components.env import Env
 from shared.utils.utils import save_uncert, init_uncert_file
 
 class Evaluator:
-    def __init__(self, img_stack, action_repeat, model_name, device='cpu', validations=1, seed=123, base_path='uncertainties/custom_eval') -> None:
+    def __init__(self, img_stack, action_repeat, model_name, device='cpu', validations=1, seed=123, base_path='uncertainties/customeval') -> None:
         self.validations = validations
         self._agent = Agent(
             1,
