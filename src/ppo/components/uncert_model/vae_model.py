@@ -62,7 +62,6 @@ class VAETrainerModel(BaseTrainerModel):
         acc_encode_loss = 0
         acc_loss = 0
         for index in sampler:
-            # Normalizing flow training
             [decoding, input, mu, log_var] = self._vae(s[index])
             l = self._vae.loss_function(decoding, input, mu, log_var, M_N=self._kld_scale)
             loss = l['loss']
@@ -106,7 +105,7 @@ class VAETrainerModel(BaseTrainerModel):
         with torch.no_grad():
             [_, log_var] = self._vae.encode(state)
 
-        # TODO: Aleatoric estimation
+        # TODO: Aleatoric estimation: input/output concat observation-action
         epistemic = torch.sum(torch.exp(log_var))
         aleatoric = torch.Tensor([0])
 

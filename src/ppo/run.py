@@ -149,6 +149,12 @@ if __name__ == "__main__":
         action="store_true",
         help="render the environment on testing",
     )
+    test_config.add_argument(
+        "-OT",
+        "--ommit-traning",
+        action="store_true",
+        help="Whether to ommit training the agent or not",
+    )
 
     args = parser.parse_args()
 
@@ -177,7 +183,7 @@ if __name__ == "__main__":
             os.makedirs("render/test")
         if not os.path.exists(f"render/train/{args.model}"):
             os.makedirs(f"render/train/{args.model}")
-        else:
+        elif args.ommit_training:
             files = glob.glob(f"render/train/{args.model}/*")
             for f in files:
                 os.remove(f)
@@ -188,7 +194,8 @@ if __name__ == "__main__":
             for f in files:
                 os.remove(f)
         
-        init_uncert_file(file=f"uncertainties/eval/{args.model}.txt")
+        if not args.ommit_training:
+            init_uncert_file(file=f"uncertainties/eval/{args.model}.txt")
         init_uncert_file(file=f"uncertainties/test/{args.model}.txt")
         init_uncert_file(file=f"uncertainties/test0/{args.model}.txt")
     print(colored("Data folders created successfully", "green"))
@@ -299,7 +306,9 @@ if __name__ == "__main__":
         evaluator=evaluator,
     )
 
-    trainer.run()
+    if args.ommit_training:
+        print(colored("\nTraining Ommited", "magenta"))
+        trainer.run()
     env.close()
     eval_env.close()
     del env
