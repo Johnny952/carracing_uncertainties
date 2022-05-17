@@ -183,7 +183,7 @@ if __name__ == "__main__":
             os.makedirs("render/test")
         if not os.path.exists(f"render/train/{args.model}"):
             os.makedirs(f"render/train/{args.model}")
-        elif args.ommit_training:
+        elif not args.ommit_training:
             files = glob.glob(f"render/train/{args.model}/*")
             for f in files:
                 os.remove(f)
@@ -306,7 +306,7 @@ if __name__ == "__main__":
         evaluator=evaluator,
     )
 
-    if args.ommit_training:
+    if not args.ommit_training:
         print(colored("\nTraining Ommited", "magenta"))
         trainer.run()
     env.close()
