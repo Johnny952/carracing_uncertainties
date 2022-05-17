@@ -418,8 +418,9 @@ if __name__ == "__main__":
     )
 
     if not args.ommit_training:
-        print(colored("\nTraining Ommited", "magenta"))
         trainer.run()
+    else:
+        print(colored("\nTraining Ommited", "magenta"))
     env.close()
     eval_env.close()
     del env
