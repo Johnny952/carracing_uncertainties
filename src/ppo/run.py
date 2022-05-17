@@ -151,7 +151,7 @@ if __name__ == "__main__":
     )
     test_config.add_argument(
         "-OT",
-        "--ommit-traning",
+        "--ommit-training",
         action="store_true",
         help="Whether to ommit training the agent or not",
     )
