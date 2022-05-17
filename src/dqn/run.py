@@ -456,7 +456,7 @@ if __name__ == "__main__":
     evaluator = None
     if args.model != 'base':
         evaluator = Evaluator(
-            args.img_stack,
+            args.image_stack,
             args.action_repeat,
             args.model,
             device=device,
