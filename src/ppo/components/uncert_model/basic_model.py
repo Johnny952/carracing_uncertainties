@@ -21,6 +21,7 @@ class BaseTrainerModel:
         self._model = Net(img_stack).double().to(self.device)
         self._optimizer = optim.Adam(self._model.parameters(), lr=lr)
         self._nb_update = 0
+        self.variance = 0
 
     def forward_nograd(self, state):
         with torch.no_grad():
@@ -58,6 +59,7 @@ class BaseTrainerModel:
         }
         if other_loss:
             to_log["Other Loss"] = float(other_loss)
+        to_log["Variance"] = float(self.variance)
         wandb.log(to_log)
 
     def train_once(
@@ -67,6 +69,7 @@ class BaseTrainerModel:
         acc_action_loss = 0
         acc_value_loss = 0
         acc_loss = 0
+        self.get_value_lossvariance = 0
 
         for index in sampler:
 
@@ -90,6 +93,7 @@ class BaseTrainerModel:
             acc_action_loss += action_loss.item()
             acc_value_loss += value_loss.item()
             acc_loss += loss.item()
+            self.variance += torch.mean(alpha * beta / ((alpha + beta) ** 2 * (alpha + beta + 1)))
         return acc_loss, acc_action_loss, acc_value_loss
 
     def get_value_loss(self, prediction, target_v):
