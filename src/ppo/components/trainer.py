@@ -103,7 +103,7 @@ class Trainer:
         return self.base_eval(episode_nb, mode=mode)
 
     def base_eval(self, episode_nb, mode='train'):
-        assert mode in ['train', 'eval', 'customtest', 'test']
+        assert mode in ['train', 'eval', 'test0', 'test']
         # self._agent.eval_mode()
         mean_score = 0
         mean_uncert = np.array([0, 0], dtype=np.float64)
