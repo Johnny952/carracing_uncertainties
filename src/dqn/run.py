@@ -371,7 +371,7 @@ if __name__ == "__main__":
         # done_reward=args.done_reward,
     )
     evaluator = None
-    if args.model != 'base':
+    if args.model != 'base' and not args.ommit_training:
         evaluator = Evaluator(
             args.image_stack,
             args.action_repeat,
