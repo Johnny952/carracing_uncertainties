@@ -60,16 +60,16 @@ class Trainer:
                     ob_t, action_idx, ob_t1, reward, (done or die)
                 ):
                     self._agent.update()
-                wandb.log(
-                    {
-                        "Instant Step": self._global_step,
-                        "Instant Score": float(reward),
-                        "Instant Green Reward": float(info["green_reward"]),
-                        "Instant Base Reward": float(info["base_reward"]),
-                        "Instant Mean Speed": float(info["speed"]),
-                        "Instant Noise": float(info["noise"]),
-                    }
-                )
+                # wandb.log(
+                #     {
+                #         "Instant Step": self._global_step,
+                #         "Instant Score": float(reward),
+                #         "Instant Green Reward": float(info["green_reward"]),
+                #         "Instant Base Reward": float(info["base_reward"]),
+                #         "Instant Mean Speed": float(info["speed"]),
+                #         "Instant Noise": float(info["noise"]),
+                #     }
+                # )
 
                 score += reward
                 ob_t = ob_t1
