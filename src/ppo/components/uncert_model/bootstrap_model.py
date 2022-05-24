@@ -12,7 +12,7 @@ class BootstrapTrainerModel(BaseTrainerModel):
                                                     img_stack, gamma, batch_size, buffer_capacity, device=device)
         self._model = [BootstrapModel(img_stack).double().to(
             self.device) for _ in range(nb_nets)]
-        self._criterion = nn.GaussianNLLLoss
+        self._criterion = nn.GaussianNLLLoss()
         self._value_scale = 1 / nb_nets
         self._optimizer = [optim.Adam(net.parameters(), lr=lr)
                            for net in self._model]

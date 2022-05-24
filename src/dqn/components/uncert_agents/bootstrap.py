@@ -34,7 +34,7 @@ class BootstrapAgent(AbstactAgent):
             clip_grad=clip_grad,
         )
         self.nb_nets = nb_nets
-        self._criterion = nn.GaussianNLLLoss
+        self._criterion = nn.GaussianNLLLoss()
 
         self._model1 = [Aleatoric(img_stack, len(actions)).to(
             device) for _ in range(nb_nets)]
