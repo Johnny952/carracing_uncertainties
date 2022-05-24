@@ -1,10 +1,10 @@
 import torch
+import torch.nn as nn
 import wandb
 import numpy as np
 
 from components.uncert_agents.abstact import AbstactAgent
 from models.aleatoric import Aleatoric
-from ppo.utilities.customLoss import ll_gaussian
 from ppo.utilities.mixtureDist import GaussianMixture
 
 class BootstrapAgent(AbstactAgent):
@@ -34,7 +34,7 @@ class BootstrapAgent(AbstactAgent):
             clip_grad=clip_grad,
         )
         self.nb_nets = nb_nets
-        self._criterion = ll_gaussian
+        self._criterion = nn.GaussianNLLLoss
 
         self._model1 = [Aleatoric(img_stack, len(actions)).to(
             device) for _ in range(nb_nets)]
@@ -117,8 +117,10 @@ class BootstrapAgent(AbstactAgent):
         ).squeeze(dim=-1)
         expected_Q = rewards + (1 - dones) * self._gamma * next_Q
 
-        loss1 = self._criterion(curr_Q1, expected_Q.detach(), curr_log_sigma1)
-        loss2 = self._criterion(curr_Q2, expected_Q.detach(), curr_log_sigma2)
+        var1 = torch.exp(curr_log_sigma1)
+        var2 = torch.exp(curr_log_sigma2)
+        loss1 = self._criterion(curr_Q1, expected_Q.detach(), var1)
+        loss2 = self._criterion(curr_Q2, expected_Q.detach(), var2)
 
         return loss1, loss2
     

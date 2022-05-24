@@ -2,7 +2,7 @@ import torch
 
 from components.uncert_agents.abstact import AbstactAgent
 from models.aleatoric import Aleatoric
-from shared.utils.losses import det_loss
+from ppo.utilities.customLoss import det_loss
 
 class AleatoricAgent(AbstactAgent):
     def __init__(
