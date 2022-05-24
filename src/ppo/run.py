@@ -140,7 +140,7 @@ if __name__ == "__main__":
         "-TE",
         "--test-episodes",
         type=int,
-        default=5,
+        default=3,
         help="Number validations each noise step",
     )
     test_config.add_argument(
@@ -390,15 +390,16 @@ if __name__ == "__main__":
             base_path='uncertainties/customtest0'
         )
     test_env.use_noise = False
-    trainer = Trainer(
-        agent,
-        None,
-        test_env,
-        0,
-        nb_evaluations=args.noise_steps,
-        model_name=args.model,
-        debug=args.debug,
-        evaluator=evaluator,
-    )
-    trainer.eval(idx, mode="test0")
+    for idx in tqdm(range(args.noise_steps)):
+        trainer = Trainer(
+            agent,
+            None,
+            test_env,
+            0,
+            nb_evaluations=args.test_episodes,
+            model_name=args.model,
+            debug=args.debug,
+            evaluator=evaluator,
+        )
+        trainer.eval(idx, mode="test0")
     print(colored("\nTest completed", "green"))

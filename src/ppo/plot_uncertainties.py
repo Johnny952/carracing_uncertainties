@@ -83,7 +83,7 @@ def plot_uncert_train(
     fig, ax = plt.subplots(nrows=1, ncols=1)
     fig.set_figheight(10)
     fig.set_figwidth(20)
-    fig.suptitle("Rewards and Uncertainties during training", fontsize=18)
+    fig.suptitle("Rewards during training", fontsize=18)
     ax.set_ylabel("Reward", fontsize=16)
     # ax[1].set_ylabel("Epistemic Uncertainty", fontsize=16)
     ax.set_xlabel("Episode", fontsize=16)
@@ -614,8 +614,8 @@ def plot_eval(
     ax.legend()
     fig.savefig(unc_path)
 
-def plot_vs_time(paths, names, figure='images/time_*.png', nb_eval=-1):
-    for idx, (path, name) in enumerate(zip(paths, names)):
+def plot_vs_time(paths, names, log_scales, figure='images/time_*.png', nb_eval=-1):
+    for idx, (path, name, log_scale) in enumerate(zip(paths, names, log_scales)):
         (
             _,
             (unique_ep, mean_reward, mean_epist, mean_aleat),
@@ -626,6 +626,8 @@ def plot_vs_time(paths, names, figure='images/time_*.png', nb_eval=-1):
         plt.figure(figsize=(20, 10))
         plt.plot(epist[nb_eval])
         plt.plot([70, 70], [0, max(epist[nb_eval])], 'r')
+        if log_scale:
+            plt.yscale('log')
         plt.xlabel('Step', fontsize=16)
         plt.ylabel('Epistemic Uncertainty', fontsize=16)
         plt.title(f"Epistemic Uncertainty of {name} during evaluation", fontsize=18)

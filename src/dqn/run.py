@@ -214,7 +214,7 @@ if __name__ == "__main__":
         "-TEp",
         "--test-episodes",
         type=int,
-        default=5,
+        default=3,
         help="Number of testing episodes",
     )
     test_config.add_argument(
@@ -505,14 +505,15 @@ if __name__ == "__main__":
             base_path='uncertainties/customtest0'
         )
     test_env.use_noise = False
-    trainer = Trainer(
-        None,
-        test_env,
-        agent,
-        0,
-        eval_episodes=args.noise_steps,
-        model_name=args.model,
-        evaluator=evaluator,
-    )
-    trainer.eval(idx, mode="test0")
+    for idx in tqdm(range(args.noise_steps)):
+        trainer = Trainer(
+            None,
+            test_env,
+            agent,
+            0,
+            eval_episodes=args.test_episodes,
+            model_name=args.model,
+            evaluator=evaluator,
+        )
+        trainer.eval(idx, mode="test0")
     print(colored("\nTest completed", "green"))
