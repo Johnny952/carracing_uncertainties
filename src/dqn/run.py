@@ -231,7 +231,8 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     
-    run_name = f"{args.model}_{uuid.uuid4()}"
+    # run_name = f"{args.model}_{uuid.uuid4()}"
+    run_name = args.model
     
     old_settings = np.seterr(all="raise")
     
