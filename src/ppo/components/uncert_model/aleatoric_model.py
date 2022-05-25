@@ -1,6 +1,6 @@
 import torch.optim as optim
 import torch
-from ppo.utilities.customLoss import det_loss
+from ppo.utilities.customLoss import det_loss, det_loss2
 from ppo.components.uncert_model.basic_model import BaseTrainerModel
 from ppo.models.aleatoric import Aleatoric
 
@@ -11,7 +11,7 @@ class AleatoricTrainerModel(BaseTrainerModel):
                                                     img_stack, gamma, batch_size, buffer_capacity, device=device)
         self._model = Aleatoric(img_stack).double().to(self.device)
         self._criterion = det_loss
-        self._weight_decay = 1e-6
+        self._weight_decay = 1e-12
         self._optimizer = optim.Adam(self._model.parameters(), lr=lr)#, weight_decay=self._weight_decay
 
     def forward_nograd(self, state):

@@ -1,5 +1,4 @@
 import torch
-import numpy as np
 
 def ll_gaussian(y, mu, log_var):  # log-likelihood of gaussian
     #sigma = torch.exp(0.5 * log_var)
@@ -24,3 +23,15 @@ def elbo(y_pred, y, mu, log_var, weight_decay=1e-4):
 
 def det_loss(y_pred, y, mu, log_var, weight_decay=1e-4):
     return -elbo(y_pred, y, mu, log_var, weight_decay=weight_decay)
+
+
+
+def det_loss2(y_pred, y, mu, log_var, weight_decay=1e-4):
+    var = torch.exp(log_var)
+    criterion = torch.nn.GaussianNLLLoss(reduction='none')
+
+    neg_log_likelihood = criterion(y, mu, var)
+    neg_log_prior = criterion(y_pred, 0, torch.tensor(1./weight_decay))
+    neg_log_p = criterion(y_pred, mu, var)
+
+    return (neg_log_likelihood + neg_log_prior - neg_log_p).mean()
