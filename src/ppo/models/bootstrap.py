@@ -46,9 +46,9 @@ class BootstrapModel(nn.Module):
         x = self.cnn_base(x)
         x = x.view(-1, 256)
         v = self.v(x)
-        log_vae = self.sigma_head(x)     # always being positive
+        log_var = self.sigma_head(x)     # always being positive
         x = self.fc(x)
         alpha = self.alpha_head(x) + 1
         beta = self.beta_head(x) + 1
 
-        return (alpha, beta), v, log_vae
+        return (alpha, beta), v, log_var

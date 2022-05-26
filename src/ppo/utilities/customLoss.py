@@ -31,7 +31,7 @@ def det_loss2(y_pred, y, mu, log_var, weight_decay=1e-4):
     criterion = torch.nn.GaussianNLLLoss(reduction='none')
 
     neg_log_likelihood = criterion(y, mu, var)
-    neg_log_prior = criterion(y_pred, 0, torch.tensor(1./weight_decay))
+    neg_log_prior = criterion(y_pred, torch.zeros_like(y_pred), torch.ones_like(y_pred)/weight_decay)
     neg_log_p = criterion(y_pred, mu, var)
 
     return (neg_log_likelihood + neg_log_prior - neg_log_p).mean()
