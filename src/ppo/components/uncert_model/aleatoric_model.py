@@ -10,7 +10,7 @@ class AleatoricTrainerModel(BaseTrainerModel):
         super(AleatoricTrainerModel, self).__init__(nb_nets, lr,
                                                     img_stack, gamma, batch_size, buffer_capacity, device=device)
         self._model = Aleatoric(img_stack).double().to(self.device)
-        self._criterion = det_loss
+        self._criterion = det_loss2
         self._weight_decay = 1e-12
         self._optimizer = optim.Adam(self._model.parameters(), lr=lr)#, weight_decay=self._weight_decay
 
