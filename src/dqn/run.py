@@ -517,4 +517,19 @@ if __name__ == "__main__":
             evaluator=evaluator,
         )
         trainer.eval(idx, mode="test0")
+
+    evaluator = None
+    if args.model != 'base':
+        evaluator = Evaluator(
+            args.img_stack,
+            args.action_repeat,
+            args.model,
+            device=device,
+            base_path='uncertainties/customtest1'
+        )
+        evaluator.eval(0, agent)
+
+        evaluator.base_path = 'uncertainties/customtest2'
+        evaluator.eval2(0, agent)
+
     print(colored("\nTest completed", "green"))

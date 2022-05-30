@@ -45,6 +45,12 @@ class Evaluator:
         self.noise = noise
     
     def eval(self, episode_nb, agent):
+        self._eval(episode_nb, agent)
+    
+    def ppo_step(self, action):
+        return action * np.array([2.0, 1.0, 1.0]) + np.array([-1.0, 0.0, 0.0])
+
+    def _eval(self, episode_nb, agent, default_action=[-1.0, 0.4, 0], steps=[70, 71]):
         self.load_env()
         for i_val in range(self.validations):
             score = 0
@@ -60,7 +66,8 @@ class Evaluator:
                 uncert.append(
                     [epis.view(-1).cpu().numpy()[0], aleat.view(-1).cpu().numpy()[0]]
                 )
-                action = self.ppo_step(action, i_step)
+                action = default_action if i_step in steps else self.ppo_step(action)
+                action = self.ppo_step(action)
 
                 state_, reward, _, die = self._eval_env.step(action)[:4]
                 score += reward
@@ -80,10 +87,6 @@ class Evaluator:
 
             self.evaluation_nb += 1
         self._eval_env.close()
-        #self._eval_env.reset()
-    
-    def ppo_step(self, action, step):
-        # TODO: Change action when step is x
-        if step in [70, 71]:
-            return np.array([-1.0, 0.4, 0])
-        return action * np.array([2.0, 1.0, 1.0]) + np.array([-1.0, 0.0, 0.0])
+
+    def eval2(self, episode_nb, agent):
+        self._eval(episode_nb, agent, steps=[25, 100])
