@@ -529,7 +529,13 @@ if __name__ == "__main__":
         )
         evaluator.eval(0, agent)
 
-        evaluator.base_path = 'uncertainties/customtest2'
+        evaluator = Evaluator(
+            args.image_stack,
+            args.action_repeat,
+            args.model,
+            device=device,
+            base_path='uncertainties/customtest2'
+        )
         evaluator.eval2(0, agent)
 
     print(colored("\nTest completed", "green"))
