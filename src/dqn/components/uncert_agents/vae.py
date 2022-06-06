@@ -71,6 +71,9 @@ class VaeAgent(AbstactAgent):
         return loss1, loss2
 
     def update(self):
+        self._model1.train()
+        self._model2.train()
+        self._vae.eval()
         states, actions, next_states, rewards, dones = self.unpack(
             self._buffer.sample()
         )
@@ -89,11 +92,19 @@ class VaeAgent(AbstactAgent):
             for param in self._model2.parameters():
                 param.grad.data.clamp_(-1, 1)
         self._optimizer2.step()
+
+        self._model1.eval()
+        self._model2.eval()
+        self._vae.train()
         
         vae_loss, recons_loss, kld_loss = self.vae_update(states)
 
         self.log_loss(loss1.item(), loss2.item(), vae_loss, recons_loss, kld_loss)
         self._nb_update += 1
+
+        self._model1.train()
+        self._model2.train()
+        self._vae.train()
 
     def log_loss(self, loss1, loss2, vae_loss, recons_loss, kld_loss):
         wandb.log(
