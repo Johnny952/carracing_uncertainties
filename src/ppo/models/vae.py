@@ -99,6 +99,10 @@ class VanillaVAE(nn.Module):
         result = self.final_layer(result)
         return result
 
+    def reconstruct(self, input):
+        mu, log_var = self.encode(input)
+        return self.decode(mu), log_var 
+
     def reparameterize(self, mu: Tensor, logvar: Tensor) -> Tensor:
         """
         Reparameterization trick to sample from N(mu, var) from

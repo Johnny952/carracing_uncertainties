@@ -1,6 +1,8 @@
 import numpy as np
 import wandb
 from tqdm import tqdm
+import matplotlib.pyplot as plt
+import torch
 
 from shared.utils.utils import save_uncert
 from shared.components.env import Env
@@ -156,5 +158,38 @@ class Trainer:
         )
 
         self._eval_nb += 1
+
+        return mean_score
+
+    def vae_eval(self, directory: str = "images", device: str = "cpu"):
+        mean_score = 0
+
+        for idx in tqdm(range(self._nb_evaluations)):
+            score = 0
+            steps = 0
+            state = self._eval_env.reset()
+            die = False
+
+            while not die:
+                action, _, _ = self._agent.select_action(state, eval=True)
+                reconst = self._agent._model._vae.reconstruct(torch.from_numpy(state).unsqueeze(dim=0).float().to(
+                        device))[0].squeeze(dim=0)
+
+                fig, ax = plt.subplots(nrows=1, ncols=2)
+                fig.set_figheight(7)
+                fig.set_figwidth(20)
+                ax[0].imshow(state[-1, :, :], cmap="gray")
+                ax[0].set_title("Real state", fontsize=16)
+                ax[1].imshow(reconst.cpu().numpy()[-1, :, :], cmap="gray")
+                ax[1].set_title("Reconstructed state", fontsize=16)
+                fig.savefig(f'{directory}/{idx}-{steps}.png')
+
+
+                state_, reward, _, die = self._eval_env.step(
+                    action * np.array([2.0, 1.0, 1.0]) + np.array([-1.0, 0.0, 0.0])
+                )[:4]
+                score += reward
+                state = state_
+                steps += 1
 
         return mean_score

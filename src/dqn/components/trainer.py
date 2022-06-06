@@ -1,6 +1,8 @@
 import numpy as np
 import wandb
 from tqdm import tqdm
+import matplotlib.pyplot as plt
+import torch
 
 from components.uncert_agents.abstact import AbstactAgent
 from shared.utils.utils import save_uncert
@@ -180,5 +182,41 @@ class Trainer:
             }
         )
         self._eval_nb += 1
+
+        return mean_score
+
+    def vae_eval(self, directory: str = "images", device: str = "cpu"):
+        mean_score = 0
+        mean_steps = 0
+
+        for episode in tqdm(range(self._eval_episodes)):
+            ob_t = self._eval_env.reset()
+            score = 0
+            steps = 0
+            die = False
+
+            while not die:
+                action, _, _ = self._agent.select_action(ob_t, eval=True)
+                with torch.no_grad():
+                    reconst = self._agent._vae.reconstruct(torch.from_numpy(ob_t).unsqueeze(dim=0).float().to(
+                        device))[0].squeeze(dim=0)
+
+                fig, ax = plt.subplots(nrows=1, ncols=2)
+                fig.set_figheight(7)
+                fig.set_figwidth(20)
+                ax[0].imshow(ob_t[-1, :, :], cmap="gray")
+                ax[0].set_title("Real state", fontsize=16)
+                ax[1].imshow(reconst.cpu().numpy()[-1, :, :], cmap="gray")
+                ax[1].set_title("Reconstructed state", fontsize=16)
+                fig.savefig(f'{directory}/{episode}-{steps}.png')
+                
+                ob_t1, reward, _, die = self._eval_env.step(action)[:4]
+                ob_t = ob_t1
+                score += reward
+                steps += 1
+
+
+            mean_score += score / self._eval_episodes
+            mean_steps += steps / self._eval_episodes
 
         return mean_score
