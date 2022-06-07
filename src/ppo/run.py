@@ -250,7 +250,7 @@ if __name__ == "__main__":
         # noise=add_noise,
     )
     evaluator = None
-    if args.model != 'base' and not args.ommit_training:
+    if not args.ommit_training:
         evaluator = Evaluator(
             args.img_stack,
             args.action_repeat,
@@ -337,15 +337,13 @@ if __name__ == "__main__":
         evaluation=True,
         noise=add_noise,
     )
-    evaluator = None
-    if args.model != 'base':
-        evaluator = Evaluator(
-            args.img_stack,
-            args.action_repeat,
-            args.model,
-            device=device,
-            base_path='uncertainties/customtest'
-        )
+    #     evaluator = Evaluator(
+    #         args.img_stack,
+    #         args.action_repeat,
+    #         args.model,
+    #         device=device,
+    #         base_path='uncertainties/customtest'
+    #     )
     agent.load(f"param/best_{args.model}.pkl", eval_mode=True)
     print(colored("Agent and environments created successfully", "green"))
 
@@ -363,10 +361,11 @@ if __name__ == "__main__":
         )
     )
 
+    # Test increasing noise
     for idx, noise in enumerate(tqdm(np.linspace(add_noise[0], add_noise[1], args.noise_steps))):
         test_env.set_noise_value(noise)
-        if evaluator:
-            evaluator.set_noise_value(noise)
+        # if evaluator:
+        #     evaluator.set_noise_value(noise)
         trainer = Trainer(
             agent,
             None,
@@ -375,20 +374,18 @@ if __name__ == "__main__":
             nb_evaluations=args.test_episodes,
             model_name=args.model,
             debug=args.debug,
-            evaluator=evaluator,
+            # evaluator=evaluator,
         )
         trainer.eval(idx, mode="test")
     
-
-    evaluator = None
-    if args.model != 'base':
-        evaluator = Evaluator(
-            args.img_stack,
-            args.action_repeat,
-            args.model,
-            device=device,
-            base_path='uncertainties/customtest0'
-        )
+    # Test noise 0
+    #     evaluator = Evaluator(
+    #         args.img_stack,
+    #         args.action_repeat,
+    #         args.model,
+    #         device=device,
+    #         base_path='uncertainties/customtest0'
+    #     )
     test_env.use_noise = False
     for idx in tqdm(range(args.noise_steps)):
         trainer = Trainer(
@@ -399,29 +396,29 @@ if __name__ == "__main__":
             nb_evaluations=args.test_episodes,
             model_name=args.model,
             debug=args.debug,
-            evaluator=evaluator,
+            # evaluator=evaluator,
         )
         trainer.eval(idx, mode="test0")
     
+    # Test controller 1 and 2
+    evaluator = Evaluator(
+        args.img_stack,
+        args.action_repeat,
+        args.model,
+        device=device,
+        base_path='uncertainties/customtest1'
+    )
+    evaluator.eval(0, agent)
 
-    evaluator = None
-    if args.model != 'base':
-        evaluator = Evaluator(
-            args.img_stack,
-            args.action_repeat,
-            args.model,
-            device=device,
-            base_path='uncertainties/customtest1'
-        )
-        evaluator.eval(0, agent)
+    evaluator = Evaluator(
+        args.img_stack,
+        args.action_repeat,
+        args.model,
+        device=device,
+        base_path='uncertainties/customtest2',
+        nb=2,
+    )
+    evaluator.eval2(0, agent)
 
-        evaluator = Evaluator(
-            args.img_stack,
-            args.action_repeat,
-            args.model,
-            device=device,
-            base_path='uncertainties/customtest2'
-        )
-        evaluator.eval2(0, agent)
-
+    test_env.close()
     print(colored("\nTest completed", "green"))
