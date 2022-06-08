@@ -54,7 +54,7 @@ class AleatoricTrainerModel(BaseTrainerModel):
             surr2 = torch.clamp(ratio, 1.0 - clip_param, 1.0 + clip_param) * adv[index]
             action_loss = -torch.min(surr1, surr2).mean()
             value_loss = self.get_value_loss(prediction, target_v[index])
-            loss = action_loss + 2.0 * value_loss / 500
+            loss = action_loss + 2.0 * value_loss / 50
 
             optimizer.zero_grad()
             loss.backward()
