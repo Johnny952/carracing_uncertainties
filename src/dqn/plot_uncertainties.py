@@ -2,28 +2,26 @@ import plotly.express as px
 import os
 import sys
 sys.path.append('..')
-from ppo.plot_uncertainties import plot_uncert_train, plot_uncert_test, plotly_train, plotly_test, plot_uncert_comparative
-
-
+from shared.utils.plot import _NAN_, read_uncert, plot_uncert_train, plot_uncert_test, plot_eval, plot_vs_time, plot_comparative
+ 
 if __name__ == "__main__":
     smooth = 2
     plot_variance = False
-    log_scales = [0, 6, 2, 7, 4, 1]
     train_paths = [
-        # "uncertainties/train/ddqn_base_c077a8fa-b895-4aeb-85f6-0396baaf46c7.txt",
-        "uncertainties/train/ddqn_bnn2_7cbd4bbe-c12a-4639-92f6-161a6a038c8b.txt",
-        "uncertainties/train/ddqn_bootstrap_8b9714f5-5aee-4427-9e62-383c0b2d0ccc.txt",
-        "uncertainties/train/ddqn_dropout_03d6df46-3085-49fe-9523-b2a13b776303.txt",
-        "uncertainties/train/ddqn_sensitivity_03ec9544-d59e-4a64-9dc3-7997dbd74d4d.txt",
-        "uncertainties/train/ddqn_vae_c3e688f6-e9d6-4dc9-94ad-27b66938ea3c.txt",
-        "uncertainties/train/ddqn_aleatoric_556e588d-b6e2-4040-944d-1dec942e03f5.txt",
-        "uncertainties/train/ddqn_bootstrap2_89dcc4a7-d0c2-4a2e-b219-55cde3438bd2.txt",
-        "uncertainties/train/ddqn_dropout2_956283eb-5946-408d-867e-17f414bcf6e1.txt",
+        # "uncertainties/eval/base.txt",
+        "uncertainties/eval/bnn2.txt",
+        # "uncertainties/eval/bootstrap.txt",
+        "uncertainties/eval/dropout.txt",
+        "uncertainties/eval/sensitivity.txt",
+        "uncertainties/eval/vae.txt",
+        "uncertainties/eval/aleatoric.txt",
+        "uncertainties/eval/bootstrap2.txt",
+        "uncertainties/eval/dropout2.txt",
     ]
     names = [
         # "Base",
         "Bayesian NN",
-        "Bootstrap",
+        # "Bootstrap",
         "Dropout",
         "Sensitivity",
         "VAE",
@@ -41,12 +39,11 @@ if __name__ == "__main__":
     plot_uncert_train(
         train_paths, names, colors=colors_px, linewidths=linewidths, smooth=smooth, plot_variance=plot_variance, multipliers=multipliers
     )
-    plotly_train(train_paths, names, colors=colors_px, smooth=smooth, plot_variance=plot_variance)
 
     test_paths = [
         # "uncertainties/test/base.txt",
         "uncertainties/test/bnn2.txt",
-        "uncertainties/test/bootstrap.txt",
+        # "uncertainties/test/bootstrap.txt",
         "uncertainties/test/dropout.txt",
         "uncertainties/test/sensitivity.txt",
         "uncertainties/test/vae.txt",
@@ -56,6 +53,48 @@ if __name__ == "__main__":
     ]
 
     plot_uncert_test(test_paths, names, colors=colors_px, linewidths=linewidths, smooth=smooth, plot_variance=plot_variance, multipliers=multipliers)
-    plotly_test(test_paths, names, colors=colors_px, smooth=smooth, plot_variance=plot_variance)
 
-    plot_uncert_comparative(train_paths, test_paths, names, linewidths, log_scales=log_scales)
+    test0_paths = [
+        # "uncertainties/test0/base.txt",
+        "uncertainties/test0/bnn2.txt",
+        # "uncertainties/test0/bootstrap.txt",
+        "uncertainties/test0/dropout.txt",
+        "uncertainties/test0/sensitivity.txt",
+        "uncertainties/test0/vae.txt",
+        "uncertainties/test0/aleatoric.txt",
+        "uncertainties/test0/bootstrap2.txt",
+        "uncertainties/test0/dropout2.txt",
+    ]
+    plot_comparative(train_paths,test0_paths, test_paths, names, linewidths)
+
+    eval_paths = [
+        # "uncertainties/customtest1/base.txt",
+        "uncertainties/customtest1/bnn2.txt",
+        # "uncertainties/customtest1/bootstrap.txt",
+        "uncertainties/customtest1/dropout.txt",
+        "uncertainties/customtest1/sensitivity.txt",
+        "uncertainties/customtest1/vae.txt",
+        "uncertainties/customtest1/aleatoric.txt",
+        "uncertainties/customtest1/bootstrap2.txt",
+        "uncertainties/customtest1/dropout2.txt",
+    ]
+
+    # plot_eval(eval_paths, names, colors=colors_px, linewidths=linewidths, smooth=smooth, multipliers=multipliers)
+
+    log_scales = [False] * 10
+    plot_vs_time(eval_paths, names, log_scales)
+
+    eval2_paths = [
+        # "uncertainties/customtest2/base.txt",
+        "uncertainties/customtest2/bnn2.txt",
+        # "uncertainties/customtest2/bootstrap.txt",
+        "uncertainties/customtest2/dropout.txt",
+        "uncertainties/customtest2/sensitivity.txt",
+        "uncertainties/customtest2/vae.txt",
+        "uncertainties/customtest2/aleatoric.txt",
+        "uncertainties/customtest2/bootstrap2.txt",
+        "uncertainties/customtest2/dropout2.txt",
+    ]
+    plot_vs_time(eval2_paths, names, log_scales, figure='images/time2_*.png', red_lines=[25, 100])
+
+    

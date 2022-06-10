@@ -34,7 +34,7 @@ class DropoutTrainerModel2(BaseTrainerModel):
         v_list = torch.stack(v_list)
         # self._model.use_dropout(val=True)              # Deactivate dropout layers
 
-        epistemic = torch.var(alpha_list / (alpha_list + beta_list)) + torch.var(beta_list)
+        epistemic = torch.var(alpha_list / (alpha_list + beta_list))
         aleatoric = torch.tensor([0])
 
         return (torch.mean(alpha_list, dim=0), torch.mean(beta_list, dim=0)), torch.mean(v_list, dim=0), (epistemic, aleatoric)

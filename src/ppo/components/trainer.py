@@ -172,7 +172,8 @@ class Trainer:
 
             while not die:
                 action, _, _ = self._agent.select_action(state, eval=True)
-                reconst = self._agent._model._vae.reconstruct(torch.from_numpy(state).unsqueeze(dim=0).float().to(
+                with torch.no_grad():
+                    reconst = self._agent._model._vae.reconstruct(torch.from_numpy(state).unsqueeze(dim=0).float().to(
                         device))[0].squeeze(dim=0)
 
                 fig, ax = plt.subplots(nrows=1, ncols=2)
