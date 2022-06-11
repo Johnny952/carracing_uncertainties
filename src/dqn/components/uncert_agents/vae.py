@@ -54,44 +54,12 @@ class VaeAgent(AbstactAgent):
         epistemic = torch.sum(torch.exp(log_var))
         aleatoric = torch.Tensor([0])
         return index, epistemic, aleatoric
-    
-    def compute_loss(self, states, actions, next_states, rewards, dones):
-        curr_Q1 = self._model1(states).gather(1, actions).squeeze(dim=-1)
-        curr_Q2 = self._model2(states).gather(1, actions).squeeze(dim=-1)
-
-        next_Q = torch.min(
-            torch.max(self._model1(next_states), 1)[0],
-            torch.max(self._model2(next_states), 1)[0],
-        ).squeeze(dim=-1)
-        expected_Q = rewards + (1 - dones) * self._gamma * next_Q
-
-        loss1 = self._criterion(curr_Q1, expected_Q.detach())
-        loss2 = self._criterion(curr_Q2, expected_Q.detach())
-
-        return loss1, loss2
 
     def update(self):
         self._model1.train()
         self._model2.train()
         self._vae.eval()
-        states, actions, next_states, rewards, dones = self.unpack(
-            self._buffer.sample()
-        )
-        loss1, loss2 = self.compute_loss(states, actions, next_states, rewards, dones)
-
-        self._optimizer1.zero_grad()
-        loss1.backward()
-        if self._clip_grad:
-            for param in self._model1.parameters():
-                param.grad.data.clamp_(-1, 1)
-        self._optimizer1.step()
-
-        self._optimizer2.zero_grad()
-        loss2.backward()
-        if self._clip_grad:
-            for param in self._model2.parameters():
-                param.grad.data.clamp_(-1, 1)
-        self._optimizer2.step()
+        states = super().update()[0]
 
         self._model1.eval()
         self._model2.eval()
@@ -99,20 +67,17 @@ class VaeAgent(AbstactAgent):
         
         vae_loss, recons_loss, kld_loss = self.vae_update(states)
 
-        self.log_loss(loss1.item(), loss2.item(), vae_loss, recons_loss, kld_loss)
-        self._nb_update += 1
+        self.log_vae_loss(vae_loss, recons_loss, kld_loss)
+        self._nb_vae_update += 1
 
         self._model1.train()
         self._model2.train()
         self._vae.train()
 
-    def log_loss(self, loss1, loss2, vae_loss, recons_loss, kld_loss):
+    def log_vae_loss(self, vae_loss, recons_loss, kld_loss):
         wandb.log(
             {
-                "Update Step": self._nb_update,
-                "Loss 1": float(loss1),
-                "Loss 2": float(loss2),
-                "Epsilon": float(self.epsilon()),
+                "VAE Update Step": self._nb_vae_update,
                 "VAE Loss": vae_loss,
                 "Reconst Loss": recons_loss,
                 "KLD Loss": kld_loss,

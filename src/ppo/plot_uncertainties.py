@@ -29,6 +29,17 @@ if __name__ == "__main__":
         "Bootstrap 2",
         "Dropout 2",
     ]
+    uncertainties = [
+        # 1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        2,
+        1,
+        1,
+    ]
     multipliers = [1] * 10
     colors_px = px.colors.qualitative.Plotly
     linewidths = [2] * 10
@@ -37,7 +48,7 @@ if __name__ == "__main__":
         os.makedirs("images")
 
     plot_uncert_train(
-        train_paths, names, colors=colors_px, linewidths=linewidths, smooth=smooth, plot_variance=plot_variance, multipliers=multipliers
+        train_paths, names, colors=colors_px, linewidths=linewidths, smooth=smooth, plot_variance=plot_variance, multipliers=multipliers, max_=150
     )
 
     test_paths = [
@@ -65,7 +76,14 @@ if __name__ == "__main__":
         "uncertainties/test0/bootstrap2.txt",
         "uncertainties/test0/dropout2.txt",
     ]
-    plot_comparative(train_paths,test0_paths, test_paths, names, linewidths)
+    plot_comparative(
+        train_paths=train_paths,
+        test0_paths=test0_paths,
+        test_paths=test_paths,
+        names=names,
+        linewidths=linewidths,
+        uncertainties=uncertainties
+    )
 
     eval_paths = [
         # "uncertainties/customtest1/base.txt",
@@ -82,7 +100,12 @@ if __name__ == "__main__":
     # plot_eval(eval_paths, names, colors=colors_px, linewidths=linewidths, smooth=smooth, multipliers=multipliers)
 
     log_scales = [False] * 10
-    plot_vs_time(eval_paths, names, log_scales)
+    plot_vs_time(
+        paths=eval_paths,
+        names=names,
+        log_scales=log_scales,
+        uncertainties=uncertainties,
+    )
 
     eval2_paths = [
         # "uncertainties/customtest2/base.txt",
@@ -95,6 +118,13 @@ if __name__ == "__main__":
         "uncertainties/customtest2/bootstrap2.txt",
         "uncertainties/customtest2/dropout2.txt",
     ]
-    plot_vs_time(eval2_paths, names, log_scales, figure='images/time2_*.png', red_lines=[25, 100])
+    plot_vs_time(
+        paths=eval2_paths,
+        names=names,
+        log_scales=log_scales,
+        figure='images/time2_*.png',
+        red_lines=[25, 100],
+        uncertainties=uncertainties,
+    )
 
     

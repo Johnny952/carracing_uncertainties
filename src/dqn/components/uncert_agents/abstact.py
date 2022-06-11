@@ -138,6 +138,8 @@ class AbstactAgent:
         self.log_loss(loss1.item(), loss2.item())
         self._nb_update += 1
 
+        return states, actions, next_states, rewards, dones
+
     def log_loss(self, loss1, loss2):
         wandb.log(
             {

@@ -71,6 +71,7 @@ def plot_uncert_train(
     smooth=None,
     plot_variance=False,
     multipliers=None,
+    max_=5000,
 ):
     assert len(paths) == len(names)
     if colors is not None:
@@ -98,31 +99,30 @@ def plot_uncert_train(
             _,
         ) = read_uncert(path)[0]
 
-        mean_epist = np.nan_to_num(mean_epist, nan=_NAN_)
-        mean_aleat = np.nan_to_num(mean_aleat, nan=_NAN_)
+        # mean_epist = np.nan_to_num(mean_epist, nan=_NAN_)
+        # mean_aleat = np.nan_to_num(mean_aleat, nan=_NAN_)
 
         if smooth is not None:
             mean_reward = gaussian_filter1d(mean_reward, smooth)
-            mean_epist[mean_epist != _NAN_] = gaussian_filter1d(mean_epist[mean_epist != _NAN_], smooth)
-            mean_aleat[mean_aleat != _NAN_] = gaussian_filter1d(mean_aleat[mean_aleat != _NAN_], smooth)
+        #     mean_epist[mean_epist != _NAN_] = gaussian_filter1d(mean_epist[mean_epist != _NAN_], smooth)
+        #     mean_aleat[mean_aleat != _NAN_] = gaussian_filter1d(mean_aleat[mean_aleat != _NAN_], smooth)
         
-        mean_epist[mean_epist != _NAN_], magnitude_epist = scale01(mean_epist[mean_epist != _NAN_]*multiplier)
-        mean_aleat[mean_aleat != _NAN_], magnitude_aleat = scale01(mean_aleat[mean_aleat != _NAN_]*multiplier)
+        # mean_epist[mean_epist != _NAN_], magnitude_epist = scale01(mean_epist[mean_epist != _NAN_]*multiplier)
+        # mean_aleat[mean_aleat != _NAN_], magnitude_aleat = scale01(mean_aleat[mean_aleat != _NAN_]*multiplier)
 
         # Plot uncertainties
         # ax[1].plot(
         #     unique_ep, mean_epist, color, label=f"Mean {name} ({magnitude_epist:.3f})", linewidth=linewidth
         # )
-        
         # Plot rewards
         ax.plot(
-            unique_ep, mean_reward, color, label="Mean " + name, linewidth=linewidth
+            unique_ep[:max_], mean_reward[:max_], color, label="Mean " + name, linewidth=linewidth
         )
         if plot_variance:
             ax.fill_between(
-                unique_ep,
-                (mean_reward - std_reward),
-                (mean_reward + std_reward),
+                unique_ep[:max_],
+                (mean_reward - std_reward)[:max_],
+                (mean_reward + std_reward)[:max_],
                 color=color,
                 alpha=0.2,
                 label="Std " + name,
@@ -130,7 +130,7 @@ def plot_uncert_train(
 
     ax.legend()
     fig.savefig(unc_path)
-    fig.close()
+    plt.close(fig)
 
 
 def plotly_train(
@@ -282,17 +282,17 @@ def plot_uncert_test(
             sigma,
         ) = read_uncert(path)
 
-        mean_epist = np.nan_to_num(mean_epist, nan=_NAN_)
+        # mean_epist = np.nan_to_num(mean_epist, nan=_NAN_)
         mean_aleat = np.nan_to_num(mean_aleat, nan=_NAN_)
 
         if smooth is not None:
             mean_reward = gaussian_filter1d(mean_reward, smooth)
-            mean_epist[mean_epist != _NAN_] = gaussian_filter1d(mean_epist[mean_epist != _NAN_], smooth)
+        #     mean_epist[mean_epist != _NAN_] = gaussian_filter1d(mean_epist[mean_epist != _NAN_], smooth)
             mean_aleat[mean_aleat != _NAN_] = gaussian_filter1d(mean_aleat[mean_aleat != _NAN_], smooth)
 
         # if 'mix' in name.lower():
         #    mean_epist = 1 - np.exp(mean_epist)
-        mean_epist[mean_epist != _NAN_], magnitude_epist = scale01(mean_epist[mean_epist != _NAN_]*multiplier)
+        # mean_epist[mean_epist != _NAN_], magnitude_epist = scale01(mean_epist[mean_epist != _NAN_]*multiplier)
         mean_aleat[mean_aleat != _NAN_], magnitude_aleat = scale01(mean_aleat[mean_aleat != _NAN_]*multiplier)
 
         # Plot uncertainties
@@ -301,7 +301,7 @@ def plot_uncert_test(
         # )
         # ax_unc[0].fill_between(sigma, (mean_epist/np.max(mean_epist) - std_epist/np.max(std_epist)), (mean_epist/np.max(mean_epist) + std_epist/np.max(std_epist)), color=color, alpha=0.2, label="Std " + name)
         ax[1].plot(
-            sigma, mean_aleat, color, label=f"Mean {name} ({magnitude_aleat:.3f})", linewidth=linewidth
+            sigma, mean_aleat, color, label=f"Mean {name}", linewidth=linewidth
         )
         # ax_unc[1].fill_between(sigma, (mean_aleat/np.max(mean_aleat) - std_aleat/np.max(std_aleat)), (mean_aleat/np.max(mean_aleat) + std_aleat/np.max(std_aleat)), color=color, alpha=0.2, label="Std " + name)
 
@@ -323,7 +323,7 @@ def plot_uncert_test(
     # ax[1].legend()
     # ax[2].legend()
     fig.savefig(unc_path)
-    fig.close()
+    plt.close(fig)
 
 
 def plotly_test(
@@ -565,7 +565,7 @@ def plot_uncert_comparative(train_paths, test_paths, names, linewidths=None, smo
 
 
         fig.savefig(f"{imgs_path}{file_name}")
-        fig.close()
+        plt.close(fig)
 
 def plot_eval(
     paths,
@@ -616,35 +616,42 @@ def plot_eval(
 
     ax.legend()
     fig.savefig(unc_path)
-    fig.close()
+    plt.close(fig)
 
-def plot_vs_time(paths, names, log_scales, figure='images/time_*.png', nb_eval=-1, red_lines=[70]):
-    for idx, (path, name, log_scale) in enumerate(zip(paths, names, log_scales)):
+def plot_vs_time(paths, names, log_scales, uncertainties, figure='images/time_*.png', nb_eval=-1, red_lines=[70]):
+    for idx, (path, name, log_scale, uncertainty) in enumerate(zip(paths, names, log_scales, uncertainties)):
         (
             _,
             (unique_ep, mean_reward, mean_epist, mean_aleat),
             (std_reward, std_epist, std_aleat),
             (epist, aleat),
         ) = read_uncert(path)[0]
+        uncert_label = 'Epistemic' if uncertainty == 1 else 'Aleatoric'
+        if uncertainty == 1:
+            uncert = epist
+        elif uncertainty == 2:
+            uncert = aleat
+        else:
+            raise NotImplementedError()
         
         plt.figure(figsize=(20, 10))
-        plt.plot(epist[nb_eval])
+        plt.plot(uncert[nb_eval])
         for red_line in red_lines:
-            plt.plot([red_line, red_line], [0, max(epist[nb_eval])], 'r')
+            plt.plot([red_line, red_line], [min(uncert[nb_eval]), max(uncert[nb_eval])], 'r')
         if log_scale:
             plt.yscale('log')
         plt.xlabel('Step', fontsize=16)
-        plt.ylabel('Epistemic Uncertainty', fontsize=16)
-        plt.title(f"Epistemic Uncertainty of {name} during evaluation", fontsize=18)
+        plt.ylabel(f'{uncert_label} Uncertainty', fontsize=16)
+        plt.title(f"{uncert_label} Uncertainty of {name} during evaluation", fontsize=18)
         plt.savefig(figure.replace('*', name))
         plt.close()
 
-def plot_comparative(train_paths, test0_paths, test_paths, names, linewidths=None, imgs_path='images/'):
+def plot_comparative(train_paths, test0_paths, test_paths, names, uncertainties, linewidths=None, imgs_path='images/'):
     assert len(train_paths) == len(names)
     assert len(test_paths) == len(names)
     assert len(test0_paths) == len(names)
 
-    for idx, (train_path, test0_path, test_path, name) in enumerate(zip(train_paths, test0_paths, test_paths, names)):
+    for idx, (train_path, test0_path, test_path, name, uncertainty) in enumerate(zip(train_paths, test0_paths, test_paths, names, uncertainties)):
         linewidth = linewidths[idx] if linewidths is not None else None
         file_name = f"comparative_{name}"
 
@@ -652,24 +659,34 @@ def plot_comparative(train_paths, test0_paths, test_paths, names, linewidths=Non
         fig.set_figheight(7)
         fig.set_figwidth(20)
         fig.suptitle(f"Uncertainties comparative during train and test model: {name}", fontsize=18)
-        
-        ax[0].set_ylabel("Epistemic", fontsize=16)
-        ax[0].set_xlabel("Episode", fontsize=16)
-        ax[0].set_title("Epistemic Uncertainty in evaluation", fontsize=16)
-        ax[1].set_xlabel("Test Number", fontsize=16)
-        ax[1].set_title("Epistemic Uncertainty in test without noise", fontsize=16)
-        ax[2].set_xlabel("Noise Variance", fontsize=16)
-        ax[2].set_title("Epistemic Uncertainty in test with noise", fontsize=16)
 
+        uncert_label = 'Epistemic' if uncertainty == 1 else 'Aleatoric'
+        
+        ax[0].set_ylabel(uncert_label, fontsize=16)
+        ax[0].set_xlabel("Episode", fontsize=16)
+        ax[0].set_title(f"{uncert_label} Uncertainty in evaluation", fontsize=16)
+        ax[1].set_xlabel("Test Number", fontsize=16)
+        ax[1].set_title(f"{uncert_label} Uncertainty in test without noise", fontsize=16)
+        ax[2].set_xlabel("Noise Variance", fontsize=16)
+        ax[2].set_title(f"{uncert_label} Uncertainty in test with noise", fontsize=16)
+
+        
         (
             _,
-            (unique_ep, _, mean_epist, _),
+            (unique_ep, _, mean_epist, mean_aleat),
             (_, std_epist, std_aleat),
             _,
         ) = read_uncert(train_path)[0]
-        mean_epist = np.nan_to_num(mean_epist, nan=_NAN_)
+        if uncertainty == 1:
+            mean_epist = np.nan_to_num(mean_epist, nan=_NAN_)
+            uncert = mean_epist
+        elif uncertainty == 2:
+            mean_aleat = np.nan_to_num(mean_aleat, nan=_NAN_)
+            uncert = mean_aleat
+        else:
+            raise NotImplementedError()
         ax[0].plot(
-            unique_ep, mean_epist, linewidth=linewidth
+            unique_ep, uncert, linewidth=linewidth
         )
 
 
@@ -679,23 +696,34 @@ def plot_comparative(train_paths, test0_paths, test_paths, names, linewidths=Non
             (std_reward, std_epist, std_aleat),
             (epist, aleat),
         ) = read_uncert(test0_path)[0]
-        epist = [np.mean(e) for e in epist]
+        if uncertainty == 1:
+            mean_epist = np.nan_to_num(mean_epist, nan=_NAN_)
+            uncert = mean_epist
+        elif uncertainty == 2:
+            mean_aleat = np.nan_to_num(mean_aleat, nan=_NAN_)
+            uncert = mean_aleat
         ax[1].plot(
-            unique_ep, mean_epist, linewidth=linewidth
+            unique_ep, uncert, linewidth=linewidth
         )
 
         (
             (
                 _,
-                (_, _, mean_epist, mean_aleat),
+                (_, _, uncert, mean_aleat),
                 (_, std_epist, std_aleat),
                 _,
             ),
             sigma,
         ) = read_uncert(test_path)
+        if uncertainty == 1:
+            mean_epist = np.nan_to_num(mean_epist, nan=_NAN_)
+            uncert = mean_epist
+        elif uncertainty == 2:
+            mean_aleat = np.nan_to_num(mean_aleat, nan=_NAN_)
+            uncert = mean_aleat
         ax[2].plot(
-            sigma, mean_epist, linewidth=linewidth
+            sigma, uncert, linewidth=linewidth
         )
 
         fig.savefig(f"{imgs_path}{file_name}")
-        fig.close()
+        plt.close(fig)
