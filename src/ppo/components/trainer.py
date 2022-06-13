@@ -154,6 +154,7 @@ class Trainer:
                 f"{wandb_mode} Mean Epist Uncert": float(mean_uncert[0]),
                 f"{wandb_mode} Mean Aleat Uncert": float(mean_uncert[1]),
                 f"{wandb_mode} Mean Steps": float(mean_steps),
+                f"{wandb_mode} Noise": float(self._eval_env.random_noise),
             }
         )
 
