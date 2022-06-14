@@ -10,7 +10,7 @@ class SensitivityTrainerModel(BaseTrainerModel):
                                                       img_stack, gamma, batch_size, buffer_capacity, device=device)
         self._model = Sensitivity(img_stack).double().to(self.device)
         self.input_range = [-1, 1]
-        self._noise_variance = 0.01
+        self._noise_variance = 0.2
         self._optimizer = optim.Adam(self._model.parameters(), lr=lr)
 
     def get_uncert(self, state):
