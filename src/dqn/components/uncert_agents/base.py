@@ -43,15 +43,11 @@ class BaseAgent(AbstactAgent):
     def get_values(self, observation):
         values = self._model1(observation)
         _, index = torch.max(values, dim=-1)
-        epistemic = self.get_epistemic(F.softmax(values, dim=1))
+
+        top2 = torch.topk(values, 2, dim=-1)
+        epistemic = top2[0] - top2[1]
         aleatoric = torch.Tensor([0])
         return index, epistemic, aleatoric
-
-    def get_epistemic(self, probs):
-        actions = torch.Tensor(self._actions).to(self._device)
-        expectation = probs @ actions
-        variance = probs @ (actions - expectation) ** 2
-        return torch.sum(variance)
     
     def compute_loss(self, states, actions, next_states, rewards, dones):
         curr_Q1 = self._model1(states).gather(1, actions).squeeze(dim=-1)
