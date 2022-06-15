@@ -99,7 +99,17 @@ if __name__ == "__main__":
 
     # plot_eval(eval_paths, names, colors=colors_px, linewidths=linewidths, smooth=smooth, multipliers=multipliers)
 
-    log_scales = [False] * 10
+    log_scales = [
+        False,
+        False,
+        False,
+        False,
+        False,
+        True,
+        False,
+        False,
+        False,
+    ]
     plot_vs_time(
         paths=eval_paths,
         names=names,
