@@ -16,7 +16,7 @@ class VAETrainerModel(BaseTrainerModel):
 
         self._vae_optimizer = optim.Adam(self._vae.parameters(), lr=lr)
 
-        self._nb_vae_epochs = 5
+        self._nb_vae_epochs = 15
         self._nb_vae_update = 0
         self._kld_scale = 0.015
 

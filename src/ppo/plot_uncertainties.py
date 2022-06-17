@@ -102,7 +102,7 @@ if __name__ == "__main__":
     log_scales = [
         False,
         False,
-        False,
+        True,
         False,
         False,
         True,
