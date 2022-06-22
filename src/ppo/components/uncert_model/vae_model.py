@@ -18,7 +18,7 @@ class VAETrainerModel(BaseTrainerModel):
 
         self._nb_vae_epochs = 20
         self._nb_vae_update = 0
-        self._kld_scale = 0.015
+        self._kld_scale = 0.005
 
     def train(self, epochs, clip_param, database):
         (s, a, r, s_, old_a_logp) = database

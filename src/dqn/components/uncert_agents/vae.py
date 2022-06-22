@@ -37,7 +37,7 @@ class VaeAgent(AbstactAgent):
 
         latent_size = 128
         self._nb_vae_update = 0
-        self._kld_scale = 0.005
+        self._kld_scale = 0.01
         self._vae = VanillaVAE(latent_size).float().to(self._device)
         self._vae_optimizer = torch.optim.Adam(self._vae.parameters(), lr=0.001)
 
