@@ -90,3 +90,57 @@ class Evaluator:
 
     def eval2(self, episode_nb, agent):
         self._eval(episode_nb, agent, default_steps=[25, 100])
+
+    def noise_eval(self, episode_nb, agent, steps=[40, 80], noise_range=[0, 0.1]):
+        self.load_env()
+
+        self._eval_env.set_noise_value(0)
+
+        nb_steps = len(steps) + 1
+        noises = np.linspace(noise_range[0], noise_range[1], num=nb_steps)
+        for i_val in range(self.validations):
+            score = 0
+            steps = 0
+            state = self._eval_env.reset()
+            die = False
+
+            uncert = []
+            i_step = 0
+            while not die:
+                noise = get_noise(i_step, steps, noises)
+                self._eval_env.set_noise_value(noise)
+
+                action = self._agent.select_action(state, eval=True)[0]
+                epis, aleat = agent.select_action(state, eval=True)[-1]
+                uncert.append(
+                    [epis.view(-1).cpu().numpy()[0], aleat.view(-1).cpu().numpy()[0]]
+                )
+                action = self.ppo_step(action)
+
+                state_, reward, _, die = self._eval_env.step(action)[:4]
+                score += reward
+                state = state_
+                steps += 1
+                i_step += 1
+
+            uncert = np.array(uncert)
+            save_uncert(
+                episode_nb,
+                i_val,
+                score,
+                uncert,
+                file=f"{self.base_path}/{self.model_name}.txt",
+                sigma=self._eval_env.random_noise,
+            )
+
+            self.evaluation_nb += 1
+        self._eval_env.close()
+
+    
+def get_noise(i: "int", steps: "list[int]", noise: "list[float]"):
+    if i < steps[0]:
+        return noise[0]
+    elif i > steps[-1]:
+        return noise[-1]
+    else:
+        return noise[1]
