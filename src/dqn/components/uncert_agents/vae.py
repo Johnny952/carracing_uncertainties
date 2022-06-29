@@ -56,23 +56,12 @@ class VaeAgent(AbstactAgent):
         return index, epistemic, aleatoric
 
     def update(self):
-        self._model1.train()
-        self._model2.train()
-        self._vae.eval()
         states = super().update()[0]
-
-        self._model1.eval()
-        self._model2.eval()
-        self._vae.train()
         
         vae_loss, recons_loss, kld_loss = self.vae_update(states)
 
         self.log_vae_loss(vae_loss, recons_loss, kld_loss)
         self._nb_vae_update += 1
-
-        self._model1.train()
-        self._model2.train()
-        self._vae.train()
 
     def log_vae_loss(self, vae_loss, recons_loss, kld_loss):
         wandb.log(
