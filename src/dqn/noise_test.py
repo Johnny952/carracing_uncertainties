@@ -114,13 +114,15 @@ if __name__ == "__main__":
     display.start()
 
     # Whether to use cuda or cpu
+    seed = 0
+
     if args.device == "auto":
         torch.cuda.empty_cache()
         use_cuda = torch.cuda.is_available()
         device = torch.device("cuda" if use_cuda else "cpu")
-        torch.manual_seed(args.train_seed)
+        torch.manual_seed(seed)
         if use_cuda:
-            torch.cuda.manual_seed(args.train_seed)
+            torch.cuda.manual_seed(seed)
     else:
         device = args.device
     print(colored(f"Using: {device}", "green"))
