@@ -91,12 +91,12 @@ class Evaluator:
     def eval2(self, episode_nb, agent):
         self._eval(episode_nb, agent, default_steps=[25, 100])
 
-    def noise_eval(self, episode_nb, agent, steps=[40, 80], noise_range=[0, 0.1]):
+    def noise_eval(self, episode_nb, agent, noise_steps=[40, 80], noise_range=[0, 0.1]):
         self.load_env()
 
         self._eval_env.set_noise_value(0)
 
-        nb_steps = len(steps) + 1
+        nb_steps = len(noise_steps) + 1
         noises = np.linspace(noise_range[0], noise_range[1], num=nb_steps)
         for i_val in range(self.validations):
             score = 0
@@ -107,7 +107,7 @@ class Evaluator:
             uncert = []
             i_step = 0
             while not die:
-                noise = get_noise(i_step, steps, noises)
+                noise = get_noise(i_step, noise_steps, noises)
                 self._eval_env.set_noise_value(noise)
 
                 action = self._agent.select_action(state, eval=True)[0]
