@@ -137,4 +137,22 @@ if __name__ == "__main__":
         uncertainties=uncertainties,
     )
 
-    
+    noise_test = [
+        "uncertainties/noisetest/base.txt",
+        "uncertainties/noisetest/bnn2.txt",
+        "uncertainties/noisetest/bootstrap.txt",
+        "uncertainties/noisetest/dropout.txt",
+        "uncertainties/noisetest/sensitivity.txt",
+        "uncertainties/noisetest/vae.txt",
+        "uncertainties/noisetest/aleatoric.txt",
+        "uncertainties/noisetest/bootstrap2.txt",
+        "uncertainties/noisetest/dropout2.txt",
+    ]
+    plot_vs_time(
+        paths=noise_test,
+        names=names,
+        log_scales=log_scales,
+        figure='images/time_noise_*.png',
+        red_lines=[40, 80],
+        uncertainties=uncertainties,
+    )
