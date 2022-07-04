@@ -2,7 +2,7 @@ import os
 import plotly.express as px
 import sys
 sys.path.append('..')
-from shared.utils.plot import _NAN_, read_uncert, plot_uncert_train, plot_uncert_test, plot_eval, plot_vs_time, plot_comparative
+from shared.utils.plot import plot_uncert_train, plot_uncert_test, plot_eval, plot_vs_time, plot_comparative
 
 if __name__ == "__main__":
     smooth = 2

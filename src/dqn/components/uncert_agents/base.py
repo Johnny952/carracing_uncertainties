@@ -45,7 +45,7 @@ class BaseAgent(AbstactAgent):
         _, index = torch.max(values, dim=-1)
 
         top2 = torch.topk(values, 2, dim=-1)
-        epistemic = top2[0] - top2[1]
+        epistemic = torch.abs(top2[0] - top2[1])
         aleatoric = torch.Tensor([0])
         return index, epistemic, aleatoric
     

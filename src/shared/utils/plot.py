@@ -34,7 +34,7 @@ def read_uncert(path):
             l = len(data) - 4
             epist.append(data[4 : l // 2 + 4])
             aleat.append(data[l // 2 + 4 :])
-    return process(np.array(epochs), np.array(reward), epist, aleat), np.unique(sigma)
+    return process(np.array(epochs), np.array(reward), epist, aleat), np.unique(sigma), sigma
 
 
 def process(epochs, reward, epist, aleat):
@@ -279,7 +279,7 @@ def plot_uncert_test(
                 (std_reward, std_epist, std_aleat),
                 _,
             ),
-            sigma,
+            sigma, _
         ) = read_uncert(path)
 
         # mean_epist = np.nan_to_num(mean_epist, nan=_NAN_)
@@ -346,7 +346,7 @@ def plotly_test(
                 (std_reward, std_epist, std_aleat),
                 _,
             ),
-            sigma,
+            sigma, _
         ) = read_uncert(path)
 
         mean_epist = np.nan_to_num(mean_epist, nan=_NAN_)
@@ -521,7 +521,7 @@ def plot_uncert_comparative(train_paths, test_paths, names, linewidths=None, smo
                 (_, std_epist, std_aleat),
                 _,
             ),
-            sigma,
+            sigma, _
         ) = read_uncert(test_path)
 
         if ncols == 2:
@@ -713,7 +713,7 @@ def plot_comparative(train_paths, test0_paths, test_paths, names, uncertainties,
                 (_, std_epist, std_aleat),
                 _,
             ),
-            sigma,
+            sigma, _
         ) = read_uncert(test_path)
         if uncertainty == 1:
             mean_epist = np.nan_to_num(mean_epist, nan=_NAN_)
