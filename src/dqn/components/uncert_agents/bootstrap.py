@@ -54,9 +54,9 @@ class BootstrapAgent(AbstactAgent):
             values_list.append(mu)
             log_var_list.append(log_var)
         values_list = torch.stack(values_list).squeeze(dim=1)
-        wandb.log({
-            "Magnitude Value": torch.abs(values_list).sum()
-        })
+        # wandb.log({
+        #     "Magnitude Value": torch.abs(values_list).sum()
+        # })
         sigma_list = torch.exp(torch.stack(log_var_list)).squeeze(dim=1)
         distribution = GaussianMixture(values_list, sigma_list, device=self._device)
         values = distribution.mean.unsqueeze(dim=0)

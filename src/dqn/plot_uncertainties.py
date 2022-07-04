@@ -8,9 +8,9 @@ if __name__ == "__main__":
     smooth = 2
     plot_variance = False
     train_paths = [
-        "uncertainties/eval/base.txt",
+        #"uncertainties/eval/base.txt",
         "uncertainties/eval/bnn2.txt",
-        # "uncertainties/eval/bootstrap.txt",
+        "uncertainties/eval/bootstrap.txt",
         "uncertainties/eval/dropout.txt",
         "uncertainties/eval/sensitivity.txt",
         "uncertainties/eval/vae.txt",
@@ -19,9 +19,9 @@ if __name__ == "__main__":
         "uncertainties/eval/dropout2.txt",
     ]
     names = [
-        "Base",
+        #"Base",
         "Bayesian NN",
-        # "Bootstrap",
+        "Bootstrap",
         "Dropout",
         "Sensitivity",
         "VAE",
@@ -30,9 +30,9 @@ if __name__ == "__main__":
         "Dropout 2",
     ]
     uncertainties = [
-        1,
-        1,
         # 1,
+        1,
+        1,
         1,
         1,
         1,
@@ -52,9 +52,9 @@ if __name__ == "__main__":
     )
 
     test_paths = [
-        "uncertainties/test/base.txt",
+        # "uncertainties/test/base.txt",
         "uncertainties/test/bnn2.txt",
-        # "uncertainties/test/bootstrap.txt",
+        "uncertainties/test/bootstrap.txt",
         "uncertainties/test/dropout.txt",
         "uncertainties/test/sensitivity.txt",
         "uncertainties/test/vae.txt",
@@ -66,9 +66,9 @@ if __name__ == "__main__":
     plot_uncert_test(test_paths, names, colors=colors_px, linewidths=linewidths, smooth=smooth, plot_variance=plot_variance, multipliers=multipliers)
 
     test0_paths = [
-        "uncertainties/test0/base.txt",
+        # "uncertainties/test0/base.txt",
         "uncertainties/test0/bnn2.txt",
-        # "uncertainties/test0/bootstrap.txt",
+        "uncertainties/test0/bootstrap.txt",
         "uncertainties/test0/dropout.txt",
         "uncertainties/test0/sensitivity.txt",
         "uncertainties/test0/vae.txt",
@@ -86,9 +86,9 @@ if __name__ == "__main__":
     )
 
     eval_paths = [
-        "uncertainties/customtest1/base.txt",
+        # "uncertainties/customtest1/base.txt",
         "uncertainties/customtest1/bnn2.txt",
-        # "uncertainties/customtest1/bootstrap.txt",
+        "uncertainties/customtest1/bootstrap.txt",
         "uncertainties/customtest1/dropout.txt",
         "uncertainties/customtest1/sensitivity.txt",
         "uncertainties/customtest1/vae.txt",
@@ -99,7 +99,17 @@ if __name__ == "__main__":
 
     # plot_eval(eval_paths, names, colors=colors_px, linewidths=linewidths, smooth=smooth, multipliers=multipliers)
 
-    log_scales = [False] * 10
+    log_scales = [
+        # False,
+        False,
+        True,
+        False,
+        False,
+        False,
+        False,
+        False,
+        False,
+    ]
     plot_vs_time(
         paths=eval_paths,
         names=names,
@@ -108,9 +118,9 @@ if __name__ == "__main__":
     )
 
     eval2_paths = [
-        "uncertainties/customtest2/base.txt",
+        # "uncertainties/customtest2/base.txt",
         "uncertainties/customtest2/bnn2.txt",
-        # "uncertainties/customtest2/bootstrap.txt",
+        "uncertainties/customtest2/bootstrap.txt",
         "uncertainties/customtest2/dropout.txt",
         "uncertainties/customtest2/sensitivity.txt",
         "uncertainties/customtest2/vae.txt",
